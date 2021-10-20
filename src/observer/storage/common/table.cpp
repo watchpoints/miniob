@@ -306,7 +306,7 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
     
     if(field->type() ==AttrType::DATES)
     {
-      LOG_INFO(" insert:AttrType::FLOATS, value.data=%s",value.data);
+      LOG_INFO(" insert:AttrType::DATES, value.data=%s",value.data);
     }else if (field->type() != value.type) {
       LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
         field->name(), field->type(), value.type);
@@ -322,10 +322,11 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
     memcpy(record + field->offset(), value.data, field->len());
+    LOG_INFO("insert: memcpy value=%s,field->len()=%d,record=%s,record_size=%d",value.data,field->len(),record);
   }
 
   record_out = record;
-  LOG_INFO(" >>>>>>>>>>>> make_record record %s", record);
+  LOG_INFO(" >>>>>>>>>>>> make_record record =%s", record);
 
   return RC::SUCCESS;
 }
