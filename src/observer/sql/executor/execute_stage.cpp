@@ -123,7 +123,11 @@ void ExecuteStage::handle_request(common::StageEvent *event) {
 
   switch (sql->flag) {
     case SCF_SELECT: { // select
-      do_select(current_db, sql, exe_event->sql_event()->session_event());
+      RC rc=do_select(current_db, sql, exe_event->sql_event()->session_event());
+      if (rc != RC::SUCCESS) 
+      {
+          exe_event->sql_event()->session_event()->set_response("FAILURE\n"); //返回结果
+      }
       exe_event->done_immediate();
     }
     break;
@@ -238,9 +242,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       //检查具体的错误:表不存在，字段不存在
       if(RC::SCHEMA_TABLE_NOT_EXIST == rc || RC::SCHEMA_FIELD_MISSING ==rc)
       {
-        char response[256];
-        snprintf(response, sizeof(response), "FAILURE\n");
-        session_event->set_response(response); //返回结果
+        session_event->set_response("FAILURE\n"); //返回结果
       }
 
       end_trx_if_need(session, trx, false);

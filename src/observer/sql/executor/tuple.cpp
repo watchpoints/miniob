@@ -168,7 +168,7 @@ void TupleSet::print(std::ostream &os) const {
     return;
   }
 
-  schema_.print(os);
+  schema_.print(os); //打印 列字段 
 
   for (const Tuple &item : tuples_) {
     const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
@@ -232,6 +232,13 @@ void TupleRecordConverter::add_record(const char *record) {
       case CHARS: {
         const char *s = record + field_meta->offset();  // 现在当做Cstring来处理
         tuple.add(s, strlen(s));
+      }
+      break;
+      case DATES: {
+        const char *s = record + field_meta->offset();  // 现在当做Cstring来处理
+        tuple.add(s, strlen(s));
+        LOG_INFO("add_record type=%d,name=%s,value=%s,len=%d", field_meta->type(),field.field_name(),s,strlen(s));
+
       }
       break;
       default: {

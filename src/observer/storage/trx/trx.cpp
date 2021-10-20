@@ -72,6 +72,7 @@ RC Trx::delete_record(Table *table, Record *record) {
   start_if_not_started();
   Operation *old_oper = find_operation(table, record->rid);
   if (old_oper != nullptr) {
+    //小王疑问：插入操作类型：Operation::Type::INSERT 怎么有这个？？？
     if (old_oper->type() == Operation::Type::INSERT) {
       delete_operation(table, record->rid);
       return RC::SUCCESS;
@@ -141,6 +142,8 @@ RC Trx::commit() {
       RID rid;
       rid.page_num = operation.page_num();
       rid.slot_num = operation.slot_num();
+      
+      LOG_INFO("Trx::commit. rid=%d.%d,operation. type=%d",rid.page_num, rid.slot_num,(int)operation.type());
 
       switch (operation.type()) {
         case Operation::Type::INSERT: {
@@ -157,6 +160,17 @@ RC Trx::commit() {
           if (rc != RC::SUCCESS) {
             // handle rc
             LOG_ERROR("Failed to commit delete operation. rid=%d.%d, rc=%d:%s",
+                      rid.page_num, rid.slot_num, rc, strrc(rc));
+          }
+        }
+        break;
+        case Operation::Type::UPDATE: {
+          LOG_INFO("Operation::Type::UPDATE");
+
+          rc = table->commit_update(this, rid);
+          if (rc != RC::SUCCESS) {
+            // handle rc
+            LOG_ERROR("Failed to update delete operation. rid=%d.%d, rc=%d:%s",
                       rid.page_num, rid.slot_num, rc, strrc(rc));
           }
         }
@@ -248,4 +262,24 @@ void Trx::start_if_not_started() {
   if (trx_id_ == 0) {
     trx_id_ = next_trx_id();
   }
+}
+
+
+RC Trx::update_record(Table *table, Record *record) {
+  RC rc = RC::SUCCESS;
+  start_if_not_started();
+  Operation *old_oper = find_operation(table, record->rid);
+  if (old_oper != nullptr) {
+    LOG_INFO("update_record  begin old_oper is null");
+    //小王疑问：插入操作类型：Operation::Type::INSERT 怎么有这个？？？
+   // if (old_oper->type() == Operation::Type::INSERT) {
+   //   delete_operation(table, record->rid);
+   //   return RC::SUCCESS;
+   // } else {
+   //   return RC::GENERIC_ERROR;
+    //}
+  }
+  set_record_trx_id(table, *record, trx_id_, true);
+  insert_operation(table, Operation::Type::UPDATE, record->rid);
+  return rc;
 }

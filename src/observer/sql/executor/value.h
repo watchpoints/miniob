@@ -19,7 +19,7 @@ See the Mulan PSL v2 for more details. */
 
 #include <string>
 #include <ostream>
-
+#include <iostream>
 class TupleValue {
 public:
   TupleValue() = default;
@@ -36,6 +36,7 @@ public:
   }
 
   void to_string(std::ostream &os) const override {
+    std::cout<< "IntValue:value_" <<value_<<std::endl;
     os << value_;
   }
 
@@ -54,6 +55,7 @@ public:
   }
 
   void to_string(std::ostream &os) const override {
+    std::cout<< "FloatValue:value_" <<value_<<std::endl;
     os << value_;
   }
 
@@ -80,6 +82,7 @@ public:
   }
 
   void to_string(std::ostream &os) const override {
+    std::cout<< "StringValue:value_:" <<value_<<std::endl;
     os << value_;
   }
 

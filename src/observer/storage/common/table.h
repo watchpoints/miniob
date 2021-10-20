@@ -26,6 +26,7 @@ struct RID;
 class Index;
 class IndexScanner;
 class RecordDeleter;
+class RecordUpdated;
 class Trx;
 
 class Table {
@@ -75,6 +76,7 @@ public:
 public:
   RC commit_insert(Trx *trx, const RID &rid);
   RC commit_delete(Trx *trx, const RID &rid);
+   RC commit_update(Trx *trx, const RID &rid);
   RC rollback_insert(Trx *trx, const RID &rid);
   RC rollback_delete(Trx *trx, const RID &rid);
 
@@ -86,10 +88,13 @@ private:
 
   RC insert_record(Trx *trx, Record *record);
   RC delete_record(Trx *trx, Record *record);
+  RC update_record(Trx *trx, Record *record);
 
 private:
   friend class RecordUpdater;
   friend class RecordDeleter;
+  //add by wangchuanyi
+  friend class RecordUpdated;
 
   RC insert_entry_of_indexes(const char *record, const RID &rid);
   RC delete_entry_of_indexes(const char *record, const RID &rid, bool error_on_not_exists);

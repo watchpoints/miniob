@@ -303,7 +303,11 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
   for (int i = 0; i < value_num; i++) {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
-    if (field->type() != value.type) {
+    
+    if(field->type() ==AttrType::DATES)
+    {
+      LOG_INFO(" insert:AttrType::FLOATS, value.data=%s",value.data);
+    }else if (field->type() != value.type) {
       LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
         field->name(), field->type(), value.type);
       return RC::SCHEMA_FIELD_TYPE_MISMATCH;
@@ -321,6 +325,8 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
   }
 
   record_out = record;
+  LOG_INFO(" >>>>>>>>>>>> make_record record %s", record);
+
   return RC::SUCCESS;
 }
 
@@ -557,9 +563,6 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
   return rc;
 }
 
-RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value, int condition_num, const Condition conditions[], int *updated_count) {
-  return RC::GENERIC_ERROR;
-}
 
 class RecordDeleter {
 public:
@@ -583,6 +586,35 @@ private:
   Table & table_;
   Trx *trx_;
   int deleted_count_ = 0;
+};
+
+//add by wangchuanyi
+class RecordUpdated {
+public:
+  RecordUpdated(Table &table, Trx *trx,const Value *value) : table_(table), trx_(trx) ,value_(value) {
+  }
+
+  RC update_record(Record *record) {
+    RC rc = RC::SUCCESS;
+    rc = table_.update_record(trx_, record);
+    if (rc == RC::SUCCESS) {
+      update_count_++;
+    }
+    return rc;
+  }
+
+  int updated_count() const {
+    return update_count_;
+  }
+  const Value * get_value() const {
+    return value_;
+  }
+
+private:
+  Table & table_; //成员初始化列表
+  Trx *trx_;
+  int update_count_ = 0;
+  const Value *value_;
 };
 
 static RC record_reader_delete_adapter(Record *record, void *context) {
@@ -615,6 +647,71 @@ RC Table::delete_record(Trx *trx, Record *record) {
   return rc;
 }
 
+//更新记录
+static RC record_reader_updater_adapter(Record *record, void *context) {
+  RecordUpdated &record_updater = *(RecordUpdated *)context;
+  return record_updater.update_record(record);
+}
+//record_reader_updater_adapter放在后面
+RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value, int condition_num, const Condition conditions[], int *updated_count) {
+  LOG_INFO("update_record table: (%s),update value= %p", attribute_name,value);
+   
+   if (nullptr == attribute_name || nullptr == value ) {
+    LOG_ERROR("Invalid argument. attribute_name=%p, values=%p", attribute_name, value);
+    return RC::INVALID_ARGUMENT;
+  }
+
+  //char *record_data;
+  //这个方式不合适，因为make_record value是个数组。 
+  //RC rc = make_record(1, value, record_data);
+  //if (rc != RC::SUCCESS) {
+   // LOG_ERROR("Failed to update a record. rc=%d:%s", rc, strrc(rc));
+    //return rc;
+  //}
+  //memcpy(record + field->offset(), value.data, field->len());
+
+
+  Record record;
+  //record.data = record_data;
+
+    //设置过滤条件
+    CompositeConditionFilter condition_filter;
+    RC rc = condition_filter.init(*this, conditions, condition_num);
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+    //value 从哪里设置呀？？？
+
+  RecordUpdated updater(*this, trx,value);
+  rc = scan_record(trx, &condition_filter, -1, &updater, record_reader_updater_adapter);
+  if (updated_count != nullptr) {
+    *updated_count = updater.updated_count();
+  }
+  //delete[] record_data;
+  return rc;
+
+
+  //return RC::GENERIC_ERROR;
+}
+
+RC Table::update_record(Trx *trx, Record *record) {
+  RC rc = RC::SUCCESS;
+  if (trx != nullptr) {
+    LOG_INFO("update_record  begin");
+    rc = trx->update_record(this, record);
+  } 
+  /**
+  else {
+    rc = delete_entry_of_indexes(record->data, record->rid, false);// 重复代码 refer to commit_delete
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to delete indexes of record (rid=%d.%d). rc=%d:%s",
+                record->rid.page_num, record->rid.slot_num, rc, strrc(rc));
+    } else {
+      rc = record_handler_->delete_record(&record->rid);
+    }
+  }**/
+  return rc;
+}
 RC Table::commit_delete(Trx *trx, const RID &rid) {
   RC rc = RC::SUCCESS;
   Record record;
@@ -754,5 +851,38 @@ RC Table::sync() {
     }
   }
   LOG_INFO("Sync table over. table=%s", name());
+  return rc;
+}
+
+
+RC Table::commit_update(Trx *trx, const RID &rid) {
+  /**
+  Record record;
+  RC rc = record_handler_->get_record(&rid, &record);
+  if (rc != RC::SUCCESS) {
+    return rc;
+  }
+
+  return trx->commit_insert(this, record);**/
+
+  RC rc = RC::SUCCESS;
+  Record record;
+  rc = record_handler_->get_record(&rid, &record);
+  if (rc != RC::SUCCESS) {
+    LOG_INFO("commit_update get_record failed =%d", rc);
+    return rc;
+  }
+  //rc = delete_entry_of_indexes(record.data, record.rid, false);
+  //if (rc != RC::SUCCESS) {
+  //  LOG_ERROR("Failed to delete indexes of record(rid=%d.%d). rc=%d:%s",
+ //             rid.page_num, rid.slot_num, rc, strrc(rc));// panic?
+ // }
+
+  rc = record_handler_->update_record(&record);
+  if (rc != RC::SUCCESS) {
+    LOG_INFO("delete_record get_record failed =%d", rc);
+    return rc;
+  }
+
   return rc;
 }

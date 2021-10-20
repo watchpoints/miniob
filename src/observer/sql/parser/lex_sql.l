@@ -29,7 +29,6 @@ ID               [A-Za-z_]+[A-Za-z0-9_]*
 DOT              \.
 QUOTE            [\'\"]
 %x STR
-
 %%
 
 {WHITE_SAPCE}                           // ignore whitespace
@@ -70,6 +69,7 @@ QUOTE            [\'\"]
 [Ff][Ll][Oo][Aa][Tt]			               RETURN_TOKEN(FLOAT_T);
 [Ll][Oo][Aa][Dd]			                   RETURN_TOKEN(LOAD);
 [Dd][Aa][Tt][Aa]	                       RETURN_TOKEN(DATA);
+[Dd][Aa][Tt][Ee]	                       RETURN_TOKEN(DATE_T);
 [Ii][Nn][Ff][Ii][Ll][Ee]                 RETURN_TOKEN(INFILE);
 {ID}							                       yylval->string=strdup(yytext); RETURN_TOKEN(ID);
 "("								                       RETURN_TOKEN(LBRACE);
@@ -83,7 +83,6 @@ QUOTE            [\'\"]
 ">="                                     RETURN_TOKEN(GE);
 ">"                                      RETURN_TOKEN(GT);
 {QUOTE}[\40\42\47A-Za-z0-9_/\.\-]*{QUOTE}	     yylval->string=strdup(yytext); RETURN_TOKEN(SSS);
-
 .						                             printf("Unknown character [%c]\n",yytext[0]); return yytext[0];
 %%
 

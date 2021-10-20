@@ -49,8 +49,15 @@ void value_init_float(Value *value, float v) {
   memcpy(value->data, &v, sizeof(v));
 }
 void value_init_string(Value *value, const char *v) {
-  value->type = CHARS;
+    value->type = CHARS;
+    //LOG_INFO("value_init_string=%s",value.data);
+    std::cout<<"value_init_string ="<<v <<std::endl;
+    value->data = strdup(v); 
+}
+void value_init_date(Value *value, const char *v) {
+  value->type = DATES;
   value->data = strdup(v);
+  std::cout<<"value_init_date ="<<v <<std::endl;
 }
 void value_destroy(Value *value) {
   value->type = UNDEFINED;

@@ -173,6 +173,7 @@ void DefaultStorageStage::handle_event(StageEvent *event) {
       const char *table_name = updates.relation_name;
       const char *field_name = updates.attribute_name;
       int updated_count = 0;
+      //实现update功能
       rc = handler_->update_record(current_trx, current_db, table_name, field_name, &updates.value,
                                    updates.condition_num, updates.conditions, &updated_count);
       snprintf(response, sizeof(response), "%s\n", rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
@@ -342,6 +343,10 @@ RC insert_record_from_file(Table *table, std::vector<std::string> &file_values,
       break;
       case CHARS: {
         value_init_string(&record_values[i], file_value.c_str());
+      }
+      break;
+      case DATES: {
+        value_init_date(&record_values[i], file_value.c_str());
       }
       break;
       default: {
