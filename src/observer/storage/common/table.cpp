@@ -949,7 +949,11 @@ bool Table::check_date(char* pdate)
     cout << "please input day:" <<day<<endl;
 
     if (year >=1970 && year <=2038)
-    { 
+    {   
+        if(year == 2038 &&  month >2)
+        {
+          return false;
+        }
         jyear = 1;
     }
     else
