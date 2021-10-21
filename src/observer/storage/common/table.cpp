@@ -296,6 +296,7 @@ const TableMeta &Table::table_meta() const {
 RC Table::make_record(int value_num, const Value *values, char * &record_out) {
   // 检查字段类型是否一致
   if (value_num + table_meta_.sys_field_num() != table_meta_.field_num()) {
+    LOG_INFO(" make_record  SCHEMA_FIELD_MISSING ");
     return RC::SCHEMA_FIELD_MISSING;
   }
 
@@ -692,7 +693,7 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
   //memcpy(record + field->offset(), value.data, field->len());
 
 
-  Record record;
+  //Record record;
   //record.data = record_data;
 
     //设置过滤条件
@@ -710,9 +711,6 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
   }
   //delete[] record_data;
   return rc;
-
-
-  //return RC::GENERIC_ERROR;
 }
 
 RC Table::update_record(Trx *trx, Record *record) {

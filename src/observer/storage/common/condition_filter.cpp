@@ -128,6 +128,18 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     return RC::SCHEMA_FIELD_TYPE_MISMATCH;
   }
 
+  //select * from t where birthday='2021-2-30';
+  //birthday 是否非法日期类型 需要检查。
+  if(type_left == AttrType::DATES &&  type_right == AttrType::CHARS 
+    && right.is_attr ==false)
+  {  
+     if(false ==check_where_date((char*)right.value))
+     {
+        LOG_INFO(" check_where_date failed,value=%s",right.value);
+        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+     }
+  }
+
   return init(left, right, type_left, condition.comp);
 }
 
@@ -254,6 +266,36 @@ bool CompositeConditionFilter::filter(const Record &rec) const
     }
   }
   return true;
+}
+bool DefaultConditionFilter::check_where_date(char* date)
+{      
+       if(nullptr ==date)
+       {
+         return false;
+       }
+       const char *pattern = "[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}";
+       if(0 ==common::regex_match(date,pattern))
+       {
+          //ok
+       }else
+       {  
+         LOG_INFO(" make_record  [0-9]{4}-[0-9]{1,2}-[0-9]{1,2}  value.data=%s",date);
+         return false;
+       }
+
+        //检查日期是否合法
+      char *ptr=static_cast<char*>(date);
+      int len=strlen(ptr);
+      char ptemp[len];
+      memcpy(ptemp,ptr,len);
+      Table table;
+      if(false ==table.check_date(ptemp))
+      {
+         LOG_INFO(" check_date failed  value.data=%s",date);
+         return false;
+      }
+
+      return true;
 }
 
 

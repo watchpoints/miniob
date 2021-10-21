@@ -17,7 +17,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "rc.h"
 #include "sql/parser/parse.h"
-
+#include "common/math/regex.h"
 struct Record;
 class Table;
 
@@ -49,6 +49,7 @@ public:
   RC init(Table &table, const Condition &condition);
 
   virtual bool filter(const Record &rec) const;
+  bool check_where_date(char* ptr);
 
 public:
   const ConDesc &left() const {
@@ -78,6 +79,7 @@ public:
   RC init(const ConditionFilter *filters[], int filter_num);
   RC init(Table &table, const Condition *conditions, int condition_num);
   virtual bool filter(const Record &rec) const;
+ 
 
 public:
   int filter_num() const {

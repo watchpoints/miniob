@@ -84,6 +84,7 @@ public:
    RC commit_update(Trx *trx, const RID &rid);
   RC rollback_insert(Trx *trx, const RID &rid);
   RC rollback_delete(Trx *trx, const RID &rid);
+  bool check_date(char* pdate); //日期检查
 
 private:
   RC scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context, RC (*record_reader)(Record *record, void *context));
@@ -94,7 +95,7 @@ private:
   RC insert_record(Trx *trx, Record *record);
   RC delete_record(Trx *trx, Record *record);
   RC update_record(Trx *trx, Record *record);
-  bool check_date(char* pdate); //日期检查
+  
 
 private:
   friend class RecordUpdater;
