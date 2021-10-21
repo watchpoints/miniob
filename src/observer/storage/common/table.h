@@ -17,6 +17,11 @@ See the Mulan PSL v2 for more details. */
 
 #include "storage/common/table_meta.h"
 
+#include <iostream>
+#include <string.h>
+#include <stdio.h>
+using namespace std;
+
 class DiskBufferPool;
 class RecordFileHandler;
 class ConditionFilter;
@@ -89,6 +94,7 @@ private:
   RC insert_record(Trx *trx, Record *record);
   RC delete_record(Trx *trx, Record *record);
   RC update_record(Trx *trx, Record *record);
+  bool check_date(char* pdate); //日期检查
 
 private:
   friend class RecordUpdater;

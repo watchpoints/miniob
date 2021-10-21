@@ -317,12 +317,16 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
          return RC::SCHEMA_FIELD_TYPE_MISMATCH;
        }
 
-       //闰年判断 暂时正则不会写，这里做个简单判断【遗漏任务】
-       //if("2021-2-31" ==(char*)value.data)
-       //{
-
-       //}
-
+       //检查日期是否合法
+      char *ptr=static_cast<char*>(value.data);
+      int len=strlen(ptr);
+      char date[len];
+      memcpy(date,ptr,len);
+      if(false ==check_date(date))
+      {
+         LOG_INFO(" check_date failed  value.data=%s",value.data);
+         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+      }
     }else if (field->type() != value.type) {
       LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
         field->name(), field->type(), value.type);
@@ -902,4 +906,122 @@ RC Table::commit_update(Trx *trx, const RID &rid) {
   }
 
   return rc;
+}
+
+bool Table::check_date(char* pdate)
+{   
+    if(nullptr ==pdate)
+    {
+        return false;
+    }
+    bool ret =true;
+    bool jyear =false;  
+    bool jmonth =false;
+    bool jday =false;
+    int year =0;
+    int month =0;
+    int day =0;
+    int count =0;
+
+    char *p;
+    const char *split = "-"; //可按多个字符来分割
+    p = strtok(pdate, split);
+    while(p)
+    {  
+        int data =atoi(p);
+        cout<< "data=" <<data;
+        if(count == 0)
+        {
+            year =data;
+        }else if(count ==1)
+        {
+            month =data;
+        }else if(count ==2)
+        {
+            day =data;
+        }
+        count++;
+        p = strtok(NULL, split);
+    }
+    
+    cout << "please input year:" <<year <<endl;
+    cout << "please input month:" <<month <<endl;
+    cout << "please input day:" <<day<<endl;
+
+    if (year >=1970 && year <=2038)
+    { 
+        jyear = 1;
+    }
+    else
+    {
+         jyear = 0;
+    }
+
+    if (month >= 1 && month <= 12)
+    {
+         jmonth = 1;
+    }
+    else
+    {
+        jmonth = 0;   
+    }
+    
+
+    if (month == 4 || month == 6 || month == 9 || month == 11)
+    {
+
+        if (day >= 1 && day <= 30)
+            jday = 1;
+        else
+
+            jday = 0;
+    }
+    if (month == 2)
+    {
+        if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0))
+        {
+
+            if (day >= 1 && day <= 29)
+
+                jday = 1;
+
+            else
+
+                jday = 0;
+        }
+        else
+        {
+
+            if (day >= 1 && day <= 28)
+
+                jday = 1;
+            else
+                jday = 0;
+        }
+    }
+    else
+    {
+
+        if (day >= 1 && day <= 31)
+
+            jday = 1;
+
+        else
+
+            jday = 0;
+    }
+
+    if (jyear == 1 && jmonth == 1 && jday == 1)
+    {
+        cout << "输入的年月日合法。" << endl;
+    }
+    else   
+    {       
+            cout << "输入的年月日不合法。" << endl;
+            ret =false;
+           
+    }
+   
+
+    return ret;
 }
