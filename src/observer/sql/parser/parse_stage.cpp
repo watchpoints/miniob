@@ -121,12 +121,34 @@ StageEvent *ParseStage::handle_request(StageEvent *event) {
 
   RC ret = parse(sql.c_str(), result);
   if (ret != RC::SUCCESS) {
-    // set error information to event
-    const char *error = result->sstr.errors != nullptr ? result->sstr.errors : "Unknown error";
+    //非法地址  nullptr ==error || 0 ==strlen(error) 没有用了
+    //if(nullptr ==error || 0 ==strlen(error))
+   // {
+    // LOG_INFO("!!!!!! result->sstr.errors=0 ,sql=%s",sql.c_str());
+     // sql_event->session_event()->set_response("FAILURE\n");
+      
+    //}
+
+    LOG_INFO("Failed to parse sql: %s rc=%d:%s",sql.c_str(), ret, strrc(ret));
     char response[256];
-    snprintf(response, sizeof(response), "Failed to parse sql: %s, error msg: %s\n", sql.c_str(), error);
-    sql_event->session_event()->set_response(response);
+
+    try
+    {
+    // set error information to event
+    //const char *error = result->sstr.errors != nullptr ? result->sstr.errors : "Unknown error";
+    //snprintf(response, sizeof(response), "Failed to parse sql: %s, error msg: %s\n", sql.c_str(), error);
+    sql_event->session_event()->set_response("FAILURE\n");
+
+    }
+    catch(...)
+    {  
+      //非法地址 catch 无效 下面代码不起作用
+      LOG_INFO("!!!!!! result->sstr.errors=0 ,sql=%s",sql.c_str());
+      sql_event->session_event()->set_response("FAILURE\n");
+    }
+
     query_destroy(result);
+    
     return nullptr;
   }
 
