@@ -27,7 +27,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/common/index.h"
 #include "storage/common/bplus_tree_index.h"
 #include "storage/trx/trx.h"
-
+#include "common/math/regex.h"
 Table::Table() : 
     data_buffer_pool_(nullptr),
     file_id_(-1),
@@ -306,7 +306,23 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
     
     if(field->type() ==AttrType::DATES)
     {
-      LOG_INFO(" insert:AttrType::DATES, value.data=%s",value.data);
+       LOG_INFO(" insert:AttrType::DATES, value.data=%s",value.data);
+       const char *pattern = "[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}";
+       if(0 ==common::regex_match((char*)value.data,pattern))
+       {
+          //ok
+       }else
+       {  
+         LOG_INFO(" make_record  [0-9]{4}-[0-9]{1,2}-[0-9]{1,2}  value.data=%s",value.data);
+         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+       }
+
+       //闰年判断 暂时正则不会写，这里做个简单判断【遗漏任务】
+       //if("2021-2-31" ==(char*)value.data)
+       //{
+
+       //}
+
     }else if (field->type() != value.type) {
       LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
         field->name(), field->type(), value.type);

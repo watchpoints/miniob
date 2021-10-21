@@ -125,9 +125,18 @@ void ExecuteStage::handle_request(common::StageEvent *event) {
     case SCF_SELECT: { // select
       RC rc=do_select(current_db, sql, exe_event->sql_event()->session_event());
       if (rc != RC::SUCCESS) 
-      {
-          exe_event->sql_event()->session_event()->set_response("FAILURE\n"); //返回结果
+      {   
+          LOG_INFO("do_select failed rc=%d:%s", rc, strrc(rc));
+          //exe_event->sql_event()->session_event()->set_response("FAILURE\n"); //返回结果
       }
+
+      int len = exe_event->sql_event()->session_event()->get_response_len();
+      if(len <=0)
+      {  //case1 如果查询无记录,不会进入该逻辑。需要返回列名
+        LOG_INFO("  len =0 ,do_select failed rc=%d:%s", rc, strrc(rc));
+        exe_event->sql_event()->session_event()->set_response("FAILURE\n"); //返回结果
+      }
+
       exe_event->done_immediate();
     }
     break;
@@ -235,6 +244,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     SelectExeNode *select_node = new SelectExeNode;
     rc = create_selection_executor(trx, selects, db, table_name, *select_node);
     if (rc != RC::SUCCESS) {
+      LOG_INFO("create_selection_executor failed rc=%d:%s", rc, strrc(rc));
       delete select_node;
       for (SelectExeNode *& tmp_node: select_nodes) {
         delete tmp_node;
@@ -264,6 +274,8 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     TupleSet tuple_set;
     rc = node->execute(tuple_set);
     if (rc != RC::SUCCESS) {
+      
+      LOG_INFO("execute failed rc=%d:%s", rc, strrc(rc));
       for (SelectExeNode *& tmp_node: select_nodes) {
         delete tmp_node;
       }
@@ -285,10 +297,12 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
   for (SelectExeNode *& tmp_node: select_nodes) {
     delete tmp_node;
   }
-  
+  //case:查询不到返回列名字
   std::string queryresault = ss.str();
-  LOG_INFO(" query resault. %s", queryresault.c_str());
+
   session_event->set_response(ss.str());
+  LOG_INFO(" query resault. %s", queryresault.c_str());
+  
   end_trx_if_need(session, trx, true);
   return rc;
 }
@@ -326,7 +340,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
     const RelAttr &attr = selects.attributes[i];
     if (nullptr == attr.relation_name || 0 == strcmp(table_name, attr.relation_name)) {
       if (0 == strcmp("*", attr.attribute_name)) {
-        // 列出这张表所有字段
+        // 列出这张表所有字段到 schema
         TupleSchema::from_table(table, schema);
         break; // 没有校验，给出* 之后，再写字段的错误
       } else {
@@ -351,7 +365,9 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
         ) {
       DefaultConditionFilter *condition_filter = new DefaultConditionFilter();
       RC rc = condition_filter->init(*table, condition);
+      //什么情况返回失败！！！
       if (rc != RC::SUCCESS) {
+        LOG_INFO(" gen DefaultConditionFilter failed rc=%d:%s", rc, strrc(rc));
         delete condition_filter;
         for (DefaultConditionFilter * &filter : condition_filters) {
           delete filter;

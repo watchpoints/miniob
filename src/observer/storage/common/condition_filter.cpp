@@ -40,7 +40,7 @@ DefaultConditionFilter::~DefaultConditionFilter()
 
 RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrType attr_type, CompOp comp_op)
 {
-  if (attr_type < CHARS || attr_type > FLOATS) {
+  if (attr_type < CHARS || attr_type > DATES) {
     LOG_ERROR("Invalid condition with unsupported attribute type: %d", attr_type);
     return RC::INVALID_ARGUMENT;
   }
@@ -65,7 +65,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
 
   AttrType type_left = UNDEFINED;
   AttrType type_right = UNDEFINED;
-
+  //1时，操作符左边是属性名
   if (1 == condition.left_is_attr) {
     left.is_attr = true;
     const FieldMeta *field_left = table_meta.field(condition.left_attr.attribute_name);
@@ -80,6 +80,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
 
     type_left = field_left->type();
   } else {
+    //0时，是属性值
     left.is_attr = false;
     left.value = condition.left_value.data;  // 校验type 或者转换类型
     type_left = condition.left_value.type;
@@ -87,7 +88,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     left.attr_length = 0;
     left.attr_offset = 0;
   }
-
+   //1时，操作符右边是属性名，0时，是属性值
   if (1 == condition.right_is_attr) {
     right.is_attr = true;
     const FieldMeta *field_right = table_meta.field(condition.right_attr.attribute_name);
@@ -101,6 +102,9 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
 
     right.value = nullptr;
   } else {
+
+    LOG_INFO("DefaultConditionFilter::init value:%s,type_right:=%d",(char*)right.value,type_right);
+
     right.is_attr = false;
     right.value = condition.right_value.data;
     type_right = condition.right_value.type;
@@ -116,7 +120,11 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
   //  }
   // NOTE：这里没有实现不同类型的数据比较，比如整数跟浮点数之间的对比
   // 但是选手们还是要实现。这个功能在预选赛中会出现
-  if (type_left != type_right) {
+  
+  //创建日期类型时候，自己value stirng 类型保存的 后面改成vale 类型也必须是date类型的 【遗漏任务】
+
+  if (type_left != type_right && type_left != AttrType::DATES) {
+    LOG_INFO("init:: type_left != type_right failed type_left=%d,type_right=%d",type_left,type_right);
     return RC::SCHEMA_FIELD_TYPE_MISMATCH;
   }
 
@@ -163,6 +171,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const
       cmp_result = (int)(left - right);
     } break;
     default: {
+        LOG_INFO(" SCHEMA_FIELD_TYPE_MISMATCH Unsupported field type to loading: %d",attr_type_);
     }
   }
 

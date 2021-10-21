@@ -51,7 +51,7 @@ void Tuple::add(int value) {
 void Tuple::add(float value) {
   add(new FloatValue(value));
 }
-
+//按照列的名字，添加 values
 void Tuple::add(const char *s, int len) {
   add(new StringValue(s, len));
 }
@@ -64,9 +64,9 @@ std::string TupleField::to_string() const {
 
 ////////////////////////////////////////////////////////////////////////////////
 void TupleSchema::from_table(const Table *table, TupleSchema &schema) {
-  const char *table_name = table->name();
-  const TableMeta &table_meta = table->table_meta();
-  const int field_num = table_meta.field_num();
+  const char *table_name = table->name(); //表名字
+  const TableMeta &table_meta = table->table_meta(); //表结构
+  const int field_num = table_meta.field_num(); //字段个数
   for (int i = 0; i < field_num; i++) {
     const FieldMeta *field_meta = table_meta.field(i);
     if (field_meta->visible()) {
@@ -210,7 +210,7 @@ const std::vector<Tuple> &TupleSet::tuples() const {
 TupleRecordConverter::TupleRecordConverter(Table *table, TupleSet &tuple_set) :
       table_(table), tuple_set_(tuple_set){
 }
-
+//record:value 开始地址
 void TupleRecordConverter::add_record(const char *record) {
   const TupleSchema &schema = tuple_set_.schema();
   Tuple tuple;
@@ -222,6 +222,8 @@ void TupleRecordConverter::add_record(const char *record) {
       case INTS: {
         int value = *(int*)(record + field_meta->offset());
         tuple.add(value);
+        LOG_INFO(" tuple add_record INTS,name=%s,value=%d", field.field_name(),value);
+
       }
       break;
       case FLOATS: {
@@ -237,7 +239,7 @@ void TupleRecordConverter::add_record(const char *record) {
       case DATES: {
         const char *s = record + field_meta->offset();  // 现在当做Cstring来处理
         tuple.add(s, strlen(s));
-        LOG_INFO("add_record type=%d,name=%s,value=%s,len=%d", field_meta->type(),field.field_name(),s,strlen(s));
+        LOG_INFO(" tuple add_record type=%d,name=%s,value=%s,len=%d", field_meta->type(),field.field_name(),s,strlen(s));
 
       }
       break;

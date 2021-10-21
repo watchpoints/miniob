@@ -30,8 +30,8 @@ RC
 SelectExeNode::init(Trx *trx, Table *table, TupleSchema &&tuple_schema, std::vector<DefaultConditionFilter *> &&condition_filters) {
   trx_ = trx;
   table_ = table;
-  tuple_schema_ = tuple_schema;
-  condition_filters_ = std::move(condition_filters);
+  tuple_schema_ = tuple_schema; //表结构
+  condition_filters_ = std::move(condition_filters); //查询条件
   return RC::SUCCESS;
 }
 

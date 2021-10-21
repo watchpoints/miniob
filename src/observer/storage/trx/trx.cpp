@@ -57,7 +57,6 @@ RC Trx::insert_record(Table *table, Record *record) {
   if (old_oper != nullptr) {
     return RC::GENERIC_ERROR; // error code
   }
-
   start_if_not_started();
 
   // 设置record中trx_field为当前的事务号
