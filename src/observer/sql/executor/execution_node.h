@@ -38,6 +38,10 @@ public:
   RC init(Trx *trx, Table *table, TupleSchema && tuple_schema, std::vector<DefaultConditionFilter *> &&condition_filters);
 
   RC execute(TupleSet &tuple_set) override;
+  const std::vector<DefaultConditionFilter *> & get_condition_filters() const
+  {
+    return condition_filters_;
+  }
 private:
   Trx *trx_ = nullptr;
   Table  * table_;

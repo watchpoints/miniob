@@ -20,7 +20,9 @@ See the Mulan PSL v2 for more details. */
 
 #include "sql/parser/parse.h"
 #include "sql/executor/value.h"
-
+#include<sstream>
+#include<iostream>
+using namespace std;
 class Table;
 
 class Tuple {
@@ -145,6 +147,14 @@ public:
   {
     schema_.append(schema);
   }
+  void add_tuple_value(std::vector<Tuple>& other)
+  {
+    tuples_.reserve(tuples_.size() + other.size());
+    for (const auto &tuple: other) {
+    tuples_.emplace_back(tuple);
+    }
+
+  }
 
 public:
   const TupleSchema &schema() const {
@@ -153,10 +163,54 @@ public:
   TupleSchema &schema_two()  {
     return schema_;
   }
+  std::vector<Tuple> &get_tuple() 
+  {
+    return tuples_;
+  }
+  std::vector<Tuple> &get_tuples_left() 
+  {
+    return tuples_left;
+  }
+  std::vector<Tuple> &get_tuples_right() 
+  {
+    return tuples_right;
+  }
+
+  void set_tuples_left( std::vector<Tuple>&& left) 
+  {
+     tuples_left =std::move(left);
+     
+  }
+  void set_tuples_right(std::vector<Tuple>&& right) 
+  {
+     tuples_right =std::move(right);
+  }
+  /**
+  void set_filter(std::vector<DefaultConditionFilter*>&& filter) 
+  {
+     filter_ =std::move(filter);
+  }
+  std::vector<DefaultConditionFilter*>& get_filter() 
+  {
+     return filter_ ;
+  }**/
+  
+  void set_join(bool join,int index)
+  {
+    is_join = join;
+    joins_index =index;
+  }
+ 
 private:
   std::vector<Tuple> tuples_;
+  std::vector<Tuple> tuples_left; //join
+  std::vector<Tuple> tuples_right; //join
+  //std::vector<DefaultConditionFilter*> filter_;
   TupleSchema schema_; 
   //列信息: schema_ (type_ = INTS, table_name_ = "t1", field_name_ = "id")
+  bool is_join;
+  int joins_index;
+
 };
 
 class TupleRecordConverter {

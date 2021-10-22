@@ -62,12 +62,16 @@ typedef struct _Condition {
 
 // struct of select
 typedef struct {
+  //select 字段
   size_t    attr_num;               // Length of attrs in Select clause
   RelAttr   attributes[MAX_NUM];    // attrs in Select clause
+  
+  //多个表：from 
   size_t    relation_num;           // Length of relations in Fro clause
   char *    relations[MAX_NUM];     // relations in From clause
+  //多个查询条件： where 
   size_t    condition_num;          // Length of conditions in Where clause
-  Condition conditions[MAX_NUM];    // conditions in Where clause
+  Condition conditions[MAX_NUM];    // conditions in Where clause 20
 } Selects;
 
 // struct of insert

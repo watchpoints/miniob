@@ -42,6 +42,8 @@ public:
 
   int compare(const TupleValue &other) const override {
     const IntValue & int_other = (const IntValue &)other;
+    std::cout<< " >>> compare::IntValue " <<value_ << ":" <<int_other.value_<<std::endl;
+
     return value_ - int_other.value_;
   }
 
@@ -62,6 +64,8 @@ public:
   int compare(const TupleValue &other) const override {
     const FloatValue & float_other = (const FloatValue &)other;
     float result = value_ - float_other.value_;
+    std::cout<< " >>> compare::FloatValue " <<value_ << ":" <<float_other.value_<<std::endl;
+
     if (result > 0) { // 浮点数没有考虑精度问题
       return 1;
     }
@@ -82,12 +86,13 @@ public:
   }
 
   void to_string(std::ostream &os) const override {
-    std::cout<< "StringValue:value_:" <<value_<<std::endl;
+    std::cout<< "print value to_string " <<value_<<std::endl;
     os << value_;
   }
-
+  
   int compare(const TupleValue &other) const override {
     const StringValue &string_other = (const StringValue &)other;
+    std::cout<< " >>> compare::StringValue " <<value_.c_str() << ":" <<string_other.value_.c_str();
     return strcmp(value_.c_str(), string_other.value_.c_str());
   }
 private:
