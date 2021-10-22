@@ -164,7 +164,7 @@ RC Trx::commit() {
         }
         break;
         case Operation::Type::UPDATE: {
-          LOG_INFO("Operation::Type::UPDATE");
+          LOG_INFO("Operation::Type::UPDATE ....");
 
           rc = table->commit_update(this, rid);
           if (rc != RC::SUCCESS) {
@@ -263,7 +263,7 @@ void Trx::start_if_not_started() {
   }
 }
 
-
+//题目：实现update功能
 RC Trx::update_record(Table *table, Record *record) {
   RC rc = RC::SUCCESS;
   start_if_not_started();

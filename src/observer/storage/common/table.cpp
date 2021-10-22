@@ -613,11 +613,12 @@ private:
 //add by wangchuanyi
 class RecordUpdated {
 public:
-  RecordUpdated(Table &table, Trx *trx,const Value *value) : table_(table), trx_(trx) ,value_(value) {
+  RecordUpdated(Table &table, Trx *trx,const char* attribute_name,const Value *value) : table_(table), trx_(trx) ,attribute_name_(attribute_name),value_(value) {
   }
 
   RC update_record(Record *record) {
     RC rc = RC::SUCCESS;
+    //构造更新记录
     rc = table_.update_record(trx_, record);
     if (rc == RC::SUCCESS) {
       update_count_++;
@@ -631,12 +632,16 @@ public:
   const Value * get_value() const {
     return value_;
   }
+  const char * get_attribute_name() const {
+    return attribute_name_;
+  }
 
 private:
   Table & table_; //成员初始化列表
   Trx *trx_;
   int update_count_ = 0;
   const Value *value_;
+  const char* attribute_name_;
 };
 
 static RC record_reader_delete_adapter(Record *record, void *context) {
@@ -675,6 +680,7 @@ static RC record_reader_updater_adapter(Record *record, void *context) {
   return record_updater.update_record(record);
 }
 //record_reader_updater_adapter放在后面
+//题目：实现update功能
 RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value, int condition_num, const Condition conditions[], int *updated_count) {
   LOG_INFO("update_record table: (%s),update value= %p", attribute_name,value);
    
@@ -682,7 +688,7 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
     LOG_ERROR("Invalid argument. attribute_name=%p, values=%p", attribute_name, value);
     return RC::INVALID_ARGUMENT;
   }
-
+  //构造整行记录
   //char *record_data;
   //这个方式不合适，因为make_record value是个数组。 
   //RC rc = make_record(1, value, record_data);
@@ -704,7 +710,7 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
     }
     //value 从哪里设置呀？？？
 
-  RecordUpdated updater(*this, trx,value);
+  RecordUpdated updater(*this, trx,attribute_name,value);
   rc = scan_record(trx, &condition_filter, -1, &updater, record_reader_updater_adapter);
   if (updated_count != nullptr) {
     *updated_count = updater.updated_count();
@@ -712,23 +718,26 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
   //delete[] record_data;
   return rc;
 }
-
+//题目：实现update功能
 RC Table::update_record(Trx *trx, Record *record) {
   RC rc = RC::SUCCESS;
   if (trx != nullptr) {
     LOG_INFO("update_record  begin");
     rc = trx->update_record(this, record);
   } 
-  /**
   else {
-    rc = delete_entry_of_indexes(record->data, record->rid, false);// 重复代码 refer to commit_delete
+  
+     LOG_INFO (" trx is nullptr Failed to delete indexes of record (rid=%d.%d).",
+                record->rid.page_num, record->rid.slot_num);
+    
+    //rc = delete_entry_of_indexes(record->data, record->rid, false);// 重复代码 refer to commit_delete
     if (rc != RC::SUCCESS) {
       LOG_ERROR("Failed to delete indexes of record (rid=%d.%d). rc=%d:%s",
                 record->rid.page_num, record->rid.slot_num, rc, strrc(rc));
     } else {
-      rc = record_handler_->delete_record(&record->rid);
+      rc = record_handler_->update_record(record);
     }
-  }**/
+  }
   return rc;
 }
 RC Table::commit_delete(Trx *trx, const RID &rid) {

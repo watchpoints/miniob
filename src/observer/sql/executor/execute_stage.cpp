@@ -270,6 +270,8 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
   //我猜测读取行记录
   //后面：跟踪
   std::vector<TupleSet> tuple_sets;
+  //一个表 一个TupleSet记录
+  //TupleSet 存储 列属性 和行的value
   for (SelectExeNode *&node: select_nodes) {
     TupleSet tuple_set;
     rc = node->execute(tuple_set);
@@ -287,8 +289,19 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
   }
 
   std::stringstream ss;
+  //题目：多表查询
   if (tuple_sets.size() > 1) {
     // 本次查询了多张表，需要做join操作
+    if(tuple_sets.size() ==2)
+    {
+      TupleSet twoSet;
+      twoSet.set_schema(tuple_sets[0].get_schema()); //第一个表信息
+      twoSet.add_tuple_schema(tuple_sets[1].get_schema());// 第二个表信息
+      //列信息: schema_ (type_ = INTS, table_name_ = "t1", field_name_ = "id")
+      tuple_sets.front().print(ss);
+    }
+    
+
   } else {
     // 当前只查询一张表，直接返回结果即可
     tuple_sets.front().print(ss);

@@ -57,7 +57,7 @@ typedef struct {
 
 typedef struct {
   bool open;
-  Frame *frame;
+  Frame *frame; //这是啥概念
 } BPPageHandle;
 
 class BPFileHandle{

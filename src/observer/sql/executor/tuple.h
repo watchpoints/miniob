@@ -97,7 +97,10 @@ public:
   const std::vector<TupleField> &fields() const {
     return fields_;
   }
-
+  
+   std::vector<TupleField> &fields_two()  {
+    return fields_;
+  }
   const TupleField &field(int index) const {
     return fields_[index];
   }
@@ -138,13 +141,22 @@ public:
   const std::vector<Tuple> &tuples() const;
 
   void print(std::ostream &os) const;
+  void add_tuple_schema(const TupleSchema &schema)
+  {
+    schema_.append(schema);
+  }
+
 public:
   const TupleSchema &schema() const {
     return schema_;
   }
+  TupleSchema &schema_two()  {
+    return schema_;
+  }
 private:
   std::vector<Tuple> tuples_;
-  TupleSchema schema_;
+  TupleSchema schema_; 
+  //列信息: schema_ (type_ = INTS, table_name_ = "t1", field_name_ = "id")
 };
 
 class TupleRecordConverter {

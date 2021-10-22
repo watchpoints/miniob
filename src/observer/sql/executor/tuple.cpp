@@ -108,6 +108,7 @@ int TupleSchema::index_of_field(const char *table_name, const char *field_name) 
   return -1;
 }
 
+//列信息: fields_:(type_ = INTS, table_name_ = "t1", field_name_ = "id")
 void TupleSchema::print(std::ostream &os) const {
   if (fields_.empty()) {
     os << "No schema";
@@ -115,6 +116,7 @@ void TupleSchema::print(std::ostream &os) const {
   }
 
   // 判断有多张表还是只有一张表
+  //并不使用 table_names的数据
   std::set<std::string> table_names;
   for (const auto &field: fields_) {
     table_names.insert(field.table_name());
@@ -163,6 +165,7 @@ void TupleSet::clear() {
 }
 
 void TupleSet::print(std::ostream &os) const {
+  //列信息: (type_ = INTS, table_name_ = "t1", field_name_ = "id")
   if (schema_.fields().empty()) {
     LOG_WARN("Got empty schema");
     return;
@@ -189,7 +192,6 @@ void TupleSet::set_schema(const TupleSchema &schema) {
 const TupleSchema &TupleSet::get_schema() const {
   return schema_;
 }
-
 bool TupleSet::is_empty() const {
   return tuples_.empty();
 }
@@ -212,7 +214,8 @@ TupleRecordConverter::TupleRecordConverter(Table *table, TupleSet &tuple_set) :
 }
 //record:value 开始地址
 void TupleRecordConverter::add_record(const char *record) {
-  const TupleSchema &schema = tuple_set_.schema();
+  const TupleSchema &schema = tuple_set_.schema(); 
+  //查询条件的表信息  可能全部列 可能部分
   Tuple tuple;
   const TableMeta &table_meta = table_->table_meta();
   for (const TupleField &field : schema.fields()) {
@@ -222,24 +225,28 @@ void TupleRecordConverter::add_record(const char *record) {
       case INTS: {
         int value = *(int*)(record + field_meta->offset());
         tuple.add(value);
-        LOG_INFO(" tuple add_record INTS,name=%s,value=%d", field.field_name(),value);
+        LOG_INFO(" tuple add_record INTS,table =%s,name=%s,value=%d", table_meta.name(),field.field_name(),value);
 
       }
       break;
       case FLOATS: {
         float value = *(float *)(record + field_meta->offset());
         tuple.add(value);
+        LOG_INFO(" tuple add_record FLOATS,table =%s,name=%s,value=%d", table_meta.name(),field.field_name(),value);
+
       }
         break;
       case CHARS: {
         const char *s = record + field_meta->offset();  // 现在当做Cstring来处理
         tuple.add(s, strlen(s));
+        LOG_INFO(" tuple add_record table =%s,type=%d,name=%s,value=%s,len=%d", table_meta.name(),field_meta->type(),field.field_name(),s,strlen(s));
+
       }
       break;
       case DATES: {
         const char *s = record + field_meta->offset();  // 现在当做Cstring来处理
         tuple.add(s, strlen(s));
-        LOG_INFO(" tuple add_record type=%d,name=%s,value=%s,len=%d", field_meta->type(),field.field_name(),s,strlen(s));
+        LOG_INFO(" tuple add_record table =%s,type=%d,name=%s,value=%s,len=%d", table_meta.name(),field_meta->type(),field.field_name(),s,strlen(s));
 
       }
       break;
