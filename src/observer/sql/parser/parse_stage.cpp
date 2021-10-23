@@ -130,8 +130,7 @@ StageEvent *ParseStage::handle_request(StageEvent *event) {
     //}
 
     LOG_INFO("Failed to parse sql: %s rc=%d:%s",sql.c_str(), ret, strrc(ret));
-    char response[256];
-
+    
     try
     {
     // set error information to event

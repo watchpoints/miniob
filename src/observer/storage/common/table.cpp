@@ -640,8 +640,9 @@ private:
   Table & table_; //成员初始化列表
   Trx *trx_;
   int update_count_ = 0;
-  const Value *value_;
   const char* attribute_name_;
+  const Value *value_;
+  
 };
 
 static RC record_reader_delete_adapter(Record *record, void *context) {

@@ -304,7 +304,7 @@ void TupleSet::print(std::ostream &os) const
         if(is_join ==true )
         {   
           LOG_INFO(" two table join select ");
-          if (0 ==sp1->compare(*sp2))
+          if (sp1 && sp2 && 0 ==sp1->compare(*sp2))
           {
              os << os_left.str();
              os << os_right.str();
