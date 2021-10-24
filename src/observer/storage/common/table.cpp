@@ -348,7 +348,7 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
 
-    if (field->type() == AttrType::DATES)
+    if (field->type() == AttrType::DATES )
     {
       LOG_INFO(" insert:AttrType::DATES, value.data=%s", value.data);
       const char *pattern = "[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}";
@@ -374,10 +374,12 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
       }
     }
     else if (field->type() != value.type)
-    {
-      LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
+    {  
+      {
+        LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
                 field->name(), field->type(), value.type);
-      return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+        return RC::SCHEMA_FIELD_TYPE_MISMATCH; 
+      }
     }
   }
 
@@ -1135,12 +1137,38 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
       }
     }
     else if (field_meta->type() != value->type)
-   {
-      LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
+   {   
+      ////对于整数与浮点数之间的转换，不做考察。学有余力的同学，可以做一下。
+      //&& > ||
+      if((field_meta->type() ==AttrType::INTS && value->type ==AttrType::FLOATS)
+        || (field_meta->type() ==AttrType::FLOATS && value->type ==AttrType::INTS)
+        )
+      {
+         LOG_INFO(" 对于整数与浮点数之间的转换，不做考察。学有余力的同学，可以做一下");
+      }else
+      {
+        LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
                 field_meta->name(), field_meta->type(), value->type);
-      return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+      }
+    
   }
-  memcpy(record.data + field_meta->offset(), value->data, field_meta->len());
+  /**
+  if(field_meta->type() ==AttrType::INTS && value->type ==AttrType::FLOATS)
+  {   
+      
+      memcpy(record.data + field_meta->offset(), static_cast<int*>(value->data), field_meta->len());
+
+  }else if(field_meta->type() ==AttrType::FLOATS && value->type ==AttrType::INTS)
+  {      
+        
+        memcpy(record.data + field_meta->offset(), static_cast<float*>(value->data), field_meta->len());
+
+  }else**/
+  {
+    memcpy(record.data + field_meta->offset(), value->data, field_meta->len());
+  }
+  
 
 
   if (rc != RC::SUCCESS)
