@@ -220,7 +220,7 @@ drop_index:			/*drop index 语句的语法解析树*/
     DROP INDEX ID  ON ID SEMICOLON 
 		{
 			CONTEXT->ssql->flag=SCF_DROP_INDEX;//"drop_index";
-			drop_index_init(&CONTEXT->ssql->sstr.drop_index, $3,$5);
+			drop_index_init(&CONTEXT->ssql->sstr.drop_index, $3, $5);
 		}
     ;
 create_table:		/*create table 语句的语法解析树*/
@@ -371,6 +371,11 @@ select_attr:
 			relation_attr_init(&attr, $1, $3);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
+	| ID DOT STAR attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $1,  "*");
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
     ;
 attr_list:
     /* empty */
@@ -384,6 +389,13 @@ attr_list:
     | COMMA ID DOT ID attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, $2, $4);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
+        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
+  	  }
+	 | COMMA ID DOT STAR attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $2, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;

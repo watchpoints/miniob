@@ -413,14 +413,19 @@ bool match_table(const Selects &selects, const char *table_name_in_condition, co
 }
 
 static RC schema_add_field(Table *table, const char *field_name, TupleSchema &schema)
-{
+{  
+  if (0 == strcmp("*", field_name))
+  {
+       TupleSchema::from_table(table, schema);
+       return RC::SUCCESS;
+  }
   const FieldMeta *field_meta = table->table_meta().field(field_name);
   if (nullptr == field_meta)
   {
     LOG_WARN("No such field. %s.%s", table->name(), field_name);
     return RC::SCHEMA_FIELD_MISSING;
   }
-
+  //避免 t.id,t.id
   schema.add_if_not_exists(field_meta->type(), table->name(), field_meta->name());
   return RC::SUCCESS;
 }
@@ -430,6 +435,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
 {
   // 列出跟这张表关联的Attr
   TupleSchema schema;
+  //根据表名字 获取 表信息
   Table *table = DefaultHandler::get_default().find_table(db, table_name);
   if (nullptr == table)
   {
@@ -449,7 +455,8 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
         break; // 没有校验，给出* 之后，再写字段的错误
       }
       else
-      {
+      {  
+        LOG_WARN(" table [%s] in db [%s]", table_name, attr.attribute_name);
         // 列出这张表相关字段
         RC rc = schema_add_field(table, attr.attribute_name, schema);
         if (rc != RC::SUCCESS)
