@@ -75,6 +75,10 @@ public:
  */
 class Trx {
 public:
+char* attribute_name;
+Value *value;
+
+public:
   static int32_t default_trx_id();
   static int32_t next_trx_id();
   static const char *trx_field_name();

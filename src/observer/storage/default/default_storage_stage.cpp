@@ -172,7 +172,7 @@ void DefaultStorageStage::handle_event(StageEvent *event) {
       const Updates &updates = sql->sstr.update;
       const char *table_name = updates.relation_name; //表名
       const char *field_name = updates.attribute_name; //字段
-      LOG_INFO("Updates table=%s,key=%s,type=%d, value=%s",table_name,field_name,updates.value.type,updates.value.data);
+      LOG_INFO("Updates table=%s,key=%s,type=%d, value=%p",table_name,field_name,updates.value.type,updates.value.data);
       int updated_count = 0;
       //实现update功能
       rc = handler_->update_record(current_trx, current_db, table_name, field_name, &updates.value,
@@ -264,6 +264,8 @@ void DefaultStorageStage::handle_event(StageEvent *event) {
     rc = current_trx->commit();
     if (rc != RC::SUCCESS) {
       LOG_ERROR("Failed to commit trx. rc=%d:%s", rc, strrc(rc));
+      //事务更新失败 题目：update 提交
+      snprintf(response, sizeof(response), "%s\n", rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
     }
   }
 

@@ -165,8 +165,13 @@ RC Trx::commit() {
         break;
         case Operation::Type::UPDATE: {
           LOG_INFO("Operation::Type::UPDATE ....");
+         if(this->value && this->value->data)
+         {
+              LOG_INFO("commit_update name=%s,value =%d ",this->attribute_name,this->value->data);
 
-          rc = table->commit_update(this, rid);
+         }  
+
+          rc = table->commit_update(this, rid,attribute_name,value);
           if (rc != RC::SUCCESS) {
             // handle rc
             LOG_ERROR("Failed to update delete operation. rid=%d.%d, rc=%d:%s",
@@ -182,7 +187,7 @@ RC Trx::commit() {
     }
   }
 
-  operations_.clear();
+  operations_.clear(); //一个事物：包含多个命令，处理完毕,然后在情况
   trx_id_ = 0;
   return rc;
 }
@@ -265,6 +270,7 @@ void Trx::start_if_not_started() {
 
 //题目：实现update功能
 RC Trx::update_record(Table *table, Record *record) {
+  LOG_INFO("update_record ");
   RC rc = RC::SUCCESS;
   start_if_not_started();
   Operation *old_oper = find_operation(table, record->rid);

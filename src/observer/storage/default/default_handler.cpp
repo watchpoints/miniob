@@ -176,6 +176,7 @@ RC DefaultHandler::update_record(Trx *trx, const char *dbname, const char *relat
                           int condition_num, const Condition *conditions, int *updated_count) {
   Table *table = find_table(dbname, relation_name);
   if (nullptr == table) {
+   LOG_WARN("C::SCHEMA_TABLE_NOT_EXIST");
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
 

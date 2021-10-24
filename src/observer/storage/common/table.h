@@ -82,9 +82,12 @@ public:
   RC commit_insert(Trx *trx, const RID &rid);
   RC commit_delete(Trx *trx, const RID &rid);
    RC commit_update(Trx *trx, const RID &rid);
+
   RC rollback_insert(Trx *trx, const RID &rid);
   RC rollback_delete(Trx *trx, const RID &rid);
   bool check_date(char* pdate); //日期检查
+  RC commit_update(Trx *trx, const RID &rid,const char* attribute_name,const Value* value ) ;
+
 
 private:
   RC scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context, RC (*record_reader)(Record *record, void *context));
