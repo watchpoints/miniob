@@ -1156,7 +1156,7 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
   /**
   if(field_meta->type() ==AttrType::INTS && value->type ==AttrType::FLOATS)
   {   
-      
+       
       memcpy(record.data + field_meta->offset(), static_cast<int*>(value->data), field_meta->len());
 
   }else if(field_meta->type() ==AttrType::FLOATS && value->type ==AttrType::INTS)
@@ -1299,4 +1299,101 @@ bool Table::check_date(char *pdate)
   }
 
   return ret;
+}
+
+/**
+ * 结构：
+ * 
+ * 步骤
+ * 1. 删除文件 
+ */
+RC Table::drop_index(Trx *trx, const char *relation_name,const char *index_name)
+{  
+   RC rc=RC::SUCCESS;
+  if (index_name == nullptr || common::is_blank(index_name) || 
+     relation_name == nullptr || common::is_blank(relation_name) )
+  {
+    return RC::INVALID_ARGUMENT;
+  }
+  /**
+  if (table_meta_.index(index_name) != nullptr ||
+      table_meta_.find_index_by_field((attribute_name)))
+  {
+    return RC::SCHEMA_INDEX_EXIST;
+  }
+
+  const FieldMeta *field_meta = table_meta_.field(attribute_name);
+  if (!field_meta)
+  {
+    return RC::SCHEMA_FIELD_MISSING;
+  }
+
+  IndexMeta new_index_meta;
+  RC rc = new_index_meta.init(index_name, *field_meta);
+  if (rc != RC::SUCCESS)
+  {
+    return rc;
+  }
+
+  // 创建索引相关数据
+  BplusTreeIndex *index = new BplusTreeIndex();
+  std::string index_file = index_data_file(base_dir_.c_str(), name(), index_name);
+  rc = index->create(index_file.c_str(), new_index_meta, *field_meta);
+  if (rc != RC::SUCCESS)
+  {
+    delete index;
+    LOG_ERROR("Failed to create bplus tree index. file name=%s, rc=%d:%s", index_file.c_str(), rc, strrc(rc));
+    return rc;
+  }
+
+  // 遍历当前的所有数据，插入这个索引
+  IndexInserter index_inserter(index);
+  rc = scan_record(trx, nullptr, -1, &index_inserter, insert_index_record_reader_adapter);
+  if (rc != RC::SUCCESS)
+  {
+    // rollback
+    delete index;
+    LOG_ERROR("Failed to insert index to all records. table=%s, rc=%d:%s", name(), rc, strrc(rc));
+    return rc;
+  }
+  indexes_.push_back(index);
+
+  TableMeta new_table_meta(table_meta_);
+  rc = new_table_meta.add_index(new_index_meta);
+  if (rc != RC::SUCCESS)
+  {
+    LOG_ERROR("Failed to add index (%s) on table (%s). error=%d:%s", index_name, name(), rc, strrc(rc));
+    return rc;
+  }**/
+
+  // 创建元数据临时文件
+  std::string index_file = index_data_file(base_dir_.c_str(),relation_name,index_name);
+  
+  int ret = remove(index_file.c_str());
+  if (-1 == ret)
+  {
+    LOG_ERROR(" drop table file failed. filename=%s, errmsg=%d:%s",
+              index_file.c_str(), errno, strerror(errno));
+    return RC::IOERR;
+  }
+  
+  LOG_INFO("drop index_file=%s", index_file.c_str());
+
+  /**
+  // 覆盖原始元数据文件
+  std::string meta_file = table_meta_file(base_dir_.c_str(), name());
+  int ret = rename(tmp_file.c_str(), meta_file.c_str());
+  if (ret != 0)
+  {
+    LOG_ERROR("Failed to rename tmp meta file (%s) to normal meta file (%s) while creating index (%s) on table (%s). "
+              "system error=%d:%s",
+              tmp_file.c_str(), meta_file.c_str(), index_name, name(), errno, strerror(errno));
+    return RC::IOERR;
+  }
+
+  table_meta_.swap(new_table_meta);
+
+  LOG_INFO("add a new index (%s) on the table (%s)", index_name, name());
+  **/
+  return rc;
 }

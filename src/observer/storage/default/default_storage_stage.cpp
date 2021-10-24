@@ -211,6 +211,16 @@ void DefaultStorageStage::handle_event(StageEvent *event) {
       snprintf(response, sizeof(response), "%s\n", rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
     }
     break;
+  
+  case SCF_DROP_INDEX: {
+      const DropIndex &drop_index = sql->sstr.drop_index;
+      //RC DefaultHandler::drop_index(Trx *trx, const char *dbname, const char *relation_name, const char *index_name) {
+      const char* relation_name =drop_index.relation_name;
+      rc = handler_->drop_index(current_trx, current_db, relation_name, 
+                                  drop_index.index_name);
+      snprintf(response, sizeof(response), "%s\n", rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
+    }
+    break;
 
   case SCF_SHOW_TABLES: {
       Db *db = handler_->find_db(current_db);
