@@ -101,10 +101,11 @@ void TupleSchema::add_if_not_exists(AttrType type, const char *table_name, const
     if (0 == strcmp(field.table_name(), table_name) &&
         0 == strcmp(field.field_name(), field_name))
     {
+      LOG_INFO(">>>>>>>>>>add_if_exists. %s.%s", table_name, field_name);
       return;
     }
   }
-
+  LOG_INFO("add_if_not_exists. %s.%s", table_name, field_name);
   add(type, table_name, field_name);
 }
 

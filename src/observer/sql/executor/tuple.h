@@ -66,6 +66,7 @@ class TupleField {
 public:
   TupleField(AttrType type, const char *table_name, const char *field_name) :
           type_(type), table_name_(table_name), field_name_(field_name){
+            isShow_ =true;
   }
 
   AttrType  type() const{
@@ -80,10 +81,17 @@ public:
   }
 
   std::string to_string() const;
+  bool get_show() const {
+    return isShow_;
+  }
+  void set_show(bool show)  {
+    isShow_ =show;
+  }
 private:
   AttrType  type_;
   std::string table_name_;
   std::string field_name_;
+  bool isShow_;
 };
 
 class TupleSchema {

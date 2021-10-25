@@ -498,6 +498,51 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
       condition_filters.push_back(condition_filter);
     }
   }
+   /**
+   //03 过滤算法描述：
+    //前提是多表查询
+    //1 多表的寻找join 条件
+    //2 选择 ==left ｜｜ right字段
+    //3 调用schema_add_field
+    // select t1.* , t2.name from t1,t2 where t1.id=t2.id;
+
+    if (selects.relation_num > 1)
+    {
+      for (size_t i = 0; i < selects.condition_num; i++)
+      {
+        const Condition &condition = selects.conditions[i];
+        if (
+            (condition.left_is_attr == 1 && condition.right_is_attr == 1 &&
+             condition.comp == EQUAL_TO) // 左右都是属性名，并且表名都符合
+        )
+        {
+
+          if (match_table(selects, condition.left_attr.relation_name, table_name))
+          {
+
+            // 列出这张表相关字段
+            RC rc = schema_add_field(table, condition.left_attr.attribute_name, schema);
+            if (rc != RC::SUCCESS)
+            {
+              return rc;
+            }
+          }
+          else if (match_table(selects, condition.right_attr.relation_name, table_name))
+          {
+            // 列出这张表相关字段
+            RC rc = schema_add_field(table, condition.right_attr.attribute_name, schema);
+            if (rc != RC::SUCCESS)
+            {
+              return rc;
+            }
+          }
+          else
+          {
+            LOG_INFO(" 表不存在 ");
+          }
+        }
+      }
+    }**/
 
   return select_node.init(trx, table, std::move(schema), std::move(condition_filters));
 }
