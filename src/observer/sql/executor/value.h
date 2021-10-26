@@ -116,6 +116,7 @@ public:
     {
       //02 如果是日期格式进行格式化显示
       int len = value_.size();
+      std::cout<< "2222222=>>>>>>>>>>>>>"<<len<< std::endl;
       char mydate[len];
       memcpy(mydate, value_.c_str(), len);
 
@@ -145,7 +146,7 @@ public:
         count++;
         p = strtok(NULL, split);
       }
-      char rightdate[12] = {0};
+      char rightdate[len];
       sprintf(rightdate, "%04d-%02d-%02d", year, month, day);
       std::cout << "yyyy-mm-dd-to_string=========" << rightdate << std::endl;
       os << rightdate;
