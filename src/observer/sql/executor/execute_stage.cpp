@@ -322,7 +322,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     { 
       if(rc == RC::RECORD_NO_MORE_IDX_IN_MEM)
       {
-        tuple_set.get_tuple().clear();
+        //tuple_set.get_tuple().clear();
         LOG_INFO(">>>>>execute failed rc=%d:%s", rc, strrc(rc));
       }
       tuple_sets.push_back(std::move(tuple_set));

@@ -89,10 +89,10 @@ void value_init_string(Value *value, const char *v) {
         count++;
         p = strtok(NULL, split);
       }
-      if(len == 8)
+      if(len == 8 || len == 9)
       {
           len =10;
-          std::cout<< ">>>>>>>> reset 10 ";
+          std::cout<< ">>>>>>>> reset 10 " <<std::endl;
       }
       char rightdate[len] ;
       sprintf(rightdate, "%04d-%02d-%02d", year, month, day);

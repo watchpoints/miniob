@@ -167,7 +167,7 @@ RC Trx::commit() {
           LOG_INFO("Operation::Type::UPDATE ....");
          if(this->value && this->value->data)
          {
-              LOG_INFO("commit_update name=%s,value =%d ",this->attribute_name,this->value->data);
+              LOG_INFO("commit_update name=%s,value =%s ",this->attribute_name,(char*)this->value->data);
 
          }  
 

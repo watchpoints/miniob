@@ -265,6 +265,7 @@ RC Table::insert_record(Trx *trx, Record *record)
 
   if (trx != nullptr)
   {
+    //记录事务中该操作
     rc = trx->insert_record(this, record);
     if (rc != RC::SUCCESS)
     {
@@ -348,7 +349,7 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
 
-    if (field->type() == AttrType::DATES )
+    if (field->type() == AttrType::DATES)
     {
       LOG_INFO(" insert:AttrType::DATES, value.data=%s", value.data);
       const char *pattern = "[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}";
@@ -374,11 +375,11 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
       }
     }
     else if (field->type() != value.type)
-    {  
+    {
       {
         LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
-                field->name(), field->type(), value.type);
-        return RC::SCHEMA_FIELD_TYPE_MISMATCH; 
+                  field->name(), field->type(), value.type);
+        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
       }
     }
   }
@@ -829,7 +830,7 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
   }
   //value 从哪里设置呀？？？
   trx->attribute_name = const_cast<char *>(attribute_name);
-  trx->value = const_cast<Value*>(value);
+  trx->value = const_cast<Value *>(value);
   RecordUpdated updater(*this, trx, attribute_name, value);
   rc = scan_record(trx, &condition_filter, -1, &updater, record_reader_updater_adapter);
   if (updated_count != nullptr)
@@ -848,6 +849,7 @@ RC Table::update_record(Trx *trx, Record *record)
     LOG_INFO("update_record  begin");
     rc = trx->update_record(this, record);
   }
+  /**
   else
   {
 
@@ -864,7 +866,7 @@ RC Table::update_record(Trx *trx, Record *record)
     {
       rc = record_handler_->update_record(record);
     }
-  }
+  }**/
   return rc;
 }
 RC Table::commit_delete(Trx *trx, const RID &rid)
@@ -904,12 +906,15 @@ RC Table::rollback_delete(Trx *trx, const RID &rid)
 
   return trx->rollback_delete(this, record); // update record in place
 }
-
+//在索引上插入一行记录
 RC Table::insert_entry_of_indexes(const char *record, const RID &rid)
 {
   RC rc = RC::SUCCESS;
+  LOG_INFO("insert_entry_of_indexes size=%d \n", indexes_.size());
+
   for (Index *index : indexes_)
   {
+    LOG_INFO("insert_entry_of_indexes name=%s,field=%s,value=%s \n", index->index_meta().name(), index->index_meta().field(), record);
     rc = index->insert_entry(record, &rid);
     if (rc != RC::SUCCESS)
     {
@@ -922,13 +927,17 @@ RC Table::insert_entry_of_indexes(const char *record, const RID &rid)
 RC Table::delete_entry_of_indexes(const char *record, const RID &rid, bool error_on_not_exists)
 {
   RC rc = RC::SUCCESS;
+  LOG_INFO("delete_entry_of_indexes size=%d \n", indexes_.size());
   for (Index *index : indexes_)
   {
+    //rc=2309:RECORD_INVALID_KEY
+    LOG_INFO("delete_entry_of_indexes name=%s,field=%s,value=%s", index->index_meta().name(), index->index_meta().field(), record);
     rc = index->delete_entry(record, &rid);
     if (rc != RC::SUCCESS)
     {
       if (rc != RC::RECORD_INVALID_KEY || !error_on_not_exists)
       {
+
         break;
       }
     }
@@ -1065,6 +1074,7 @@ RC Table::commit_update(Trx *trx, const RID &rid)
   // }
 
   //03  update_record
+
   rc = record_handler_->update_record(&record);
   if (rc != RC::SUCCESS)
   {
@@ -1077,81 +1087,75 @@ RC Table::commit_update(Trx *trx, const RID &rid)
 
 RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, const Value *value)
 {
-
-  LOG_INFO(">>>>>>>>>Table::commit_update attribute_name=%s,values=%p", attribute_name,value);
+  LOG_INFO("commit_update. attribute_name=%s, values=%p", attribute_name, value);
 
   RC rc = RC::SUCCESS;
-
-  if (nullptr == attribute_name || nullptr == value ||nullptr ==value->data)
+  if (nullptr == attribute_name || nullptr == value || nullptr == value->data)
   {
-    LOG_ERROR("Invalid argument. attribute_name=%p, values=%p", attribute_name, value);
+    LOG_ERROR("Invalid argument. attribute_name=%s, values=%p", attribute_name, value);
     return RC::INVALID_ARGUMENT;
   }
 
   //01 查询记录
-  Record record;
-  rc = record_handler_->get_record(&rid, &record);
+  Record oldrecord;
+  rc = record_handler_->get_record(&rid, &oldrecord);
   if (rc != RC::SUCCESS)
   {
     LOG_INFO("commit_update get_record failed =%d", rc);
     return rc;
   }
+
+  Record newrecord;
+  newrecord.rid = oldrecord.rid;
+  newrecord.data = strdup(oldrecord.data);
   //02 set id=10;
 
-  //rc = delete_entry_of_indexes(record.data, record.rid, false);
-  //if (rc != RC::SUCCESS) {
-  //  LOG_ERROR("Failed to delete indexes of record(rid=%d.%d). rc=%d:%s",
-  //             rid.page_num, rid.slot_num, rc, strrc(rc));// panic?
-  // }
-   
-  
+  //根据upate字段----查找---属性----获取偏移量
   const FieldMeta *field_meta = table_meta_.field(attribute_name);
-  if(nullptr == field_meta)
+  if (nullptr == field_meta)
   {
     LOG_INFO("table_meta_.field(attribute_name) =%s", attribute_name);
     return RC::SCHEMA_FIELD_NOT_EXIST;
   }
   if (field_meta->type() == AttrType::DATES)
   {
-      LOG_INFO(" insert:AttrType::DATES, value.data=%s", value->data);
-      const char *pattern = "[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}";
-      if (0 == common::regex_match((char *)value->data, pattern))
-      {
-        //ok
-      }
-      else
-      {
-        LOG_INFO(" make_record  [0-9]{4}-[0-9]{1,2}-[0-9]{1,2}  value.data=%s", value->data);
-        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
-      }
-
-      //检查日期是否合法
-      char *ptr = static_cast<char *>(value->data);
-      int len = strlen(ptr);
-      char date[len];
-      memcpy(date, ptr, len);
-      if (false == check_date(date))
-      {
-        LOG_INFO(" check_date failed  value.data=%s", value->data);
-        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
-      }
+    LOG_INFO(" insert:AttrType::DATES, value.data=%s", value->data);
+    const char *pattern = "[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}";
+    if (0 == common::regex_match((char *)value->data, pattern))
+    {
+      //ok
     }
-    else if (field_meta->type() != value->type)
-   {   
-      ////对于整数与浮点数之间的转换，不做考察。学有余力的同学，可以做一下。
-      //&& > ||
-      if((field_meta->type() ==AttrType::INTS && value->type ==AttrType::FLOATS)
-        || (field_meta->type() ==AttrType::FLOATS && value->type ==AttrType::INTS)
-        )
-      {
-         LOG_INFO(" 对于整数与浮点数之间的转换，不做考察。学有余力的同学，可以做一下");
-      }else
-      {
-        LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
+    else
+    {
+      LOG_INFO(" make_record  [0-9]{4}-[0-9]{1,2}-[0-9]{1,2}  value.data=%s", value->data);
+      return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+    }
+
+    //检查日期是否合法
+    char *ptr = static_cast<char *>(value->data);
+    int len = strlen(ptr);
+    char date[len];
+    memcpy(date, ptr, len);
+    if (false == check_date(date))
+    {
+      LOG_INFO(" check_date failed  value.data=%s", value->data);
+      return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+    }
+  }
+  else if (field_meta->type() != value->type)
+  {
+    ////对于整数与浮点数之间的转换，不做考察。学有余力的同学，可以做一下。
+    //&& > ||
+    if ((field_meta->type() == AttrType::INTS && value->type == AttrType::FLOATS) || (field_meta->type() == AttrType::FLOATS && value->type == AttrType::INTS))
+    {
+      LOG_INFO(" 对于整数与浮点数之间的转换，不做考察。学有余力的同学，可以做一下");
+    }
+    else
+    {
+      LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
                 field_meta->name(), field_meta->type(), value->type);
-        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
-      }
-    
+      return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+    }
   }
   /**
   if(field_meta->type() ==AttrType::INTS && value->type ==AttrType::FLOATS)
@@ -1166,22 +1170,66 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
 
   }else**/
   {
-    memcpy(record.data + field_meta->offset(), value->data, field_meta->len());
+    memcpy(oldrecord.data + field_meta->offset(), value->data, field_meta->len());
   }
-  
 
-
+  //03  update_record
+  rc = record_handler_->update_record(&oldrecord);
   if (rc != RC::SUCCESS)
   {
     LOG_INFO("delete_record get_record failed =%d", rc);
     return rc;
   }
 
+  const IndexMeta *index_meta = table_meta_.find_index_by_field(attribute_name);
+  //无索引
+  if (nullptr == index_meta)
+  {
+  }
+  else
+  {
+
+    Index *index = find_index(index_meta->name());
+    if (nullptr != index)
+    {
+      rc = index->delete_entry(newrecord.data, &newrecord.rid);
+      if (rc != RC::SUCCESS)
+      {
+        LOG_ERROR(" update:Failed to delete indexes of record(rid=%d.%d). rc=%d:%s",
+                  rid.page_num, rid.slot_num, rc, strrc(rc)); // panic?
+      }
+       rc = index->insert_entry(oldrecord.data, &oldrecord.rid);
+      if (rc != RC::SUCCESS)
+      {
+        LOG_ERROR(" update:Failed to delete indexes of record(rid=%d.%d). rc=%d:%s",
+                  rid.page_num, rid.slot_num, rc, strrc(rc)); // panic?
+      }
+    }
+  }
+
+  /**
+   //04 索引
+  rc = delete_entry_of_indexes(newrecord.data, newrecord.rid, true);
+  if (rc != RC::SUCCESS)
+  {
+    LOG_ERROR(" update:Failed to delete indexes of record(rid=%d.%d). rc=%d:%s",
+              rid.page_num, rid.slot_num, rc, strrc(rc)); // panic?
+  }
+  //rc=2309:RECORD_DUPLICATE_KEY
+  rc = insert_entry_of_indexes(oldrecord.data, oldrecord.rid);
+  if (rc != RC::SUCCESS)
+  {
+    //还原数据
+    LOG_ERROR("update Failed to insert indexes of record(rid=%d.%d). rc=%d:%s",
+             rid.page_num, rid.slot_num, rc, strrc(rc)); // panic?
+    return rc;
+  }**/
+
   return rc;
 }
 bool Table::check_date(char *pdate)
-{  
-  std::cout<< "check_date" <<pdate<<endl;
+{
+  std::cout << "check_date" << pdate << endl;
   if (nullptr == pdate)
   {
     return false;
@@ -1195,7 +1243,7 @@ bool Table::check_date(char *pdate)
   int day = 0;
   int count = 0;
 
-  char *p =nullptr;
+  char *p = nullptr;
   const char *split = "-"; //可按多个字符来分割
   p = strtok(pdate, split);
   while (p)
@@ -1307,11 +1355,11 @@ bool Table::check_date(char *pdate)
  * 步骤
  * 1. 删除文件 
  */
-RC Table::drop_index(Trx *trx, const char *relation_name,const char *index_name)
-{  
-   RC rc=RC::SUCCESS;
-  if (index_name == nullptr || common::is_blank(index_name) || 
-     relation_name == nullptr || common::is_blank(relation_name) )
+RC Table::drop_index(Trx *trx, const char *relation_name, const char *index_name)
+{
+  RC rc = RC::SUCCESS;
+  if (index_name == nullptr || common::is_blank(index_name) ||
+      relation_name == nullptr || common::is_blank(relation_name))
   {
     return RC::INVALID_ARGUMENT;
   }
@@ -1367,8 +1415,8 @@ RC Table::drop_index(Trx *trx, const char *relation_name,const char *index_name)
   }**/
 
   // 创建元数据临时文件
-  std::string index_file = index_data_file(base_dir_.c_str(),relation_name,index_name);
-  
+  std::string index_file = index_data_file(base_dir_.c_str(), relation_name, index_name);
+
   int ret = remove(index_file.c_str());
   if (-1 == ret)
   {
@@ -1376,7 +1424,7 @@ RC Table::drop_index(Trx *trx, const char *relation_name,const char *index_name)
               index_file.c_str(), errno, strerror(errno));
     return RC::IOERR;
   }
-  
+
   LOG_INFO("drop index_file=%s", index_file.c_str());
 
   /**
