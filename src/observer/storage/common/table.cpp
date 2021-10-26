@@ -1181,14 +1181,15 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
     return rc;
   }
 
+  //04 重建索引算法描述：
+  //步骤01：判断更新字段是否存在索引
   const IndexMeta *index_meta = table_meta_.find_index_by_field(attribute_name);
-  //无索引
-  if (nullptr == index_meta)
+  //例如 map[key]=value || 二叉查找树（Binary Search Tree）
+  //步骤02:无索引--value 怎么变化都不影响key排序 。直接返回结束。
+  //步骤03：有索引---key变化，排序位置发送变化。需要调整。先删除后插入方式。
+  //查缺补漏： b+,map 二查搜索tree
+  if (nullptr !=index_meta)
   {
-  }
-  else
-  {
-
     Index *index = find_index(index_meta->name());
     if (nullptr != index)
     {
@@ -1198,7 +1199,7 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
         LOG_ERROR(" update:Failed to delete indexes of record(rid=%d.%d). rc=%d:%s",
                   rid.page_num, rid.slot_num, rc, strrc(rc)); // panic?
       }
-       rc = index->insert_entry(oldrecord.data, &oldrecord.rid);
+      rc = index->insert_entry(oldrecord.data, &oldrecord.rid);
       if (rc != RC::SUCCESS)
       {
         LOG_ERROR(" update:Failed to delete indexes of record(rid=%d.%d). rc=%d:%s",
@@ -1206,25 +1207,6 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
       }
     }
   }
-
-  /**
-   //04 索引
-  rc = delete_entry_of_indexes(newrecord.data, newrecord.rid, true);
-  if (rc != RC::SUCCESS)
-  {
-    LOG_ERROR(" update:Failed to delete indexes of record(rid=%d.%d). rc=%d:%s",
-              rid.page_num, rid.slot_num, rc, strrc(rc)); // panic?
-  }
-  //rc=2309:RECORD_DUPLICATE_KEY
-  rc = insert_entry_of_indexes(oldrecord.data, oldrecord.rid);
-  if (rc != RC::SUCCESS)
-  {
-    //还原数据
-    LOG_ERROR("update Failed to insert indexes of record(rid=%d.%d). rc=%d:%s",
-             rid.page_num, rid.slot_num, rc, strrc(rc)); // panic?
-    return rc;
-  }**/
-
   return rc;
 }
 bool Table::check_date(char *pdate)
