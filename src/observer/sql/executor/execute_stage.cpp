@@ -307,9 +307,9 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
   {
     TupleSet tuple_set;
     rc = node->execute(tuple_set);
-    if (rc != RC::SUCCESS)
+    //日期查询：
+    if (rc != RC::SUCCESS && rc != RC::RECORD_NO_MORE_IDX_IN_MEM)
     {
-
       LOG_INFO("execute failed rc=%d:%s", rc, strrc(rc));
       for (SelectExeNode *&tmp_node : select_nodes)
       {
@@ -318,8 +318,13 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       end_trx_if_need(session, trx, false);
       return rc;
     }
-    else
-    {
+    else 
+    { 
+      if(rc == RC::RECORD_NO_MORE_IDX_IN_MEM)
+      {
+        tuple_set.get_tuple().clear();
+        LOG_INFO(">>>>>execute failed rc=%d:%s", rc, strrc(rc));
+      }
       tuple_sets.push_back(std::move(tuple_set));
     }
   }
@@ -329,8 +334,9 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
   // 当前只查询一张表，直接返回结果即可
   if (tuple_sets.size() == 1)
   {
-
+    //单表：
     tuple_sets.front().print(ss);
+
     //题目：多表查询
   }
   else if (tuple_sets.size() == 2)

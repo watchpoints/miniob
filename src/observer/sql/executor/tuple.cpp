@@ -219,9 +219,9 @@ void TupleSet::print(std::ostream &os) const
 
   //一个表：
   if (table_names.size() == 1)
-  {
+  {  
+    //单表显示：
     //tuples_ 多行
-
     for (const Tuple &item : tuples_)
     {
       //std::vector<std::shared_ptr<TupleValue>>  values_;

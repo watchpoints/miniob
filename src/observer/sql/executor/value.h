@@ -20,29 +20,36 @@ See the Mulan PSL v2 for more details. */
 #include <string>
 #include <ostream>
 #include <iostream>
-class TupleValue {
+#include "common/math/regex.h"
+class TupleValue
+{
 public:
   TupleValue() = default;
   virtual ~TupleValue() = default;
 
   virtual void to_string(std::ostream &os) const = 0;
   virtual int compare(const TupleValue &other) const = 0;
+
 private:
 };
 
-class IntValue : public TupleValue {
+class IntValue : public TupleValue
+{
 public:
-  explicit IntValue(int value) : value_(value) {
+  explicit IntValue(int value) : value_(value)
+  {
   }
 
-  void to_string(std::ostream &os) const override {
-    std::cout<< "IntValue:value_" <<value_<<std::endl;
+  void to_string(std::ostream &os) const override
+  {
+    std::cout << "IntValue:value_" << value_ << std::endl;
     os << value_;
   }
 
-  int compare(const TupleValue &other) const override {
-    const IntValue & int_other = (const IntValue &)other;
-    std::cout<< " >>> compare::IntValue " <<value_ << ":" <<int_other.value_<<std::endl;
+  int compare(const TupleValue &other) const override
+  {
+    const IntValue &int_other = (const IntValue &)other;
+    std::cout << " >>> compare::IntValue " << value_ << ":" << int_other.value_ << std::endl;
 
     return value_ - int_other.value_;
   }
@@ -51,53 +58,114 @@ private:
   int value_;
 };
 
-class FloatValue : public TupleValue {
+class FloatValue : public TupleValue
+{
 public:
-  explicit FloatValue(float value) : value_(value) {
+  explicit FloatValue(float value) : value_(value)
+  {
   }
 
-  void to_string(std::ostream &os) const override {
-    std::cout<< "FloatValue:value_" <<value_<<std::endl;
+  void to_string(std::ostream &os) const override
+  {
+    std::cout << "FloatValue:value_" << value_ << std::endl;
     os << value_;
   }
 
-  int compare(const TupleValue &other) const override {
-    const FloatValue & float_other = (const FloatValue &)other;
+  int compare(const TupleValue &other) const override
+  {
+    const FloatValue &float_other = (const FloatValue &)other;
     float result = value_ - float_other.value_;
-    std::cout<< " >>> compare::FloatValue " <<value_ << ":" <<float_other.value_<<std::endl;
+    std::cout << " >>> compare::FloatValue " << value_ << ":" << float_other.value_ << std::endl;
 
-    if (result > 0) { // 浮点数没有考虑精度问题
+    if (result > 0)
+    { // 浮点数没有考虑精度问题
       return 1;
     }
-    if (result < 0) {
+    if (result < 0)
+    {
       return -1;
     }
     return 0;
   }
+
 private:
   float value_;
 };
 
-class StringValue : public TupleValue {
+class StringValue : public TupleValue
+{
 public:
-  StringValue(const char *value, int len) : value_(value, len){
+  StringValue(const char *value, int len) : value_(value, len)
+  {
   }
-  explicit StringValue(const char *value) : value_(value) {
+  explicit StringValue(const char *value) : value_(value)
+  {
+  }
+  /**
+   *  日期格式显示：
+   *  //01 判断字符串是否符合日期格式
+   *  //02 如果是日期格式进行格式化显示
+   */
+  void to_string(std::ostream &os) const override
+  {
+  
+
+    //01 判断字符串是否符合日期格式
+    const char *pattern = "[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}";
+    if (0 == common::regex_match(value_.c_str(), pattern))
+    {
+      //02 如果是日期格式进行格式化显示
+      int len = value_.size();
+      char mydate[len];
+      memcpy(mydate, value_.c_str(), len);
+
+      char *p = nullptr;
+      const char *split = "-"; //可按多个字符来分割
+      p = strtok(mydate, split);
+      int count = 0;
+      int year = 0;
+      int month = 0;
+      int day = 0;
+      while (p)
+      {
+        int data = atoi(p);
+        // cout<< "data=" <<data;
+        if (count == 0)
+        {
+          year = data;
+        }
+        else if (count == 1)
+        {
+          month = data;
+        }
+        else if (count == 2)
+        {
+          day = data;
+        }
+        count++;
+        p = strtok(NULL, split);
+      }
+      char rightdate[12] = {0};
+      sprintf(rightdate, "%04d-%02d-%02d", year, month, day);
+      std::cout << "yyyy-mm-dd-to_string=========" << rightdate << std::endl;
+      os << rightdate;
+    }
+    else
+    {
+      os << value_;
+      std::cout << "print commn stirng  no date " << value_ << std::endl;
+    }
   }
 
-  void to_string(std::ostream &os) const override {
-    std::cout<< "print value to_string " <<value_<<std::endl;
-    os << value_;
-  }
-  
-  int compare(const TupleValue &other) const override {
+  int compare(const TupleValue &other) const override
+  {
     const StringValue &string_other = (const StringValue &)other;
-    std::cout<< " >>> compare::StringValue " <<value_.c_str() << ":" <<string_other.value_.c_str();
+    std::cout << " >>> compare::StringValue " << value_.c_str() << ":" << string_other.value_.c_str();
     return strcmp(value_.c_str(), string_other.value_.c_str());
   }
+
 private:
   std::string value_;
 };
-
 
 #endif //__OBSERVER_SQL_EXECUTOR_VALUE_H_
