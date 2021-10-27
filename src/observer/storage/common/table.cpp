@@ -808,19 +808,7 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
     LOG_ERROR("Invalid argument. attribute_name=%p, values=%p", attribute_name, value);
     return RC::INVALID_ARGUMENT;
   }
-  //构造整行记录
-  //char *record_data;
-  //这个方式不合适，因为make_record value是个数组。
-  //RC rc = make_record(1, value, record_data);
-  //if (rc != RC::SUCCESS) {
-  // LOG_ERROR("Failed to update a record. rc=%d:%s", rc, strrc(rc));
-  //return rc;
-  //}
-  //memcpy(record + field->offset(), value.data, field->len());
-
-  //Record record;
-  //record.data = record_data;
-
+ 
   //设置过滤条件
   CompositeConditionFilter condition_filter;
   RC rc = condition_filter.init(*this, conditions, condition_num);
@@ -828,6 +816,7 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
   {
     return rc;
   }
+
   //value 从哪里设置呀？？？
   trx->attribute_name = const_cast<char *>(attribute_name);
   trx->value = const_cast<Value *>(value);
@@ -837,7 +826,7 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
   {
     *updated_count = updater.updated_count();
   }
-  //delete[] record_data;
+
   return rc;
 }
 //题目：实现update功能
@@ -1096,28 +1085,17 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
     return RC::INVALID_ARGUMENT;
   }
 
-  //01 查询记录
-  Record oldrecord;
-  rc = record_handler_->get_record(&rid, &oldrecord);
-  if (rc != RC::SUCCESS)
-  {
-    LOG_INFO("commit_update get_record failed =%d", rc);
-    return rc;
-  }
+   //步骤1:检查更新字段属性是否合法：set id=10;
 
-  Record newrecord;
-  newrecord.rid = oldrecord.rid;
-  newrecord.data = strdup(oldrecord.data);
-  //02 set id=10;
-
-  //根据upate字段----查找---属性----获取偏移量
+  //根据upate字段----查找属性----获取偏移量
   const FieldMeta *field_meta = table_meta_.field(attribute_name);
   if (nullptr == field_meta)
   {
     LOG_INFO("table_meta_.field(attribute_name) =%s", attribute_name);
     return RC::SCHEMA_FIELD_NOT_EXIST;
   }
-  if (field_meta->type() == AttrType::DATES)
+  //特殊处理：AttrType::DATES
+  if (field_meta->type() == AttrType::DATES && value->type == AttrType::CHARS)
   {
     LOG_INFO(" insert:AttrType::DATES, value.data=%s", value->data);
     const char *pattern = "[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}";
@@ -1141,38 +1119,43 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
       LOG_INFO(" check_date failed  value.data=%s", value->data);
       return RC::SCHEMA_FIELD_TYPE_MISMATCH;
     }
+    //特殊处理：AttrType::DATES
+  }else if(field_meta->type() == AttrType::DATES && value->type !=AttrType::CHARS)
+  {
+       LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
+                field_meta->name(), field_meta->type(), value->type);
+      return RC::SCHEMA_FIELD_TYPE_MISMATCH;
   }
   else if (field_meta->type() != value->type)
   {
     ////对于整数与浮点数之间的转换，不做考察。学有余力的同学，可以做一下。
     //&& > ||
-    if ((field_meta->type() == AttrType::INTS && value->type == AttrType::FLOATS) || (field_meta->type() == AttrType::FLOATS && value->type == AttrType::INTS))
-    {
-      LOG_INFO(" 对于整数与浮点数之间的转换，不做考察。学有余力的同学，可以做一下");
-    }
-    else
+    //if ((field_meta->type() == AttrType::INTS && value->type == AttrType::FLOATS) || (field_meta->type() == AttrType::FLOATS && value->type == AttrType::INTS))
+    //{
+      //LOG_INFO(" 对于整数与浮点数之间的转换，不做考察。学有余力的同学，可以做一下");
+    //}
+    //else
     {
       LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
                 field_meta->name(), field_meta->type(), value->type);
       return RC::SCHEMA_FIELD_TYPE_MISMATCH;
     }
   }
-  /**
-  if(field_meta->type() ==AttrType::INTS && value->type ==AttrType::FLOATS)
-  {   
-       
-      memcpy(record.data + field_meta->offset(), static_cast<int*>(value->data), field_meta->len());
 
-  }else if(field_meta->type() ==AttrType::FLOATS && value->type ==AttrType::INTS)
-  {      
-        
-        memcpy(record.data + field_meta->offset(), static_cast<float*>(value->data), field_meta->len());
-
-  }else**/
+//步骤2  查询记录---修改value--更新
+  Record oldrecord;
+  rc = record_handler_->get_record(&rid, &oldrecord);
+  if (rc != RC::SUCCESS)
   {
-    memcpy(oldrecord.data + field_meta->offset(), value->data, field_meta->len());
+    LOG_INFO("commit_update get_record failed =%d", rc);
+    return rc;
   }
 
+  Record newrecord;
+  newrecord.rid = oldrecord.rid;
+  newrecord.data = strdup(oldrecord.data);
+
+  memcpy(oldrecord.data + field_meta->offset(), value->data, field_meta->len());
   //03  update_record
   rc = record_handler_->update_record(&oldrecord);
   if (rc != RC::SUCCESS)

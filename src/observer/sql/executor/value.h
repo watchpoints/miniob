@@ -21,6 +21,7 @@ See the Mulan PSL v2 for more details. */
 #include <ostream>
 #include <iostream>
 #include "common/math/regex.h"
+
 class TupleValue
 {
 public:
@@ -57,20 +58,13 @@ public:
 private:
   int value_;
 };
-
 class FloatValue : public TupleValue
 {
 public:
   explicit FloatValue(float value) : value_(value)
   {
-  }
 
-  void to_string(std::ostream &os) const override
-  {
-    std::cout << "FloatValue:value_" << value_ << std::endl;
-    os << value_;
   }
-
   int compare(const TupleValue &other) const override
   {
     const FloatValue &float_other = (const FloatValue &)other;
@@ -88,6 +82,16 @@ public:
     return 0;
   }
 
+  void to_string(std::ostream &os) const override
+  {  
+      //按照输出要求，浮点数最多保留两位小数，并且去掉多余的0
+      std::cout << "FloatValue:value_" << value_ << std::endl;
+      char str[1024];
+      sprintf(str, "%.2f", value_);
+      //removeLastZero(str);
+      //os <<  value_;
+      os <<  str;
+  }
 private:
   float value_;
 };

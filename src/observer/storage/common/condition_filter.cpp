@@ -66,6 +66,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
   AttrType type_left = UNDEFINED;
   AttrType type_right = UNDEFINED;
   //1时，操作符左边是属性名
+  //where id=2;
   if (1 == condition.left_is_attr) {
     left.is_attr = true;
     const FieldMeta *field_left = table_meta.field(condition.left_attr.attribute_name);
@@ -121,13 +122,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
   // NOTE：这里没有实现不同类型的数据比较，比如整数跟浮点数之间的对比
   // 但是选手们还是要实现。这个功能在预选赛中会出现
   
-  //创建日期类型时候，自己value stirng 类型保存的 后面改成vale 类型也必须是date类型的 【遗漏任务】
-
-  if (type_left != type_right && type_left != AttrType::DATES) {
-    LOG_INFO("init:: type_left != type_right failed type_left=%d,type_right=%d",type_left,type_right);
-    return RC::SCHEMA_FIELD_TYPE_MISMATCH;
-  }
-
+  //查询条件：进行过滤
   //select * from t where birthday='2021-2-30';
   //birthday 是否非法日期类型 需要检查。
   if(type_left == AttrType::DATES &&  type_right == AttrType::CHARS 
@@ -138,6 +133,12 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
         LOG_INFO(" check_where_date failed,value=%s",right.value);
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
      }
+  }
+
+  //创建日期类型时候，自己value stirng 类型保存的 后面改成vale 类型也必须是date类型的 【遗漏任务】
+  if (type_left != type_right && type_left != AttrType::DATES) {
+    LOG_INFO("init:: type_left != type_right failed type_left=%d,type_right=%d",type_left,type_right);
+    return RC::SCHEMA_FIELD_TYPE_MISMATCH;
   }
 
   return init(left, right, type_left, condition.comp);
