@@ -1204,7 +1204,13 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
       {
         LOG_ERROR(" update:Failed to delete indexes of record(rid=%d.%d). rc=%d:%s",
                   rid.page_num, rid.slot_num, rc, strrc(rc)); // panic?
+        
       }
+      if(rc ==RC::RECORD_DUPLICATE_KEY)
+      {
+        rc =RC::SUCCESS;
+      }
+      
     }
   }
   return rc;
