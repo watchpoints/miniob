@@ -22,6 +22,36 @@ RC parse(char *st, Query *sqln);
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
+bool removeLastZero(char *numstr)
+{
+    if (NULL == strchr(numstr, '.'))
+        return false;
+
+    int length = strlen(numstr);
+    for (int i = length - 1; i > 0; --i)
+    {
+        if ('\0' == numstr[i])
+        {
+            continue;
+        }
+        else if ('0' == numstr[i])
+        {
+            numstr[i] = '\0';
+        }
+        else if ('.' == numstr[i]) // 小数点之后全为零
+        {
+            numstr[i] = '\0';
+            break;
+        }
+        else // 小数点后有非零数字
+        {
+            break;
+        }
+    }
+
+    return true;
+}
+
 void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name) {
   if (relation_name != nullptr) {
     relation_attr->relation_name = strdup(relation_name);
@@ -44,9 +74,22 @@ void value_init_integer(Value *value, int v) {
   memcpy(value->data, &v, sizeof(v));
 }
 void value_init_float(Value *value, float v) {
-  value->type = FLOATS;
-  value->data = malloc(sizeof(v));
-  memcpy(value->data, &v, sizeof(v));
+   value->type = FLOATS;
+
+    char str[1024];
+    sprintf(str, "%.2f", v);
+    std::cout<< "a: "<<v <<"str:"<<str<<std::endl;
+
+    removeLastZero(str);
+    std::cout <<"str:"<< str << std::endl;
+
+    // 将字符串转换为浮点数
+    float num_float = std::stof(str);
+
+    std::cout<< "num_float: "<<num_float<<std::endl;
+
+   value->data = malloc(sizeof(num_float));
+   memcpy(value->data, &num_float, sizeof(num_float));
 }
 void value_init_string(Value *value, const char *v) {
     value->type = CHARS;

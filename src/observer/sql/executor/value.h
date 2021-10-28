@@ -85,12 +85,9 @@ public:
   void to_string(std::ostream &os) const override
   {  
       //按照输出要求，浮点数最多保留两位小数，并且去掉多余的0
-      std::cout << "FloatValue:value_" << value_ << std::endl;
-      char str[1024];
-      sprintf(str, "%.2f", value_);
-      //removeLastZero(str);
-      //os <<  value_;
-      os <<  str;
+      std::cout << "print float" << value_ << std::endl;
+      os <<  value_;
+    
   }
 private:
   float value_;
