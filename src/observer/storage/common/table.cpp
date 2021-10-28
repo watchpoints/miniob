@@ -28,6 +28,24 @@ See the Mulan PSL v2 for more details. */
 #include "storage/common/bplus_tree_index.h"
 #include "storage/trx/trx.h"
 #include "common/math/regex.h"
+
+static time_t StringToDatetime(string str)
+{
+    char *cha = (char*)str.data();             // 将string转换成char*。
+    tm tm_;                                    // 定义tm结构体。
+    int year, month, day, hour, minute, second;// 定义时间的各个int临时变量。
+    sscanf(cha, "%d-%d-%d %d:%d:%d", &year, &month, &day, &hour, &minute, &second);// 将string存储的日期时间，转换为int临时变量。
+    tm_.tm_year = year - 1900;                 // 年，由于tm结构体存储的是从1900年开始的时间，所以tm_year为int临时变量减去1900。
+    tm_.tm_mon = month - 1;                    // 月，由于tm结构体的月份存储范围为0-11，所以tm_mon为int临时变量减去1。
+    tm_.tm_mday = day;                         // 日。
+    tm_.tm_hour = hour;                        // 时。
+    tm_.tm_min = minute;                       // 分。
+    tm_.tm_sec = second;                       // 秒。
+    tm_.tm_isdst = 0;                          // 非夏令时。
+    time_t t_ = mktime(&tm_);                  // 将tm结构体转换成time_t格式。
+    return t_;                                 // 返回值。
+}
+
 Table::Table() : data_buffer_pool_(nullptr),
                  file_id_(-1),
                  record_handler_(nullptr)
@@ -348,7 +366,7 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
   {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
-
+   
     if (field->type() == AttrType::DATES)
     {
       //LOG_INFO(" insert:AttrType::DATES, value.data=%s", value.data);
@@ -373,6 +391,10 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
         //LOG_INFO(" check_date failed  value.data=%s", value.data);
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
       }
+
+      //value.type =AttrType::DATES;
+      //value 按照字节存储,不区分类型
+
     }
     else if (field->type() != value.type)
     {
@@ -392,8 +414,23 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
   {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
-    memcpy(record + field->offset(), value.data, field->len());
-   // LOG_INFO("insert: memcpy value=%s,field->len()=%d,record=%s,record_size=%d", value.data, field->len(), record);
+    if (field->type() == AttrType::DATES)
+    {
+      //字符串变成时间戳4字节存储
+      //检查日期是否合法
+      char *ptr = static_cast<char *>(value.data);
+      string temp(ptr);
+      temp.append(" 00:00:00");
+      int time_t=StringToDatetime(temp);
+      memcpy(record + field->offset(), &time_t, field->len());
+
+    }else
+    {
+      memcpy(record + field->offset(), value.data, field->len());
+    }
+    
+    
+    //LOG_INFO("insert: memcpy value=%s,field->len()=%d,record=%s,record_size=%d", value.data, field->len(), record);
   }
 
   record_out = record;
@@ -825,6 +862,11 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
   {
     *updated_count = updater.updated_count();
   }
+  
+  if (rc == RC::RECORD_NO_MORE_IDX_IN_MEM)
+  { 
+    return RC::SUCCESS;
+  }
 
   return rc;
 }
@@ -1153,8 +1195,20 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
   Record newrecord;
   newrecord.rid = oldrecord.rid;
   newrecord.data = strdup(oldrecord.data);
+  
+  if(field_meta->type() == AttrType::DATES && value->type == AttrType::CHARS)
+  {
+      char *ptr = static_cast<char *>(value->data);
+      string temp(ptr);
+      temp.append(" 00:00:00");
+      int time_t=StringToDatetime(temp);
+      memcpy(oldrecord.data + field_meta->offset(), &time_t, field_meta->len());
 
-  memcpy(oldrecord.data + field_meta->offset(), value->data, field_meta->len());
+  }else
+  {
+    memcpy(oldrecord.data + field_meta->offset(), value->data, field_meta->len());
+  }
+  
   //03  update_record
   rc = record_handler_->update_record(&oldrecord);
   if (rc != RC::SUCCESS)

@@ -22,6 +22,21 @@ See the Mulan PSL v2 for more details. */
 #include <iostream>
 #include "common/math/regex.h"
 
+using namespace std;
+/**
+string DatetimeToString(time_t time)
+{
+	  tm *tm_ = localtime(&time);                // 将time_t格式转换为tm结构体
+    int year, month, day;// 定义时间的各个int临时变量。
+    year = tm_->tm_year + 1900;                // 临时变量，年，由于tm结构体存储的是从1900年开始的时间，所以临时变量int为tm_year加上1900。
+    month = tm_->tm_mon + 1;                   // 临时变量，月，由于tm结构体的月份存储范围为0-11，所以临时变量int为tm_mon加上1。
+    day = tm_->tm_mday;                        // 临时变量，日。
+  
+    char rightdate[100];
+    sprintf(rightdate, "%04d-%02d-%02d", year, month, day);
+    return string(rightdate);
+}**/
+
 class TupleValue
 {
 public:
@@ -166,6 +181,41 @@ public:
 
 private:
   std::string value_;
+};
+
+class DateValue : public TupleValue
+{
+public:
+  explicit DateValue(int value) : value_(value)
+  {
+  }
+  //日期格式输出:
+  void to_string(std::ostream &os) const override
+  {
+    //std::cout << "IntValue:value_" << value_ << std::endl;
+      time_t t=(time_t)value_;
+      tm *tm_ = localtime(&t);                // 将time_t格式转换为tm结构体
+      int year, month, day;// 定义时间的各个int临时变量。
+      year = tm_->tm_year + 1900;                // 临时变量，年，由于tm结构体存储的是从1900年开始的时间，所以临时变量int为tm_year加上1900。
+      month = tm_->tm_mon + 1;                   // 临时变量，月，由于tm结构体的月份存储范围为0-11，所以临时变量int为tm_mon加上1。
+      day = tm_->tm_mday;                        // 临时变量，日。
+
+      char rightdate[30];
+      sprintf(rightdate, "%04d-%02d-%02d", year, month, day);
+      cout<< "to_string:data ="<<rightdate<<endl;
+      os << rightdate;
+  }
+
+  int compare(const TupleValue &other) const override
+  {
+    const DateValue &int_other = (const DateValue &)other;
+    std::cout << " >>> compare::IntValue " << value_ << ":" << int_other.value_ << std::endl;
+
+    return value_ - int_other.value_;
+  }
+
+private:
+  int value_;
 };
 
 #endif //__OBSERVER_SQL_EXECUTOR_VALUE_H_

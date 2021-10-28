@@ -20,8 +20,25 @@ See the Mulan PSL v2 for more details. */
 
 using namespace common;
 
+static time_t StringToDatetime(string str)
+{
+    char *cha = (char*)str.data();             // 将string转换成char*。
+    tm tm_;                                    // 定义tm结构体。
+    int year, month, day, hour, minute, second;// 定义时间的各个int临时变量。
+    sscanf(cha, "%d-%d-%d %d:%d:%d", &year, &month, &day, &hour, &minute, &second);// 将string存储的日期时间，转换为int临时变量。
+    tm_.tm_year = year - 1900;                 // 年，由于tm结构体存储的是从1900年开始的时间，所以tm_year为int临时变量减去1900。
+    tm_.tm_mon = month - 1;                    // 月，由于tm结构体的月份存储范围为0-11，所以tm_mon为int临时变量减去1。
+    tm_.tm_mday = day;                         // 日。
+    tm_.tm_hour = hour;                        // 时。
+    tm_.tm_min = minute;                       // 分。
+    tm_.tm_sec = second;                       // 秒。
+    tm_.tm_isdst = 0;                          // 非夏令时。
+    time_t t_ = mktime(&tm_);                  // 将tm结构体转换成time_t格式。
+    return t_;                                 // 返回值。
+}
 ConditionFilter::~ConditionFilter()
-{}
+{
+}
 
 DefaultConditionFilter::DefaultConditionFilter()
 {
@@ -36,16 +53,19 @@ DefaultConditionFilter::DefaultConditionFilter()
   right_.value = nullptr;
 }
 DefaultConditionFilter::~DefaultConditionFilter()
-{}
+{
+}
 
 RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrType attr_type, CompOp comp_op)
 {
-  if (attr_type < CHARS || attr_type > DATES) {
+  if (attr_type < CHARS || attr_type > DATES)
+  {
     LOG_ERROR("Invalid condition with unsupported attribute type: %d", attr_type);
     return RC::INVALID_ARGUMENT;
   }
 
-  if (comp_op < EQUAL_TO || comp_op >= NO_OP) {
+  if (comp_op < EQUAL_TO || comp_op >= NO_OP)
+  {
     LOG_ERROR("Invalid condition with unsupported compare operation: %d", comp_op);
     return RC::INVALID_ARGUMENT;
   }
@@ -67,10 +87,12 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
   AttrType type_right = UNDEFINED;
   //1时，操作符左边是属性名
   //where id=2;
-  if (1 == condition.left_is_attr) {
+  if (1 == condition.left_is_attr)
+  {
     left.is_attr = true;
     const FieldMeta *field_left = table_meta.field(condition.left_attr.attribute_name);
-    if (nullptr == field_left) {
+    if (nullptr == field_left)
+    {
       LOG_WARN("No such field in condition. %s.%s", table.name(), condition.left_attr.attribute_name);
       return RC::SCHEMA_FIELD_MISSING;
     }
@@ -80,20 +102,25 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     left.value = nullptr;
 
     type_left = field_left->type();
-  } else {
+  }
+  else
+  {
     //0时，是属性值
     left.is_attr = false;
-    left.value = condition.left_value.data;  // 校验type 或者转换类型
+    left.value = condition.left_value.data; // 校验type 或者转换类型
     type_left = condition.left_value.type;
 
     left.attr_length = 0;
     left.attr_offset = 0;
+
   }
-   //1时，操作符右边是属性名，0时，是属性值
-  if (1 == condition.right_is_attr) {
+  //1时，操作符右边是属性名，0时，是属性值
+  if (1 == condition.right_is_attr)
+  {
     right.is_attr = true;
     const FieldMeta *field_right = table_meta.field(condition.right_attr.attribute_name);
-    if (nullptr == field_right) {
+    if (nullptr == field_right)
+    {
       LOG_WARN("No such field in condition. %s.%s", table.name(), condition.right_attr.attribute_name);
       return RC::SCHEMA_FIELD_MISSING;
     }
@@ -102,16 +129,59 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     type_right = field_right->type();
 
     right.value = nullptr;
-  } else {
 
-    //LOG_INFO("DefaultConditionFilter::init value:%s,type_right:=%d",(char*)right.value,type_right);
+     if (type_right == AttrType::DATES && type_left == AttrType::CHARS && left.is_attr == false)
+    {  
+      LOG_INFO(" check_where_date");
+      if (false == check_where_date((char *)condition.left_value.data))
+      {
+        //LOG_INFO(" check_where_date failed,value=%s", right.value);
+        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+      }
 
+      //字符串变成时间戳4字节存储
+      //检查日期是否合法
+      char *ptr = static_cast<char *>(condition.left_value.data);
+      string temp(ptr);
+      temp.append(" 00:00:00");
+      int time_t=StringToDatetime(temp);
+      //right.value = condition.right_value.data;
+
+      left.value  = malloc(sizeof(time_t));
+      memcpy(left.value, &time_t, sizeof(time_t));
+      type_left =AttrType::DATES;
+    }
+  }
+  else
+  {
     right.is_attr = false;
     right.value = condition.right_value.data;
     type_right = condition.right_value.type;
 
     right.attr_length = 0;
     right.attr_offset = 0;
+
+    if (type_left == AttrType::DATES && type_right == AttrType::CHARS)
+    {  
+      LOG_INFO(" check_where_date");
+      if (false == check_where_date((char *)condition.right_value.data))
+      {
+        //LOG_INFO(" check_where_date failed,value=%s", right.value);
+        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+      }
+
+      //字符串变成时间戳4字节存储
+      //检查日期是否合法
+      char *ptr = static_cast<char *>(condition.right_value.data);
+      string temp(ptr);
+      temp.append(" 00:00:00");
+      int time_t=StringToDatetime(temp);
+      //right.value = condition.right_value.data;
+
+      right.value  = malloc(sizeof(time_t));
+      memcpy(right.value, &time_t, sizeof(time_t));
+      type_right =AttrType::DATES;
+    }
   }
 
   // 校验和转换
@@ -121,23 +191,15 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
   //  }
   // NOTE：这里没有实现不同类型的数据比较，比如整数跟浮点数之间的对比
   // 但是选手们还是要实现。这个功能在预选赛中会出现
-  
+
   //查询条件：进行过滤
   //select * from t where birthday='2021-2-30';
   //birthday 是否非法日期类型 需要检查。
-  if(type_left == AttrType::DATES &&  type_right == AttrType::CHARS 
-    && right.is_attr ==false)
-  {  
-     if(false ==check_where_date((char*)right.value))
-     {
-        LOG_INFO(" check_where_date failed,value=%s",right.value);
-        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
-     }
-  }
 
   //创建日期类型时候，自己value stirng 类型保存的 后面改成vale 类型也必须是date类型的 【遗漏任务】
-  if (type_left != type_right && type_left != AttrType::DATES) {
-    LOG_INFO("init:: type_left != type_right failed type_left=%d,type_right=%d",type_left,type_right);
+  if (type_left != type_right)
+  {
+    LOG_INFO("init:: type_left != type_right failed type_left=%d,type_right=%d", type_left, type_right);
     return RC::SCHEMA_FIELD_TYPE_MISMATCH;
   }
 
@@ -149,70 +211,91 @@ bool DefaultConditionFilter::filter(const Record &rec) const
   char *left_value = nullptr;
   char *right_value = nullptr;
 
-  if (left_.is_attr) {  // value
+  if (left_.is_attr)
+  { // value
     left_value = (char *)(rec.data + left_.attr_offset);
-  } else {
+  }
+  else
+  {
     left_value = (char *)left_.value;
   }
 
-  if (right_.is_attr) {
+  if (right_.is_attr)
+  {
     right_value = (char *)(rec.data + right_.attr_offset);
-  } else {
+  }
+  else
+  {
     right_value = (char *)right_.value;
   }
 
   int cmp_result = 0;
-  switch (attr_type_) {
-    case CHARS: {  // 字符串都是定长的，直接比较
-      // 按照C字符串风格来定
-      cmp_result = strcmp(left_value, right_value);
-    } break;
-    case DATES: {  // 字符串都是定长的，直接比较
-      // 按照C字符串风格来定
-      cmp_result = strcmp(left_value, right_value);
-    } break;
-    case INTS: {
-      // 没有考虑大小端问题
-      // 对int和float，要考虑字节对齐问题,有些平台下直接转换可能会跪
-      int left = *(int *)left_value;
-      int right = *(int *)right_value;
-      cmp_result = left - right;
-    } break;
-    case FLOATS: {
-      float left = *(float *)left_value;
-      float right = *(float *)right_value;
-      cmp_result = (int)(left - right);
-    } break;
-    default: {
-        LOG_INFO(" SCHEMA_FIELD_TYPE_MISMATCH Unsupported field type to loading: %d",attr_type_);
-    }
+  switch (attr_type_)
+  {
+  case CHARS:
+  { // 字符串都是定长的，直接比较
+    // 按照C字符串风格来定
+    cmp_result = strcmp(left_value, right_value);
+  }
+  break;
+  case DATES:
+  { // 字符串都是定长的，直接比较
+    // 没有考虑大小端问题
+    // 对int和float，要考虑字节对齐问题,有些平台下直接转换可能会跪
+    int left = *(int *)left_value;
+    int right = *(int *)right_value;
+    cmp_result = left - right;
+  }
+  break;
+  case INTS:
+  {
+    // 没有考虑大小端问题
+    // 对int和float，要考虑字节对齐问题,有些平台下直接转换可能会跪
+    int left = *(int *)left_value;
+    int right = *(int *)right_value;
+    cmp_result = left - right;
+  }
+  break;
+  case FLOATS:
+  {
+    float left = *(float *)left_value;
+    float right = *(float *)right_value;
+    cmp_result = (int)(left - right);
+  }
+  break;
+  default:
+  {
+    LOG_INFO(" SCHEMA_FIELD_TYPE_MISMATCH Unsupported field type to loading: %d", attr_type_);
+  }
   }
 
-  switch (comp_op_) {
-    case EQUAL_TO:
-      return 0 == cmp_result;
-    case LESS_EQUAL:
-      return cmp_result <= 0;
-    case NOT_EQUAL:
-      return cmp_result != 0;
-    case LESS_THAN:
-      return cmp_result < 0;
-    case GREAT_EQUAL:
-      return cmp_result >= 0;
-    case GREAT_THAN:
-      return cmp_result > 0;
+  switch (comp_op_)
+  {
+  case EQUAL_TO:
+    return 0 == cmp_result;
+  case LESS_EQUAL:
+    return cmp_result <= 0;
+  case NOT_EQUAL:
+    return cmp_result != 0;
+  case LESS_THAN:
+    return cmp_result < 0;
+  case GREAT_EQUAL:
+    return cmp_result >= 0;
+  case GREAT_THAN:
+    return cmp_result > 0;
 
-    default:
-      break;
+  default:
+    break;
   }
 
   LOG_PANIC("Never should print this.");
-  return cmp_result;  // should not go here
+  return cmp_result; // should not go here
 }
 
 CompositeConditionFilter::~CompositeConditionFilter()
 {
-  if (memory_owner_) {
+  if (memory_owner_)
+  {
     delete[] filters_;
     filters_ = nullptr;
   }
@@ -232,21 +315,26 @@ RC CompositeConditionFilter::init(const ConditionFilter *filters[], int filter_n
 
 RC CompositeConditionFilter::init(Table &table, const Condition *conditions, int condition_num)
 {
-  if (condition_num == 0) {
+  if (condition_num == 0)
+  {
     return RC::SUCCESS;
   }
-  if (conditions == nullptr) {
+  if (conditions == nullptr)
+  {
     return RC::INVALID_ARGUMENT;
   }
 
   RC rc = RC::SUCCESS;
   ConditionFilter **condition_filters = new ConditionFilter *[condition_num];
-  for (int i = 0; i < condition_num; i++) {
+  for (int i = 0; i < condition_num; i++)
+  {
     DefaultConditionFilter *default_condition_filter = new DefaultConditionFilter();
     rc = default_condition_filter->init(table, conditions[i]);
-    if (rc != RC::SUCCESS) {
+    if (rc != RC::SUCCESS)
+    {
       delete default_condition_filter;
-      for (int j = i - 1; j >= 0; j--) {
+      for (int j = i - 1; j >= 0; j--)
+      {
         delete condition_filters[j];
         condition_filters[j] = nullptr;
       }
@@ -261,42 +349,43 @@ RC CompositeConditionFilter::init(Table &table, const Condition *conditions, int
 
 bool CompositeConditionFilter::filter(const Record &rec) const
 {
-  for (int i = 0; i < filter_num_; i++) {
-    if (!filters_[i]->filter(rec)) {
+  for (int i = 0; i < filter_num_; i++)
+  {
+    if (!filters_[i]->filter(rec))
+    {
       return false;
     }
   }
   return true;
 }
-bool DefaultConditionFilter::check_where_date(char* date)
-{      
-       if(nullptr ==date)
-       {
-         return false;
-       }
-       const char *pattern = "[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}";
-       if(0 ==common::regex_match(date,pattern))
-       {
-          //ok
-       }else
-       {  
-         LOG_INFO(" make_record  [0-9]{4}-[0-9]{1,2}-[0-9]{1,2}  value.data=%s",date);
-         return false;
-       }
+bool DefaultConditionFilter::check_where_date(char *date)
+{
+  if (nullptr == date)
+  {
+    return false;
+  }
+  const char *pattern = "[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}";
+  if (0 == common::regex_match(date, pattern))
+  {
+    //ok
+  }
+  else
+  {
+    LOG_INFO(" make_record  [0-9]{4}-[0-9]{1,2}-[0-9]{1,2}  value.data=%s", date);
+    return false;
+  }
 
-        //检查日期是否合法
-      char *ptr=static_cast<char*>(date);
-      int len=strlen(ptr);
-      char ptemp[len];
-      memcpy(ptemp,ptr,len);
-      Table table;
-      if(false ==table.check_date(ptemp))
-      {
-         LOG_INFO(" check_date failed  value.data=%s",date);
-         return false;
-      }
+  //检查日期是否合法
+  char *ptr = static_cast<char *>(date);
+  int len = strlen(ptr);
+  char ptemp[len];
+  memcpy(ptemp, ptr, len);
+  Table table;
+  if (false == table.check_date(ptemp))
+  {
+    LOG_INFO(" check_date failed  value.data=%s", date);
+    return false;
+  }
 
-      return true;
+  return true;
 }
-
-

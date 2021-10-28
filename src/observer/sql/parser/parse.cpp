@@ -91,68 +91,18 @@ void value_init_float(Value *value, float v) {
    value->data = malloc(sizeof(num_float));
    memcpy(value->data, &num_float, sizeof(num_float));
 }
+//这里根本不知道是字符串类型 还是日期类型 上来直接过滤是不对的
 void value_init_string(Value *value, const char *v) {
-    value->type = CHARS;
-    //std::cout<<"value_init_string ="<<v <<std::endl;
-    const char *pattern = "[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}";
-    
-    if (0 == common::regex_match(v, pattern))
-    {
-      //02 如果是日期格式进行格式化显示
-      int len = strlen(v);
-      //len=>>>>>>>>>>>>>8
-      std::cout<< "len=>>>>>>>>>>>>>"<<len<< std::endl;
-      char mydate[len];
-      memcpy(mydate, v, len);
-
-      char *p = nullptr;
-      const char *split = "-"; //可按多个字符来分割
-      p = strtok(mydate, split);
-      int count = 0;
-      int year = 0;
-      int month = 0;
-      int day = 0;
-      while (p)
-      {
-        int data = atoi(p);
-        std::cout<< " value_init_string data=" <<data;
-        if (count == 0)
-        {
-          year = data;
-        }
-        else if (count == 1)
-        {
-          month = data;
-        }
-        else if (count == 2)
-        {
-          day = data;
-        }
-        count++;
-        p = strtok(NULL, split);
-      }
-      if(len == 8 || len == 9)
-      {
-          len =10;
-          //std::cout<< ">>>>>>>> reset 10 " <<std::endl;
-      }
-      char rightdate[len] ;
-      sprintf(rightdate, "%04d-%02d-%02d", year, month, day);
-
-      //std::cout << "111111value_init_string yyyy-mm-dd-to_string=========" << rightdate << std::endl;
-      value->data = strdup(rightdate); 
-    }else
-    {
-      value->data = strdup(v); 
-    }
-    
-    
+     value->type = CHARS;
+     value->data = strdup(v);
 }
-void value_init_date(Value *value, const char *v) {
+void value_init_date(Value *value, int v) {
   value->type = DATES;
-  value->data = strdup(v);
+  value->data = malloc(sizeof(v));
+  memcpy(value->data, &v, sizeof(v));
   std::cout<<"value_init_date ="<<v <<std::endl;
 }
+
 void value_destroy(Value *value) {
   value->type = UNDEFINED;
   free(value->data);

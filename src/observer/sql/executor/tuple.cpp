@@ -66,6 +66,12 @@ void Tuple::add(const char *s, int len)
   add(new StringValue(s, len));
 }
 
+void Tuple::add_date(int value)
+{
+  add(new DateValue(value));
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 
 std::string TupleField::to_string() const
@@ -364,6 +370,7 @@ TupleRecordConverter::TupleRecordConverter(Table *table, TupleSet &tuple_set) : 
 {
 }
 //record:value 开始地址
+//record --->显示
 void TupleRecordConverter::add_record(const char *record)
 {
   const TupleSchema &schema = tuple_set_.schema();
@@ -399,14 +406,14 @@ void TupleRecordConverter::add_record(const char *record)
     break;
     case DATES:
     {
-      const char *s = record + field_meta->offset(); // 现在当做Cstring来处理
-      tuple.add(s, strlen(s));
+      int value = *(int *)(record + field_meta->offset());
+      tuple.add_date(value);
       //LOG_INFO(" tuple add_record table =%s,type=%d,name=%s,value=%s,len=%d", table_meta.name(), field_meta->type(), field.field_name(), s, strlen(s));
     }
     break;
     default:
     {
-      //LOG_PANIC("Unsupported field type. type=%d", field_meta->type());
+      LOG_PANIC("Unsupported field type. type=%d", field_meta->type());
     }
     }
   }
