@@ -164,13 +164,8 @@ RC Trx::commit() {
         }
         break;
         case Operation::Type::UPDATE: {
-          LOG_INFO("Operation::Type::UPDATE ....");
-         if(this->value && this->value->data)
-         {
-              LOG_INFO("commit_update name=%s,value =%s ",this->attribute_name,(char*)this->value->data);
-
-         }  
-
+          //LOG_INFO("Operation::Type::UPDATE ....");
+     
           rc = table->commit_update(this, rid,attribute_name,value);
           if (rc != RC::SUCCESS) {
             // handle rc
@@ -270,12 +265,12 @@ void Trx::start_if_not_started() {
 
 //题目：实现update功能
 RC Trx::update_record(Table *table, Record *record) {
-  LOG_INFO("update_record ");
+  //LOG_INFO("update_record ");
   RC rc = RC::SUCCESS;
   start_if_not_started();
   Operation *old_oper = find_operation(table, record->rid);
   if (old_oper != nullptr) {
-    LOG_INFO("update_record  begin old_oper is null");
+  //  LOG_INFO("update_record  begin old_oper is null");
     //小王疑问：插入操作类型：Operation::Type::INSERT 怎么有这个？？？
    // if (old_oper->type() == Operation::Type::INSERT) {
    //   delete_operation(table, record->rid);

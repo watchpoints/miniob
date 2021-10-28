@@ -380,33 +380,33 @@ void TupleRecordConverter::add_record(const char *record)
     {
       int value = *(int *)(record + field_meta->offset());
       tuple.add(value);
-      LOG_INFO(" tuple add_record INTS,table =%s,name=%s,value=%d", table_meta.name(), field.field_name(), value);
+     // LOG_INFO(" tuple add_record INTS,table =%s,name=%s,value=%d", table_meta.name(), field.field_name(), value);
     }
     break;
     case FLOATS:
     {
       float value = *(float *)(record + field_meta->offset());
       tuple.add(value);
-      LOG_INFO(" tuple add_record FLOATS,table =%s,name=%s,value=%d", table_meta.name(), field.field_name(), value);
+      //LOG_INFO(" tuple add_record FLOATS,table =%s,name=%s,value=%d", table_meta.name(), field.field_name(), value);
     }
     break;
     case CHARS:
     {
       const char *s = record + field_meta->offset(); // 现在当做Cstring来处理
       tuple.add(s, strlen(s));
-      LOG_INFO(" tuple add_record table =%s,type=%d,name=%s,value=%s,len=%d", table_meta.name(), field_meta->type(), field.field_name(), s, strlen(s));
+      //LOG_INFO(" tuple add_record table =%s,type=%d,name=%s,value=%s,len=%d", table_meta.name(), field_meta->type(), field.field_name(), s, strlen(s));
     }
     break;
     case DATES:
     {
       const char *s = record + field_meta->offset(); // 现在当做Cstring来处理
       tuple.add(s, strlen(s));
-      LOG_INFO(" tuple add_record table =%s,type=%d,name=%s,value=%s,len=%d", table_meta.name(), field_meta->type(), field.field_name(), s, strlen(s));
+      //LOG_INFO(" tuple add_record table =%s,type=%d,name=%s,value=%s,len=%d", table_meta.name(), field_meta->type(), field.field_name(), s, strlen(s));
     }
     break;
     default:
     {
-      LOG_PANIC("Unsupported field type. type=%d", field_meta->type());
+      //LOG_PANIC("Unsupported field type. type=%d", field_meta->type());
     }
     }
   }

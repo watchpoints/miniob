@@ -273,7 +273,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     rc = create_selection_executor(trx, selects, db, table_name, *select_node);
     if (rc != RC::SUCCESS)
     {
-      LOG_INFO("create_selection_executor failed rc=%d:%s", rc, strrc(rc));
+      //LOG_INFO("create_selection_executor failed rc=%d:%s", rc, strrc(rc));
       delete select_node;
       for (SelectExeNode *&tmp_node : select_nodes)
       {
@@ -310,7 +310,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     //日期查询：
     if (rc != RC::SUCCESS && rc != RC::RECORD_NO_MORE_IDX_IN_MEM)
     {
-      LOG_INFO("execute failed rc=%d:%s", rc, strrc(rc));
+      //LOG_INFO("execute failed rc=%d:%s", rc, strrc(rc));
       for (SelectExeNode *&tmp_node : select_nodes)
       {
         delete tmp_node;

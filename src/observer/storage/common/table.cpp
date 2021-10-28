@@ -351,7 +351,7 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
 
     if (field->type() == AttrType::DATES)
     {
-      LOG_INFO(" insert:AttrType::DATES, value.data=%s", value.data);
+      //LOG_INFO(" insert:AttrType::DATES, value.data=%s", value.data);
       const char *pattern = "[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}";
       if (0 == common::regex_match((char *)value.data, pattern))
       {
@@ -359,7 +359,7 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
       }
       else
       {
-        LOG_INFO(" make_record  [0-9]{4}-[0-9]{1,2}-[0-9]{1,2}  value.data=%s", value.data);
+       // LOG_INFO(" make_record  [0-9]{4}-[0-9]{1,2}-[0-9]{1,2}  value.data=%s", value.data);
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
       }
 
@@ -370,7 +370,7 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
       memcpy(date, ptr, len);
       if (false == check_date(date))
       {
-        LOG_INFO(" check_date failed  value.data=%s", value.data);
+        //LOG_INFO(" check_date failed  value.data=%s", value.data);
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
       }
     }
@@ -393,11 +393,10 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
     memcpy(record + field->offset(), value.data, field->len());
-    LOG_INFO("insert: memcpy value=%s,field->len()=%d,record=%s,record_size=%d", value.data, field->len(), record);
+   // LOG_INFO("insert: memcpy value=%s,field->len()=%d,record=%s,record_size=%d", value.data, field->len(), record);
   }
 
   record_out = record;
-  LOG_INFO(" >>>>>>>>>>>> make_record record =%s", record);
 
   return RC::SUCCESS;
 }
@@ -801,7 +800,7 @@ static RC record_reader_updater_adapter(Record *record, void *context)
 //题目：实现update功能
 RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value, int condition_num, const Condition conditions[], int *updated_count)
 {
-  LOG_INFO("update_record table: (%s),update value= %p", attribute_name, value);
+  //LOG_INFO("update_record table: (%s),update value= %p", attribute_name, value);
 
   if (nullptr == attribute_name || nullptr == value)
   {
@@ -899,11 +898,11 @@ RC Table::rollback_delete(Trx *trx, const RID &rid)
 RC Table::insert_entry_of_indexes(const char *record, const RID &rid)
 {
   RC rc = RC::SUCCESS;
-  LOG_INFO("insert_entry_of_indexes size=%d \n", indexes_.size());
+  //LOG_INFO("insert_entry_of_indexes size=%d \n", indexes_.size());
 
   for (Index *index : indexes_)
   {
-    LOG_INFO("insert_entry_of_indexes name=%s,field=%s,value=%s \n", index->index_meta().name(), index->index_meta().field(), record);
+    //LOG_INFO("insert_entry_of_indexes name=%s,field=%s,value=%s \n", index->index_meta().name(), index->index_meta().field(), record);
     rc = index->insert_entry(record, &rid);
     if (rc != RC::SUCCESS)
     {
@@ -916,11 +915,11 @@ RC Table::insert_entry_of_indexes(const char *record, const RID &rid)
 RC Table::delete_entry_of_indexes(const char *record, const RID &rid, bool error_on_not_exists)
 {
   RC rc = RC::SUCCESS;
-  LOG_INFO("delete_entry_of_indexes size=%d \n", indexes_.size());
+  //LOG_INFO("delete_entry_of_indexes size=%d \n", indexes_.size());
   for (Index *index : indexes_)
   {
     //rc=2309:RECORD_INVALID_KEY
-    LOG_INFO("delete_entry_of_indexes name=%s,field=%s,value=%s", index->index_meta().name(), index->index_meta().field(), record);
+    //LOG_INFO("delete_entry_of_indexes name=%s,field=%s,value=%s", index->index_meta().name(), index->index_meta().field(), record);
     rc = index->delete_entry(record, &rid);
     if (rc != RC::SUCCESS)
     {
@@ -1076,7 +1075,7 @@ RC Table::commit_update(Trx *trx, const RID &rid)
 
 RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, const Value *value)
 {
-  LOG_INFO("commit_update. attribute_name=%s, values=%p", attribute_name, value);
+  //("commit_update. attribute_name=%s, values=%p", attribute_name, value);
 
   RC rc = RC::SUCCESS;
   if (nullptr == attribute_name || nullptr == value || nullptr == value->data)
@@ -1091,13 +1090,13 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
   const FieldMeta *field_meta = table_meta_.field(attribute_name);
   if (nullptr == field_meta)
   {
-    LOG_INFO("table_meta_.field(attribute_name) =%s", attribute_name);
+    //("table_meta_.field(attribute_name) =%s", attribute_name);
     return RC::SCHEMA_FIELD_NOT_EXIST;
   }
   //特殊处理：AttrType::DATES
   if (field_meta->type() == AttrType::DATES && value->type == AttrType::CHARS)
   {
-    LOG_INFO(" insert:AttrType::DATES, value.data=%s", value->data);
+    //LOG_INFO(" insert:AttrType::DATES, value.data=%s", value->data);
     const char *pattern = "[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}";
     if (0 == common::regex_match((char *)value->data, pattern))
     {
@@ -1105,7 +1104,7 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
     }
     else
     {
-      LOG_INFO(" make_record  [0-9]{4}-[0-9]{1,2}-[0-9]{1,2}  value.data=%s", value->data);
+     // LOG_INFO(" make_record  [0-9]{4}-[0-9]{1,2}-[0-9]{1,2}  value.data=%s", value->data);
       return RC::SCHEMA_FIELD_TYPE_MISMATCH;
     }
 
@@ -1116,7 +1115,7 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
     memcpy(date, ptr, len);
     if (false == check_date(date))
     {
-      LOG_INFO(" check_date failed  value.data=%s", value->data);
+      //LOG_INFO(" check_date failed  value.data=%s", value->data);
       return RC::SCHEMA_FIELD_TYPE_MISMATCH;
     }
     //特殊处理：AttrType::DATES
@@ -1200,7 +1199,7 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
 }
 bool Table::check_date(char *pdate)
 {
-  std::cout << "check_date" << pdate << endl;
+  //std::cout << "check_date" << pdate << endl;
   if (nullptr == pdate)
   {
     return false;
@@ -1396,7 +1395,7 @@ RC Table::drop_index(Trx *trx, const char *relation_name, const char *index_name
     return RC::IOERR;
   }
 
-  LOG_INFO("drop index_file=%s", index_file.c_str());
+  //("drop index_file=%s", index_file.c_str());
 
   /**
   // 覆盖原始元数据文件

@@ -93,8 +93,7 @@ void value_init_float(Value *value, float v) {
 }
 void value_init_string(Value *value, const char *v) {
     value->type = CHARS;
-    //LOG_INFO("value_init_string=%s",value.data);
-    std::cout<<"value_init_string ="<<v <<std::endl;
+    //std::cout<<"value_init_string ="<<v <<std::endl;
     const char *pattern = "[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}";
     
     if (0 == common::regex_match(v, pattern))
@@ -135,12 +134,12 @@ void value_init_string(Value *value, const char *v) {
       if(len == 8 || len == 9)
       {
           len =10;
-          std::cout<< ">>>>>>>> reset 10 " <<std::endl;
+          //std::cout<< ">>>>>>>> reset 10 " <<std::endl;
       }
       char rightdate[len] ;
       sprintf(rightdate, "%04d-%02d-%02d", year, month, day);
 
-      std::cout << "111111value_init_string yyyy-mm-dd-to_string=========" << rightdate << std::endl;
+      //std::cout << "111111value_init_string yyyy-mm-dd-to_string=========" << rightdate << std::endl;
       value->data = strdup(rightdate); 
     }else
     {

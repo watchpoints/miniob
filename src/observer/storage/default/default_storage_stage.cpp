@@ -85,7 +85,6 @@ bool DefaultStorageStage::set_properties() {
     sys_db = iter->second.c_str();
     LOG_INFO("Use %s as system db", sys_db);
   }
-
   handler_ = &DefaultHandler::get_default();
   if (RC::SUCCESS != handler_->init(base_dir)) {
     LOG_ERROR("Failed to init default handler");
