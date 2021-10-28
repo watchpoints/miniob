@@ -104,7 +104,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     right.value = nullptr;
   } else {
 
-    LOG_INFO("DefaultConditionFilter::init value:%s,type_right:=%d",(char*)right.value,type_right);
+    //LOG_INFO("DefaultConditionFilter::init value:%s,type_right:=%d",(char*)right.value,type_right);
 
     right.is_attr = false;
     right.value = condition.right_value.data;

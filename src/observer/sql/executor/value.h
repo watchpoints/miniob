@@ -109,8 +109,6 @@ public:
    */
   void to_string(std::ostream &os) const override
   {
-  
-
     //01 判断字符串是否符合日期格式
     const char *pattern = "[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}";
     if (0 == common::regex_match(value_.c_str(), pattern))
