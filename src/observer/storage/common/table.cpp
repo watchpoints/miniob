@@ -1354,8 +1354,13 @@ bool Table::isValid_date(const char* pdata)//判断日期（年月日）是否�
     cout << "1please input year:" <<year <<endl;
     cout << "1please input month:" <<month <<endl;
     cout << "1please input day:" <<day<<endl;
-
-    int leap=0;  //判断闰年的标记
+   
+    if(year <1970 || year >2038 || (year ==2038 && month >=2))
+    {
+      return false;
+    }
+  
+   int leap=0;  //判断闰年的标记
 	
 	if(month<1||month>12||day<1||day>31)
 	    return 0; //返回不合法
