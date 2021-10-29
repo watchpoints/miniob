@@ -381,14 +381,11 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
       }
 
-      //检查日期是否合法
+  
+        //检查日期是否合法
       char *ptr = static_cast<char *>(value.data);
-      int len = strlen(ptr);
-      char date[len];
-      memcpy(date, ptr, len);
-      if (false == check_date(date))
+      if (false == isValid_date(ptr))
       {
-        //LOG_INFO(" check_date failed  value.data=%s", value.data);
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
       }
 
@@ -1151,13 +1148,10 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
     }
 
     //检查日期是否合法
-    char *ptr = static_cast<char *>(value->data);
-    int len = strlen(ptr);
-    char date[len];
-    memcpy(date, ptr, len);
-    if (false == check_date(date))
+    
+     char *ptr = static_cast<char *>(value->data);
+    if (false == isValid_date(ptr))
     {
-      //LOG_INFO(" check_date failed  value.data=%s", value->data);
       return RC::SCHEMA_FIELD_TYPE_MISMATCH;
     }
     //特殊处理：AttrType::DATES
@@ -1251,128 +1245,6 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
   }
   return rc;
 }
-bool Table::check_date(char *pdate)
-{
-  //std::cout << "check_date" << pdate << endl;
-  if (nullptr == pdate)
-  {
-    return false;
-  }
-  bool ret = true;
-  bool jyear = false;
-  bool jmonth = false;
-  bool jday = false;
-  int year = 0;
-  int month = 0;
-  int day = 0;
-  int count = 0;
-
-  char *p = nullptr;
-  const char *split = "-"; //可按多个字符来分割
-  p = strtok(pdate, split);
-  while (p)
-  {
-    int data = atoi(p);
-    cout << "data=" << data;
-    if (count == 0)
-    {
-      year = data;
-    }
-    else if (count == 1)
-    {
-      month = data;
-    }
-    else if (count == 2)
-    {
-      day = data;
-    }
-    count++;
-    p = strtok(NULL, split);
-  }
-
-  cout << "please input year:" << year << endl;
-  cout << "please input month:" << month << endl;
-  cout << "please input day:" << day << endl;
-
-  if (year >= 1970 && year <= 2038)
-  {
-    if (year == 2038 && month > 2)
-    {
-      return false;
-    }
-    jyear = 1;
-  }
-  else
-  {
-    jyear = 0;
-  }
-
-  if (month >= 1 && month <= 12)
-  {
-    jmonth = 1;
-  }
-  else
-  {
-    jmonth = 0;
-  }
-
-  if (month == 4 || month == 6 || month == 9 || month == 11)
-  {
-
-    if (day >= 1 && day <= 30)
-      jday = 1;
-    else
-
-      jday = 0;
-  }
-  if (month == 2)
-  {
-    if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0))
-    {
-
-      if (day >= 1 && day <= 29)
-
-        jday = 1;
-
-      else
-
-        jday = 0;
-    }
-    else
-    {
-
-      if (day >= 1 && day <= 28)
-
-        jday = 1;
-      else
-        jday = 0;
-    }
-  }
-  else
-  {
-
-    if (day >= 1 && day <= 31)
-
-      jday = 1;
-
-    else
-
-      jday = 0;
-  }
-
-  if (jyear == 1 && jmonth == 1 && jday == 1)
-  {
-    cout << "输入的年月日合法。" << endl;
-  }
-  else
-  {
-    cout << "输入的年月日不合法。" << endl;
-    ret = false;
-  }
-
-  return ret;
-}
-
 /**
  * 结构：
  * 
@@ -1468,4 +1340,34 @@ RC Table::drop_index(Trx *trx, const char *relation_name, const char *index_name
   LOG_INFO("add a new index (%s) on the table (%s)", index_name, name());
   **/
   return rc;
+}
+
+bool Table::isValid_date(const char* pdata)//判断日期（年月日）是否合法的函数定义
+{   
+    if(nullptr ==pdata)
+    {
+        return false;
+    }
+    int year, month, day;
+    sscanf(pdata, "%d-%d-%d", &year, &month, &day);
+        
+    cout << "1please input year:" <<year <<endl;
+    cout << "1please input month:" <<month <<endl;
+    cout << "1please input day:" <<day<<endl;
+
+    int leap=0;  //判断闰年的标记
+	
+	if(month<1||month>12||day<1||day>31)
+	    return 0; //返回不合法
+	
+	if((month==4||month==6||month==9||month==11)&&(day==31))
+	     return 0;//返回不合法
+
+	if((year%4==0&&year%100!=0)||year%400==0)//判断是否是闰年
+		leap=1; //是闰年
+
+    if((leap==1&&month==2&&day>29)||(leap==0&&month==2&&day>28))
+         return false;//返回不合法
+
+	return true; //返回合法
 }

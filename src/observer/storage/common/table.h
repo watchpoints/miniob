@@ -85,7 +85,6 @@ public:
 
   RC rollback_insert(Trx *trx, const RID &rid);
   RC rollback_delete(Trx *trx, const RID &rid);
-  bool check_date(char* pdate); //日期检查
   RC commit_update(Trx *trx, const RID &rid,const char* attribute_name,const Value* value ) ;
 
 
@@ -122,6 +121,8 @@ private:
   int                     file_id_;
   RecordFileHandler *     record_handler_;   /// 记录操作
   std::vector<Index *>    indexes_;
+public:
+  bool isValid_date(const char* pdata); 
 };
 
 #endif // __OBSERVER_STORAGE_COMMON_TABLE_H__

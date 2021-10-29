@@ -376,14 +376,10 @@ bool DefaultConditionFilter::check_where_date(char *date)
   }
 
   //检查日期是否合法
-  char *ptr = static_cast<char *>(date);
-  int len = strlen(ptr);
-  char ptemp[len];
-  memcpy(ptemp, ptr, len);
   Table table;
-  if (false == table.check_date(ptemp))
+  char *ptr = static_cast<char *>(date);
+  if (false == table.isValid_date(ptr))
   {
-    LOG_INFO(" check_date failed  value.data=%s", date);
     return false;
   }
 
