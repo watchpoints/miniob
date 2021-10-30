@@ -23,10 +23,20 @@ See the Mulan PSL v2 for more details. */
 #define MAX_ERROR_MESSAGE 20
 #define MAX_DATA 50
 
+typedef enum {
+  FUN_NO,   //  0
+  FUN_COUNT, 		//1 count(id)
+  FUN_COUNT_ALL, 		//1 count(*)
+  FUN_MAX, //       3
+  FUN_MIN, //       4
+  FUN_AVG //       5
+} FunctionType;
+
 //属性结构体
 typedef struct {
   char *relation_name;   // relation name (may be NULL) 表名
   char *attribute_name;  // attribute name              属性名
+  FunctionType funtype;
 } RelAttr;
 
 typedef enum {

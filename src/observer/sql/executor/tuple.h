@@ -69,6 +69,11 @@ public:
           type_(type), table_name_(table_name), field_name_(field_name){
             isShow_ =true;
   }
+   TupleField(AttrType type, const char *table_name, const char *field_name,FunctionType functiontype) :
+          type_(type), table_name_(table_name), field_name_(field_name){
+            isShow_ =true;
+            function_type =functiontype;
+  }
 
   AttrType  type() const{
     return type_;
@@ -88,11 +93,15 @@ public:
   void set_show(bool show)  {
     isShow_ =show;
   }
+  FunctionType get_function_type() const {
+    return function_type;
+  }
 private:
-  AttrType  type_;
-  std::string table_name_;
-  std::string field_name_;
+  AttrType  type_;//
+  std::string table_name_;//t
+  std::string field_name_;//id
   bool isShow_;
+  FunctionType function_type;//函数
 };
 
 class TupleSchema {
@@ -101,7 +110,10 @@ public:
   ~TupleSchema() = default;
 
   void add(AttrType type, const char *table_name, const char *field_name);
+  void add(AttrType type, const char *table_name, const char *field_name,FunctionType functiontype);
   void add_if_not_exists(AttrType type, const char *table_name, const char *field_name);
+  void add_if_not_exists(AttrType type, const char *table_name, const char *field_name,FunctionType ftype);
+
   // void merge(const TupleSchema &other);
   void append(const TupleSchema &other);
 
@@ -124,6 +136,8 @@ public:
   void print(std::ostream &os) const;
 public:
   static void from_table(const Table *table, TupleSchema &schema);
+  static void from_table_first(const Table *table, TupleSchema &schema,FunctionType functiontype);
+
 private:
   std::vector<TupleField> fields_;
 };
@@ -152,6 +166,7 @@ public:
   const std::vector<Tuple> &tuples() const;
 
   void print(std::ostream &os) const;
+  bool avg_print(std::ostream &os) const;
   void add_tuple_schema(const TupleSchema &schema)
   {
     schema_.append(schema);

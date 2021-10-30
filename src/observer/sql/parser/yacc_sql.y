@@ -103,6 +103,10 @@ ParserContext *get_context(yyscan_t scanner)
         GE
         NE
 		DATE_T
+		COUNT
+		MAX
+		MIN
+		AVG
 
 %union {
   struct _Attr *attr;
@@ -376,6 +380,36 @@ select_attr:
 			relation_attr_init(&attr, $1,  "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
+	| COUNT LBRACE STAR RBRACE attr_list {
+			RelAttr attr;
+			attr.funtype=FUN_COUNT_ALL;
+			relation_attr_init(&attr, NULL,  "*");
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+	| COUNT LBRACE ID RBRACE attr_list {
+			RelAttr attr;
+			attr.funtype=FUN_COUNT;
+			relation_attr_init(&attr, NULL,$3);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+	| MAX LBRACE ID RBRACE attr_list {
+			RelAttr attr;
+			attr.funtype=FUN_MAX;
+			relation_attr_init(&attr, NULL,$3);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+	| MIN LBRACE ID RBRACE attr_list {
+			RelAttr attr;
+			attr.funtype=FUN_MIN;
+			relation_attr_init(&attr, NULL,$3);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+	| AVG LBRACE ID RBRACE attr_list {
+			RelAttr attr;
+			attr.funtype=FUN_AVG;
+			relation_attr_init(&attr, NULL,$3);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
     ;
 attr_list:
     /* empty */
@@ -400,6 +434,46 @@ attr_list:
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
   	  }
+	| COMMA COUNT LBRACE STAR RBRACE attr_list {
+			RelAttr attr;
+			attr.funtype=FUN_COUNT_ALL;
+			relation_attr_init(&attr, NULL,  "*");
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
+        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
+  	  }
+	| COMMA COUNT LBRACE ID RBRACE attr_list {
+		RelAttr attr;
+		attr.funtype=FUN_COUNT;
+		relation_attr_init(&attr, NULL,  $4);
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+	// CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
+	// CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
+	}
+	| COMMA MAX LBRACE ID RBRACE attr_list {
+		RelAttr attr;
+		attr.funtype=FUN_MAX;
+		relation_attr_init(&attr, NULL,  $4);
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+	// CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
+	// CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
+	}
+	| COMMA MIN LBRACE ID RBRACE attr_list {
+		RelAttr attr;
+		attr.funtype=FUN_MIN;
+		relation_attr_init(&attr, NULL,  $4);
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+	// CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
+	// CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
+	}
+	| COMMA AVG LBRACE ID RBRACE attr_list {
+		RelAttr attr;
+		attr.funtype=FUN_AVG;
+		relation_attr_init(&attr, NULL,  $4);
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+	// CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
+	// CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
+	}
   	;
 
 rel_list:

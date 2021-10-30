@@ -73,6 +73,13 @@ void value_init_integer(Value *value, int v) {
   value->data = malloc(sizeof(v));
   memcpy(value->data, &v, sizeof(v));
 }
+
+void value_init_float(Value *value, float v) {
+  value->type = FLOATS;
+  value->data = malloc(sizeof(v));
+  memcpy(value->data, &v, sizeof(v));
+}
+/**
 void value_init_float(Value *value, float v) {
    value->type = FLOATS;
 
@@ -90,7 +97,7 @@ void value_init_float(Value *value, float v) {
 
    value->data = malloc(sizeof(num_float));
    memcpy(value->data, &num_float, sizeof(num_float));
-}
+}**/
 //这里根本不知道是字符串类型 还是日期类型 上来直接过滤是不对的
 void value_init_string(Value *value, const char *v) {
      value->type = CHARS;
@@ -422,7 +429,12 @@ RC parse(const char *st, Query *sqln) {
   sql_parse(st, sqln);
 
   if (sqln->flag == SCF_ERROR)
+  {
+    std::cout<<"parse failed"<<st <<std::endl;
     return SQL_SYNTAX;
+  }
   else
+  {
     return SUCCESS;
+  }
 }

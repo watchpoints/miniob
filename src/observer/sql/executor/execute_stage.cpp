@@ -34,6 +34,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/trx/trx.h"
 
 using namespace common;
+static RC schema_add_field_function(Table *table, const char *field_name, TupleSchema &schema,FunctionType ft);
 
 RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, const char *table_name, SelectExeNode &select_node);
 
@@ -138,7 +139,6 @@ void ExecuteStage::handle_request(common::StageEvent *event)
     if (rc != RC::SUCCESS)
     {
       LOG_INFO("do_select failed rc=%d:%s", rc, strrc(rc));
-      //exe_event->sql_event()->session_event()->set_response("FAILURE\n"); //返回结果
     }
 
     int len = exe_event->sql_event()->session_event()->get_response_len();
@@ -270,6 +270,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
   {
     const char *table_name = selects.relations[i];
     SelectExeNode *select_node = new SelectExeNode;
+    //创建执行计划
     rc = create_selection_executor(trx, selects, db, table_name, *select_node);
     if (rc != RC::SUCCESS)
     {
@@ -336,7 +337,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
   {
     //单表：
     tuple_sets.front().print(ss);
-
+    
     //题目：多表查询
   }
   else if (tuple_sets.size() == 2)
@@ -453,22 +454,56 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
   {
     const RelAttr &attr = selects.attributes[i];
     if (nullptr == attr.relation_name || 0 == strcmp(table_name, attr.relation_name))
-    {
+    {  
+      //count(*) count(id)
+      //支持部分聚合函数
+      if(attr.funtype == FunctionType::FUN_COUNT ||  
+         attr.funtype == FunctionType::FUN_COUNT_ALL||
+         attr.funtype == FunctionType::FUN_MAX ||
+         attr.funtype == FunctionType::FUN_MIN ||
+         attr.funtype == FunctionType::FUN_AVG )
+      {
+        LOG_WARN("this is window functions");
+      }
+      //select count(*) from t;
       if (0 == strcmp("*", attr.attribute_name))
       {
-        // 列出这张表所有字段到 schema
-        TupleSchema::from_table(table, schema);
-        break; // 没有校验，给出* 之后，再写字段的错误
+        if(attr.funtype == FunctionType::FUN_COUNT_ALL)
+        {
+          // 列出这张表第一个字段到 schema
+          //
+          TupleSchema::from_table_first(table, schema,attr.funtype);
+        }else
+        {
+          // 列出这张表所有字段到 schema
+           TupleSchema::from_table(table, schema);
+           break;
+        }
       }
       else
       {  
         LOG_WARN(" table [%s] in db [%s]", table_name, attr.attribute_name);
-        // 列出这张表相关字段
-        RC rc = schema_add_field(table, attr.attribute_name, schema);
-        if (rc != RC::SUCCESS)
+        //select count(id),count(name) from t;
+        FunctionType ft=attr.funtype ;
+        if(ft == FunctionType::FUN_COUNT || ft == FunctionType::FUN_MAX
+          || ft == FunctionType::FUN_MIN || ft ==FunctionType::FUN_AVG)
         {
-          return rc;
+            // 列出这张表相关字段
+            RC rc = schema_add_field_function(table, attr.attribute_name, schema,ft);
+            if (rc != RC::SUCCESS)
+            {
+                return rc;
+            }
+        }else
+        {
+            // 列出这张表相关字段
+            RC rc = schema_add_field(table, attr.attribute_name, schema);
+            if (rc != RC::SUCCESS)
+            {
+                return rc;
+            }
         }
+       
       }
     }
   }
@@ -551,4 +586,29 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
     }**/
 
   return select_node.init(trx, table, std::move(schema), std::move(condition_filters));
+}
+//检查字段是否合法
+static RC schema_add_field_function(Table *table, const char *field_name, TupleSchema &schema,FunctionType ft)
+{  
+  if(nullptr == field_name)
+  { 
+    LOG_WARN("schema_add_field_function");
+    return RC::SCHEMA_FIELD_MISSING;
+  }
+  //select count(id) from t;
+  //[更错错误 需要测试] 
+  if (0 == strcmp("*", field_name))
+  {    
+      LOG_WARN("schema_add_field_function");
+      return RC::SCHEMA_FIELD_MISSING;
+  }
+  const FieldMeta *field_meta = table->table_meta().field(field_name);
+  if (nullptr == field_meta)
+  {
+    LOG_WARN("No such field. %s.%s", table->name(), field_name);
+    return RC::SCHEMA_FIELD_MISSING;
+  }
+  //避免 t.id,t.id
+  schema.add_if_not_exists(field_meta->type(), table->name(), field_meta->name(),ft);
+  return RC::SUCCESS;
 }

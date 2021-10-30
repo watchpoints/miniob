@@ -15,7 +15,8 @@ See the Mulan PSL v2 for more details. */
 #include "sql/executor/tuple.h"
 #include "storage/common/table.h"
 #include "common/log/log.h"
-
+#include <stdio.h>
+#include <stdlib.h>
 Tuple::Tuple(const Tuple &other)
 {
   LOG_PANIC("Copy constructor of tuple is not supported");
@@ -71,7 +72,6 @@ void Tuple::add_date(int value)
   add(new DateValue(value));
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////
 
 std::string TupleField::to_string() const
@@ -115,6 +115,23 @@ void TupleSchema::add_if_not_exists(AttrType type, const char *table_name, const
   add(type, table_name, field_name);
 }
 
+void TupleSchema::add_if_not_exists(AttrType type, const char *table_name, const char *field_name, FunctionType ftype)
+{
+  //判断列是否存在
+  for (const auto &field : fields_)
+  {
+    if (0 == strcmp(field.table_name(), table_name) &&
+        0 == strcmp(field.field_name(), field_name) &&
+        ftype == field.get_function_type())
+    {
+      LOG_INFO(">>>>>>>>>>add_if_exists. %s.%s", table_name, field_name);
+      return;
+    }
+  }
+  LOG_INFO("add_if_not_exists. %s.%s", table_name, field_name);
+  add(type, table_name, field_name, ftype);
+}
+
 void TupleSchema::append(const TupleSchema &other)
 {
   fields_.reserve(fields_.size() + other.fields_.size());
@@ -154,22 +171,78 @@ void TupleSchema::print(std::ostream &os) const
   {
     table_names.insert(field.table_name());
   }
-
+  //遍历n-1个元素.
   for (std::vector<TupleField>::const_iterator iter = fields_.begin(), end = --fields_.end();
        iter != end; ++iter)
   {
+    //如果多个表:添加表名t.id
     if (table_names.size() > 1)
     {
       os << iter->table_name() << ".";
     }
-    os << iter->field_name() << " | ";
+
+    if (iter->get_function_type() == FunctionType::FUN_COUNT_ALL)
+    {
+      os << "count(*)"
+         << " | ";
+    }
+    else if (iter->get_function_type() == FunctionType::FUN_COUNT)
+    {
+      os << "count(" << iter->field_name() << ")"
+         << " | ";
+    }
+    else if (iter->get_function_type() == FunctionType::FUN_MAX)
+    {
+      os << "max(" << iter->field_name() << ")"
+         << " | ";
+    }
+    else if (iter->get_function_type() == FunctionType::FUN_MIN)
+    {
+      os << "min(" << iter->field_name() << ")"
+         << " | ";
+    }
+    else if (iter->get_function_type() == FunctionType::FUN_AVG)
+    {
+      os << "avg(" << iter->field_name() << ")"
+         << " | ";
+    }
+    else
+    {
+      //正常情况
+      os << iter->field_name() << " | ";
+    }
   }
 
   if (table_names.size() > 1)
   {
     os << fields_.back().table_name() << ".";
   }
-  os << fields_.back().field_name() << std::endl;
+  //id ---- 最后一个列,后面没有 ｜，只有名字
+  if (fields_.back().get_function_type() == FunctionType::FUN_COUNT_ALL)
+  {
+    os << "count(*)" << std::endl; //select count(*) from t;
+  }
+  else if (fields_.back().get_function_type() == FunctionType::FUN_COUNT)
+  {
+    os << "count(" << fields_.back().field_name() << ")" << std::endl;
+  }
+  else if (fields_.back().get_function_type() == FunctionType::FUN_MAX)
+  {
+    os << "max(" << fields_.back().field_name() << ")" << std::endl;
+  }
+  else if (fields_.back().get_function_type() == FunctionType::FUN_MIN)
+  {
+    os << "min(" << fields_.back().field_name() << ")" << std::endl;
+  }
+  else if (fields_.back().get_function_type() == FunctionType::FUN_AVG)
+  {
+    os << "avg(" << fields_.back().field_name() << ")" << std::endl;
+  }
+  //bug1 else if ->if
+  else
+  { //正常情况
+    os << fields_.back().field_name() << std::endl;
+  }
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -225,12 +298,17 @@ void TupleSet::print(std::ostream &os) const
 
   //一个表：
   if (table_names.size() == 1)
-  {  
-    //单表显示：
-    //tuples_ 多行
+  {
+    //单表聚合:只有一行
+    if (true == avg_print(os))
+    {
+      return;
+    }
+    LOG_INFO("common  qury");
+    //单表显示多行 tuples_ 多行
     for (const Tuple &item : tuples_)
     {
-      //std::vector<std::shared_ptr<TupleValue>>  values_;
+      //第n-1列
       const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
       for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = --values.end();
            iter != end; ++iter)
@@ -238,9 +316,11 @@ void TupleSet::print(std::ostream &os) const
         (*iter)->to_string(os);
         os << " | ";
       }
-      //小王疑问：为啥还有最后行 不是上面遍历完毕了吗？
+
+      //最后一列
       values.back()->to_string(os);
       os << std::endl;
+      //1 | 2 | 3
     }
   }
   else if (table_names.size() == 2)
@@ -250,14 +330,14 @@ void TupleSet::print(std::ostream &os) const
     {
       return;
     }
-     // join字段类型是什么
-    
+    // join字段类型是什么
+
     //a表的多行 tuples_left 多行
-    
+
     for (const Tuple &item_left : tuples_left)
-    { 
+    {
       std::shared_ptr<TupleValue> sp1;
-      int col1 =0;
+      int col1 = 0;
       std::stringstream os_left;
 
       {
@@ -265,75 +345,73 @@ void TupleSet::print(std::ostream &os) const
         const std::vector<std::shared_ptr<TupleValue>> &values = item_left.values();
         for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
              iter != end; ++iter)
-        {  
-          if(is_join ==true && joins_index == col1)
+        {
+          if (is_join == true && joins_index == col1)
           {
-            sp1 =*iter;
-            cout<< ">>>>>>>>>>>>>join select " <<endl;
+            sp1 = *iter;
+            cout << ">>>>>>>>>>>>>join select " << endl;
           }
 
           (*iter)->to_string(os_left);
           os_left << " | ";
-          
+
           col1++;
         }
       }
 
       //b表的多行 tuples_right 多行
-      
+
       for (const Tuple &item_right : tuples_right)
-      {  
-        std::shared_ptr<TupleValue> sp2; 
-        int col2 =0;
-        std::stringstream os_right; 
+      {
+        std::shared_ptr<TupleValue> sp2;
+        int col2 = 0;
+        std::stringstream os_right;
         {
           const std::vector<std::shared_ptr<TupleValue>> &values = item_right.values();
           for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = --values.end();
                iter != end; ++iter)
           {
             //笛卡尔积:查询条件
-            if(is_join ==true && joins_index == col2)
+            if (is_join == true && joins_index == col2)
             {
-              sp2 =*iter;
-              cout<< ">>>>>>>>>>>>>join select " <<endl;
+              sp2 = *iter;
+              cout << ">>>>>>>>>>>>>join select " << endl;
             }
             (*iter)->to_string(os_right);
-            
+
             os_right << " | ";
             col2++;
           }
           //小王疑问：为啥还有最后行 不是上面遍历完毕了吗？
           values.back()->to_string(os_right);
           os_right << std::endl;
-      
         }
         //多表：join查询
-        if(is_join ==true )
-        {   
+        if (is_join == true)
+        {
           LOG_INFO(" two table join select ");
-          if (sp1 && sp2 && 0 ==sp1->compare(*sp2))
+          if (sp1 && sp2 && 0 == sp1->compare(*sp2))
           {
-             os << os_left.str();
-             os << os_right.str();
-             
-          }else
+            os << os_left.str();
+            os << os_right.str();
+          }
+          else
           {
             LOG_INFO(" not equal  ");
           }
-        }else
+        }
+        else
         {
           os << os_left.str();
           os << os_right.str();
         }
-      
       }
     }
-  }else
-  {
-      LOG_INFO(" no support three table query ");
-
   }
-  
+  else
+  {
+    LOG_INFO(" no support three table query ");
+  }
 }
 
 void TupleSet::set_schema(const TupleSchema &schema)
@@ -387,7 +465,7 @@ void TupleRecordConverter::add_record(const char *record)
     {
       int value = *(int *)(record + field_meta->offset());
       tuple.add(value);
-     // LOG_INFO(" tuple add_record INTS,table =%s,name=%s,value=%d", table_meta.name(), field.field_name(), value);
+      // LOG_INFO(" tuple add_record INTS,table =%s,name=%s,value=%d", table_meta.name(), field.field_name(), value);
     }
     break;
     case FLOATS:
@@ -419,4 +497,185 @@ void TupleRecordConverter::add_record(const char *record)
   }
 
   tuple_set_.add(std::move(tuple));
+}
+
+//聚合
+void TupleSchema::from_table_first(const Table *table, TupleSchema &schema, FunctionType functiontype)
+{
+  const char *table_name = table->name();            //表名字
+  const TableMeta &table_meta = table->table_meta(); //表结构
+                                                     //const int field_num = table_meta.field_num();      //字段个数
+
+  const FieldMeta *field_meta = table_meta.field(1);
+  if (field_meta && field_meta->visible())
+  {
+    schema.add(field_meta->type(), table_name, field_meta->name(), functiontype);
+  }
+}
+void TupleSchema::add(AttrType type, const char *table_name, const char *field_name, FunctionType functiontype)
+{
+  fields_.emplace_back(type, table_name, field_name, functiontype);
+}
+
+bool TupleSet::avg_print(std::ostream &os) const
+{
+  //步骤
+  //1. 遍历 属性
+  //2. 根据不同属性函数,做不同的计算.
+  //3. 返回是存在聚合
+  bool isWindows = false;
+
+  const std::vector<TupleField> &fields = schema_.fields();
+  int count = fields.size();
+  int index = 0;
+  //遍历n-1个元素.
+  for (std::vector<TupleField>::const_iterator iter = fields.begin(), end = fields.end();
+       iter != end; ++iter)
+  {
+    
+    FunctionType window_function = iter->get_function_type();
+    if (FunctionType::FUN_COUNT_ALL == window_function || FunctionType::FUN_COUNT == window_function)
+    {
+      isWindows = true;
+      int count = tuples_.size();
+      os << count;
+    }
+    else if (FunctionType::FUN_MAX == window_function)
+    {
+      //属性值类型 typedef enum { UNDEFINED, CHARS, INTS, FLOATS,DATES } AttrType;
+      isWindows = true;
+      std::shared_ptr<TupleValue> maxValue;
+
+      for (const Tuple &item : tuples_)
+      { 
+        int colIndex =0;
+        //第n-1列
+        const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
+        for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+             iter != end; ++iter)
+        {
+          //(*iter)->to_string(os);
+          if(colIndex == index)
+          { 
+            if(nullptr == maxValue)
+            {
+              maxValue =*iter;
+            }else
+            {  
+              std::shared_ptr<TupleValue> temp =*iter;
+              if(maxValue->compare(*temp) <0)
+              {
+                  maxValue =temp;
+              }
+            }
+            
+            break;//get 
+          }
+          colIndex++;
+        }
+      }//end 
+      maxValue->to_string(os);
+    }
+    else if (FunctionType::FUN_MIN == window_function)
+    {
+      //属性值类型 typedef enum { UNDEFINED, CHARS, INTS, FLOATS,DATES } AttrType;
+      isWindows = true;
+      std::shared_ptr<TupleValue> minValue;
+
+      for (const Tuple &item : tuples_)
+      { 
+        int colIndex =0;
+        //第n-1列
+        const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
+        for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+             iter != end; ++iter)
+        {
+          //(*iter)->to_string(os);
+          if(colIndex == index)
+          { 
+            if(nullptr == minValue)
+            {
+              minValue =*iter;
+            }else
+            {  
+              std::shared_ptr<TupleValue> temp =*iter;
+              if(minValue->compare(*temp) >0)
+              {
+                  minValue =temp;
+              }
+            }
+            
+            break;//get 
+          }
+          colIndex++;
+        }
+      }//end 
+      minValue->to_string(os);
+    }
+    else if (FunctionType::FUN_AVG == window_function)
+    {
+      //属性值类型 typedef enum { UNDEFINED, CHARS, INTS, FLOATS,DATES } AttrType;
+      isWindows = true;
+
+      std::shared_ptr<TupleValue> sumValue;
+
+      for (const Tuple &item : tuples_)
+      { 
+        int colIndex =0;
+        //第n-1列
+        const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
+        for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+             iter != end; ++iter)
+        {
+          //(*iter)->to_string(os);
+          if(colIndex == index)
+          { 
+            if(nullptr == sumValue)
+            {
+              sumValue =*iter;
+            }else
+            {  
+              std::shared_ptr<TupleValue> temp =*iter;
+              sumValue->add_value(*temp);
+            }
+            
+            break;//get 
+          }
+          colIndex++;
+        }
+      }//end 
+      //防溢出求平均算法
+      int count =tuples_.size();
+      if(0 == count)
+      {
+        return true ;
+      }
+     
+      sumValue->to_avg(count,os);
+      
+    }
+
+    //聚合函数显示
+    if (FunctionType::FUN_AVG == window_function ||
+        FunctionType::FUN_COUNT == window_function ||
+        FunctionType::FUN_COUNT_ALL == window_function ||
+        FunctionType::FUN_MIN == window_function ||
+        FunctionType::FUN_MAX == window_function)
+    {
+      if (index == count - 1)
+      {
+        //os << result.c_str();
+        os << std::endl;
+      }
+      else
+      {
+        //os << result.c_str();
+        os << " | ";
+      }
+    }
+
+    index++;
+  }
+
+  return isWindows;
 }

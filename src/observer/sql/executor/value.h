@@ -23,19 +23,35 @@ See the Mulan PSL v2 for more details. */
 #include "common/math/regex.h"
 
 using namespace std;
-/**
-string DatetimeToString(time_t time)
+
+static bool removeLastZero(char *numstr)
 {
-	  tm *tm_ = localtime(&time);                // 将time_t格式转换为tm结构体
-    int year, month, day;// 定义时间的各个int临时变量。
-    year = tm_->tm_year + 1900;                // 临时变量，年，由于tm结构体存储的是从1900年开始的时间，所以临时变量int为tm_year加上1900。
-    month = tm_->tm_mon + 1;                   // 临时变量，月，由于tm结构体的月份存储范围为0-11，所以临时变量int为tm_mon加上1。
-    day = tm_->tm_mday;                        // 临时变量，日。
-  
-    char rightdate[100];
-    sprintf(rightdate, "%04d-%02d-%02d", year, month, day);
-    return string(rightdate);
-}**/
+  if (NULL == strchr(numstr, '.'))
+    return false;
+  int length = strlen(numstr);
+  for (int i = length - 1; i > 0; --i)
+  {
+    if ('\0' == numstr[i])
+    {
+      continue;
+    }
+    else if ('0' == numstr[i])
+    {
+      numstr[i] = '\0';
+    }
+    else if ('.' == numstr[i]) // 小数点之后全为零
+    {
+      numstr[i] = '\0';
+      break;
+    }
+    else // 小数点后有非零数字
+    {
+      break;
+    }
+  }
+
+  return true;
+}
 
 class TupleValue
 {
@@ -45,6 +61,9 @@ public:
 
   virtual void to_string(std::ostream &os) const = 0;
   virtual int compare(const TupleValue &other) const = 0;
+  virtual AttrType get_type() const = 0;
+  virtual void add_value(const TupleValue &other) = 0;
+  virtual void to_avg(int total, std::ostream &os) = 0;
 
 private:
 };
@@ -69,6 +88,53 @@ public:
 
     return value_ - int_other.value_;
   }
+  AttrType get_type() const override
+  {
+    return AttrType::INTS;
+  }
+
+  void add_value(const TupleValue &other) override
+  {
+    const IntValue &int_other = (const IntValue &)other;
+    value_ += int_other.value_;
+  }
+  void to_avg(int total, std::ostream &os) override
+  {
+    if (0 == total)
+    {
+      return;
+    }
+    //防溢出求平均算法
+
+    //判断是否能整除
+    // 4/2=2;
+    if (0 == value_ % total)
+    {
+      int temp = value_ / total;
+      os << temp;
+    }
+    else
+    {
+      float a = value_;
+      float b = total;
+      float temp = a / b;
+      char str[1024];
+      sprintf(str, "%.2f", temp);
+
+      bool ret = removeLastZero(str);
+      std::cout << "to_avg: " << temp << "str:" << str << std::endl;
+      if (false == ret)
+      {
+        os << temp;
+      }
+      else
+      {
+        // 将字符串转换为浮点数
+        float num_float = std::stof(str);
+        os << num_float;
+      }
+    }
+  }
 
 private:
   int value_;
@@ -78,7 +144,6 @@ class FloatValue : public TupleValue
 public:
   explicit FloatValue(float value) : value_(value)
   {
-
   }
   int compare(const TupleValue &other) const override
   {
@@ -98,12 +163,61 @@ public:
   }
 
   void to_string(std::ostream &os) const override
-  {  
-      //按照输出要求，浮点数最多保留两位小数，并且去掉多余的0
-      std::cout << "print float" << value_ << std::endl;
-      os <<  value_;
-    
+  {
+    //按照输出要求，浮点数最多保留两位小数，并且去掉多余的0
+    //os << value_;
+    char str[1024];
+    sprintf(str, "%.2f", value_);
+    bool ret = removeLastZero(str);
+    std::cout << "to_avg: " << value_ << "str:" << str << std::endl;
+    if (false == ret)
+    {
+      os << value_;
+    }
+    else
+    {
+      // 将字符串转换为浮点数
+      float num_float = std::stof(str);
+      os << num_float;
+    }
   }
+
+  AttrType get_type() const override
+  {
+    return AttrType::FLOATS;
+  }
+
+  void add_value(const TupleValue &other) override
+  {
+    const FloatValue &float_other = (const FloatValue &)other;
+    value_ += float_other.value_;
+  }
+  void to_avg(int total, std::ostream &os) override
+  {
+    if (0 == total)
+    {
+      return;
+    }
+
+    float temp = value_ / total;
+    char str[1024];
+    sprintf(str, "%.2f", temp);
+
+    bool ret = removeLastZero(str);
+    std::cout << "to_avg: " << temp << "str:" << str << std::endl;
+
+    if (false == ret)
+    {
+      os << temp;
+    }
+    else
+    {
+      // 将字符串转换为浮点数
+      float num_float = std::stof(str);
+      os << num_float;
+    }
+  }
+
 private:
   float value_;
 };
@@ -117,66 +231,27 @@ public:
   explicit StringValue(const char *value) : value_(value)
   {
   }
-  /**
-   *  日期格式显示：
-   *  //01 判断字符串是否符合日期格式
-   *  //02 如果是日期格式进行格式化显示
-   */
   void to_string(std::ostream &os) const override
   {
-    //01 判断字符串是否符合日期格式
-    const char *pattern = "[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}";
-    if (0 == common::regex_match(value_.c_str(), pattern))
-    {
-      //02 如果是日期格式进行格式化显示
-      int len = value_.size();
-      std::cout<< "2222222=>>>>>>>>>>>>>"<<len<< std::endl;
-      char mydate[len];
-      memcpy(mydate, value_.c_str(), len);
-
-      char *p = nullptr;
-      const char *split = "-"; //可按多个字符来分割
-      p = strtok(mydate, split);
-      int count = 0;
-      int year = 0;
-      int month = 0;
-      int day = 0;
-      while (p)
-      {
-        int data = atoi(p);
-        // cout<< "data=" <<data;
-        if (count == 0)
-        {
-          year = data;
-        }
-        else if (count == 1)
-        {
-          month = data;
-        }
-        else if (count == 2)
-        {
-          day = data;
-        }
-        count++;
-        p = strtok(NULL, split);
-      }
-      char rightdate[len];
-      sprintf(rightdate, "%04d-%02d-%02d", year, month, day);
-      std::cout << "yyyy-mm-dd-to_string=========" << rightdate << std::endl;
-      os << rightdate;
-    }
-    else
-    {
-      os << value_;
-      std::cout << "print commn stirng  no date " << value_ << std::endl;
-    }
+    os << value_;
   }
 
   int compare(const TupleValue &other) const override
   {
     const StringValue &string_other = (const StringValue &)other;
-    std::cout << " >>> compare::StringValue " << value_.c_str() << ":" << string_other.value_.c_str();
     return strcmp(value_.c_str(), string_other.value_.c_str());
+  }
+  AttrType get_type() const override
+  {
+    return AttrType::CHARS;
+  }
+
+  void add_value(const TupleValue &other) override
+  {
+  }
+  void to_avg(int total, std::ostream &os) override
+  {
+      os << "string type have no avg";
   }
 
 private:
@@ -193,25 +268,73 @@ public:
   void to_string(std::ostream &os) const override
   {
     //std::cout << "IntValue:value_" << value_ << std::endl;
-      time_t t=(time_t)value_;
-      tm *tm_ = localtime(&t);                // 将time_t格式转换为tm结构体
-      int year, month, day;// 定义时间的各个int临时变量。
-      year = tm_->tm_year + 1900;                // 临时变量，年，由于tm结构体存储的是从1900年开始的时间，所以临时变量int为tm_year加上1900。
-      month = tm_->tm_mon + 1;                   // 临时变量，月，由于tm结构体的月份存储范围为0-11，所以临时变量int为tm_mon加上1。
-      day = tm_->tm_mday;                        // 临时变量，日。
+    time_t t = (time_t)value_;
+    tm *tm_ = localtime(&t);    // 将time_t格式转换为tm结构体
+    int year, month, day;       // 定义时间的各个int临时变量。
+    year = tm_->tm_year + 1900; // 临时变量，年，由于tm结构体存储的是从1900年开始的时间，所以临时变量int为tm_year加上1900。
+    month = tm_->tm_mon + 1;    // 临时变量，月，由于tm结构体的月份存储范围为0-11，所以临时变量int为tm_mon加上1。
+    day = tm_->tm_mday;         // 临时变量，日。
 
-      char rightdate[30];
-      sprintf(rightdate, "%04d-%02d-%02d", year, month, day);
-      cout<< "to_string:data ="<<rightdate<<endl;
-      os << rightdate;
+    char rightdate[30];
+    sprintf(rightdate, "%04d-%02d-%02d", year, month, day);
+    cout << "to_string:data =" << rightdate << endl;
+    os << rightdate;
   }
 
   int compare(const TupleValue &other) const override
   {
     const DateValue &int_other = (const DateValue &)other;
-    std::cout << " >>> compare::IntValue " << value_ << ":" << int_other.value_ << std::endl;
+    std::cout << " >>> compare::DateValue " << value_ << ":" << int_other.value_ << std::endl;
 
     return value_ - int_other.value_;
+  }
+
+  AttrType get_type() const override
+  {
+    return AttrType::FLOATS;
+  }
+
+   void add_value(const TupleValue &other) override
+  {
+    const DateValue &int_other = (const DateValue &)other;
+    value_ += int_other.value_;
+  }
+  void to_avg(int total, std::ostream &os) override
+  {
+    if (0 == total)
+    {
+      return;
+    }
+    //防溢出求平均算法
+
+    //判断是否能整除
+    // 4/2=2;
+    if (0 == value_ % total)
+    {
+      int temp = value_ / total;
+      os << temp;
+    }
+    else
+    {
+      float a = value_;
+      float b = total;
+      float temp = a / b;
+      char str[1024];
+      sprintf(str, "%.2f", temp);
+
+      bool ret = removeLastZero(str);
+      std::cout << "to_avg: " << temp << "str:" << str << std::endl;
+      if (false == ret)
+      {
+        os << temp;
+      }
+      else
+      {
+        // 将字符串转换为浮点数
+        float num_float = std::stof(str);
+        os << num_float;
+      }
+    }
   }
 
 private:
