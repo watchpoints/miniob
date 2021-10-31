@@ -494,7 +494,10 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
             {
                 return rc;
             }
-        }else
+        }else if (ft == FunctionType::FUN_COUNT_ALL)
+        {
+          TupleSchema::from_table_first(table, schema,attr.funtype);
+        }else  
         {
             // 列出这张表相关字段
             RC rc = schema_add_field(table, attr.attribute_name, schema);

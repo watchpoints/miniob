@@ -183,8 +183,16 @@ void TupleSchema::print(std::ostream &os) const
 
     if (iter->get_function_type() == FunctionType::FUN_COUNT_ALL)
     {
-      os << "count(*)"
-         << " | ";
+      if (0 == strcmp("*", iter->field_name()))
+      {
+        os << "count(*)"
+           << " | ";
+      }
+      else
+      {
+        os << "count(" << iter->field_name() << ")"
+           << " | ";
+      }
     }
     else if (iter->get_function_type() == FunctionType::FUN_COUNT)
     {
@@ -220,7 +228,14 @@ void TupleSchema::print(std::ostream &os) const
   //id ---- 最后一个列,后面没有 ｜，只有名字
   if (fields_.back().get_function_type() == FunctionType::FUN_COUNT_ALL)
   {
-    os << "count(*)" << std::endl; //select count(*) from t;
+    //os << "count(*)" << std::endl; //select count(*) from t;
+    if (0 == strcmp("*", fields_.back().field_name()))
+    {
+      os << "count(*)"<< std::endl;
+    }else 
+    {
+      os << "count(" << fields_.back().field_name() << ")" << std::endl;
+    }
   }
   else if (fields_.back().get_function_type() == FunctionType::FUN_COUNT)
   {
@@ -532,7 +547,7 @@ bool TupleSet::avg_print(std::ostream &os) const
   for (std::vector<TupleField>::const_iterator iter = fields.begin(), end = fields.end();
        iter != end; ++iter)
   {
-    
+
     FunctionType window_function = iter->get_function_type();
     if (FunctionType::FUN_COUNT_ALL == window_function || FunctionType::FUN_COUNT == window_function)
     {
@@ -547,33 +562,34 @@ bool TupleSet::avg_print(std::ostream &os) const
       std::shared_ptr<TupleValue> maxValue;
 
       for (const Tuple &item : tuples_)
-      { 
-        int colIndex =0;
+      {
+        int colIndex = 0;
         //第n-1列
         const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
         for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
              iter != end; ++iter)
         {
           //(*iter)->to_string(os);
-          if(colIndex == index)
-          { 
-            if(nullptr == maxValue)
+          if (colIndex == index)
+          {
+            if (nullptr == maxValue)
             {
-              maxValue =*iter;
-            }else
-            {  
-              std::shared_ptr<TupleValue> temp =*iter;
-              if(maxValue->compare(*temp) <0)
+              maxValue = *iter;
+            }
+            else
+            {
+              std::shared_ptr<TupleValue> temp = *iter;
+              if (maxValue->compare(*temp) < 0)
               {
-                  maxValue =temp;
+                maxValue = temp;
               }
             }
-            
-            break;//get 
+
+            break; //get
           }
           colIndex++;
         }
-      }//end 
+      } //end
       maxValue->to_string(os);
     }
     else if (FunctionType::FUN_MIN == window_function)
@@ -583,33 +599,34 @@ bool TupleSet::avg_print(std::ostream &os) const
       std::shared_ptr<TupleValue> minValue;
 
       for (const Tuple &item : tuples_)
-      { 
-        int colIndex =0;
+      {
+        int colIndex = 0;
         //第n-1列
         const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
         for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
              iter != end; ++iter)
         {
           //(*iter)->to_string(os);
-          if(colIndex == index)
-          { 
-            if(nullptr == minValue)
+          if (colIndex == index)
+          {
+            if (nullptr == minValue)
             {
-              minValue =*iter;
-            }else
-            {  
-              std::shared_ptr<TupleValue> temp =*iter;
-              if(minValue->compare(*temp) >0)
+              minValue = *iter;
+            }
+            else
+            {
+              std::shared_ptr<TupleValue> temp = *iter;
+              if (minValue->compare(*temp) > 0)
               {
-                  minValue =temp;
+                minValue = temp;
               }
             }
-            
-            break;//get 
+
+            break; //get
           }
           colIndex++;
         }
-      }//end 
+      } //end
       minValue->to_string(os);
     }
     else if (FunctionType::FUN_AVG == window_function)
@@ -620,39 +637,39 @@ bool TupleSet::avg_print(std::ostream &os) const
       std::shared_ptr<TupleValue> sumValue;
 
       for (const Tuple &item : tuples_)
-      { 
-        int colIndex =0;
+      {
+        int colIndex = 0;
         //第n-1列
         const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
         for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
              iter != end; ++iter)
         {
           //(*iter)->to_string(os);
-          if(colIndex == index)
-          { 
-            if(nullptr == sumValue)
+          if (colIndex == index)
+          {
+            if (nullptr == sumValue)
             {
-              sumValue =*iter;
-            }else
-            {  
-              std::shared_ptr<TupleValue> temp =*iter;
+              sumValue = *iter;
+            }
+            else
+            {
+              std::shared_ptr<TupleValue> temp = *iter;
               sumValue->add_value(*temp);
             }
-            
-            break;//get 
+
+            break; //get
           }
           colIndex++;
         }
-      }//end 
+      } //end
       //防溢出求平均算法
-      int count =tuples_.size();
-      if(0 == count)
+      int count = tuples_.size();
+      if (0 == count)
       {
-        return true ;
+        return true;
       }
-     
-      sumValue->to_avg(count,os);
-      
+
+      sumValue->to_avg(count, os);
     }
 
     //聚合函数显示

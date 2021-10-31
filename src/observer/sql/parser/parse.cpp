@@ -61,6 +61,16 @@ void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const
   relation_attr->attribute_name = strdup(attribute_name);
 }
 
+void relation_attr_init_number(RelAttr *relation_attr, const char *relation_name, int attribute_name) {
+  if (relation_name != nullptr) {
+    relation_attr->relation_name = strdup(relation_name);
+  } else {
+    relation_attr->relation_name = nullptr;
+  }
+  std::cout<< "relation_attr_init_number" <<attribute_name<<std::endl;
+  std::string str = std::to_string(attribute_name);
+  relation_attr->attribute_name = strdup(str.c_str());
+}
 void relation_attr_destroy(RelAttr *relation_attr) {
   free(relation_attr->relation_name);
   free(relation_attr->attribute_name);

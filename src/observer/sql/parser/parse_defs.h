@@ -249,6 +249,7 @@ void query_init(Query *query);
 Query *query_create();  // create and init
 void query_reset(Query *query);
 void query_destroy(Query *query);  // reset and delete
+void relation_attr_init_number(RelAttr *relation_attr, const char *relation_name, int attribute_name);
 
 #ifdef __cplusplus
 }
