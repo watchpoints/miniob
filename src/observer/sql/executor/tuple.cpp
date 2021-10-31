@@ -100,6 +100,11 @@ void TupleSchema::add(AttrType type, const char *table_name, const char *field_n
   fields_.emplace_back(type, table_name, field_name);
 }
 
+void TupleSchema::add(AttrType type, const char *table_name, const char *field_name, bool visible)
+{
+  fields_.emplace_back(type, table_name, field_name, visible);
+}
+
 void TupleSchema::add_if_not_exists(AttrType type, const char *table_name, const char *field_name)
 {
   for (const auto &field : fields_)
@@ -171,92 +176,145 @@ void TupleSchema::print(std::ostream &os) const
   {
     table_names.insert(field.table_name());
   }
-  //遍历n-1个元素.
-  for (std::vector<TupleField>::const_iterator iter = fields_.begin(), end = --fields_.end();
-       iter != end; ++iter)
+  //单表逻辑
+  if (table_names.size() == 1)
   {
-    //如果多个表:添加表名t.id
-    if (table_names.size() > 1)
+    LOG_INFO(" join  query cols >>>>>>>>>>>>>>");
+    //遍历n-1个元素.
+    for (std::vector<TupleField>::const_iterator iter = fields_.begin(), end = --fields_.end();
+         iter != end; ++iter)
     {
-      os << iter->table_name() << ".";
-    }
-
-    if (iter->get_function_type() == FunctionType::FUN_COUNT_ALL)
-    {
-      if (0 == strcmp("*", iter->field_name()))
+      //如果多个表:添加表名t.id
+      if (table_names.size() > 1)
       {
-        os << "count(*)"
-           << " | ";
+        os << iter->table_name() << ".";
       }
-      else
+
+      if (FunctionType::FUN_COUNT_ALL == iter->get_function_type())
+      {
+        if (0 == strcmp("*", iter->field_name()))
+        {
+          os << "count(*)"
+             << " | ";
+        }
+        else
+        {
+          os << "count(" << iter->field_name() << ")"
+             << " | ";
+        }
+      }
+      else if (iter->get_function_type() == FunctionType::FUN_COUNT)
       {
         os << "count(" << iter->field_name() << ")"
            << " | ";
       }
+      else if (iter->get_function_type() == FunctionType::FUN_MAX)
+      {
+        os << "max(" << iter->field_name() << ")"
+           << " | ";
+      }
+      else if (iter->get_function_type() == FunctionType::FUN_MIN)
+      {
+        os << "min(" << iter->field_name() << ")"
+           << " | ";
+      }
+      else if (iter->get_function_type() == FunctionType::FUN_AVG)
+      {
+        os << "avg(" << iter->field_name() << ")"
+           << " | ";
+      }
+      else
+      {
+        //正常情况
+        os << iter->field_name() << " | ";
+      }
     }
-    else if (iter->get_function_type() == FunctionType::FUN_COUNT)
-    {
-      os << "count(" << iter->field_name() << ")"
-         << " | ";
-    }
-    else if (iter->get_function_type() == FunctionType::FUN_MAX)
-    {
-      os << "max(" << iter->field_name() << ")"
-         << " | ";
-    }
-    else if (iter->get_function_type() == FunctionType::FUN_MIN)
-    {
-      os << "min(" << iter->field_name() << ")"
-         << " | ";
-    }
-    else if (iter->get_function_type() == FunctionType::FUN_AVG)
-    {
-      os << "avg(" << iter->field_name() << ")"
-         << " | ";
-    }
-    else
-    {
-      //正常情况
-      os << iter->field_name() << " | ";
-    }
-  }
+    //last col
+    //visible
 
-  if (table_names.size() > 1)
-  {
-    os << fields_.back().table_name() << ".";
-  }
-  //id ---- 最后一个列,后面没有 ｜，只有名字
-  if (fields_.back().get_function_type() == FunctionType::FUN_COUNT_ALL)
-  {
-    //os << "count(*)" << std::endl; //select count(*) from t;
-    if (0 == strcmp("*", fields_.back().field_name()))
+    if (table_names.size() > 1)
     {
-      os << "count(*)"<< std::endl;
-    }else 
+      os << fields_.back().table_name() << ".";
+    }
+    //id ---- 最后一个列,后面没有 ｜，只有名字
+    if (fields_.back().get_function_type() == FunctionType::FUN_COUNT_ALL)
+    {
+      //os << "count(*)" << std::endl; //select count(*) from t;
+      if (0 == strcmp("*", fields_.back().field_name()))
+      {
+        os << "count(*)" << std::endl;
+      }
+      else
+      {
+        os << "count(" << fields_.back().field_name() << ")" << std::endl;
+      }
+    }
+    else if (fields_.back().get_function_type() == FunctionType::FUN_COUNT)
     {
       os << "count(" << fields_.back().field_name() << ")" << std::endl;
     }
+    else if (fields_.back().get_function_type() == FunctionType::FUN_MAX)
+    {
+      os << "max(" << fields_.back().field_name() << ")" << std::endl;
+    }
+    else if (fields_.back().get_function_type() == FunctionType::FUN_MIN)
+    {
+      os << "min(" << fields_.back().field_name() << ")" << std::endl;
+    }
+    else if (fields_.back().get_function_type() == FunctionType::FUN_AVG)
+    {
+      os << "avg(" << fields_.back().field_name() << ")" << std::endl;
+    }
+    //bug1 else if ->if
+    else
+    { //正常情况
+      os << fields_.back().field_name() << std::endl;
+    }
+
+    //单表 列逻辑 ///////////////////////////////////////// end
   }
-  else if (fields_.back().get_function_type() == FunctionType::FUN_COUNT)
-  {
-    os << "count(" << fields_.back().field_name() << ")" << std::endl;
-  }
-  else if (fields_.back().get_function_type() == FunctionType::FUN_MAX)
-  {
-    os << "max(" << fields_.back().field_name() << ")" << std::endl;
-  }
-  else if (fields_.back().get_function_type() == FunctionType::FUN_MIN)
-  {
-    os << "min(" << fields_.back().field_name() << ")" << std::endl;
-  }
-  else if (fields_.back().get_function_type() == FunctionType::FUN_AVG)
-  {
-    os << "avg(" << fields_.back().field_name() << ")" << std::endl;
-  }
-  //bug1 else if ->if
   else
-  { //正常情况
+  {
+    //多表逻辑///////////////////////////////////////// 开始
+    //https://github.com/oceanbase/miniob/blob/main/src/observer/sql/executor/tuple.cpp#123
+
+    LOG_INFO(" join  query cols >>>>>>>>>>>>>>");
+    //删除不显示的列
+    /**
+    std::vector<TupleField> tuplefields;
+    for (std::vector<TupleField>::const_iterator iter = fields_.begin(), end =fields_.end();
+         iter != end; ++iter)
+    {
+      tuplefields.push_back(*iter);
+    }
+
+     for (std::vector<TupleField>::iterator iter = tuplefields.begin(), end =tuplefields.end();
+         iter != end; )
+    {
+       if( false ==iter->visible()){
+            iter = tuplefields.erase(iter);
+        }else{
+              iter++;
+        }
+    }**/
+
+    for (std::vector<TupleField>::const_iterator iter = fields_.begin(), end = --fields_.end();
+         iter != end; ++iter)
+    {
+      if (table_names.size() > 1)
+      {
+        os << iter->table_name() << ".";
+      }
+      os << iter->field_name() << " | ";
+    }
+
+    if (table_names.size() > 1)
+    {
+      os << fields_.back().table_name() << ".";
+    }
     os << fields_.back().field_name() << std::endl;
+
+    ///////////////////////////end,多表逻辑////////////////////////////end
   }
 }
 
@@ -292,7 +350,7 @@ void TupleSet::clear()
   tuples_.clear();
   schema_.clear();
 }
-
+//print shows
 void TupleSet::print(std::ostream &os) const
 {
   //列信息: (type_ = INTS, table_name_ = "t1", field_name_ = "id")
@@ -340,21 +398,21 @@ void TupleSet::print(std::ostream &os) const
   }
   else if (table_names.size() == 2)
   {
-    //实现2个表的 笛卡尔积
-    if (tuples_left.size() == 0 || tuples_right.size() == 0)
+    ////多表操作/////////////////////////////////////
+    //笛卡尔积算法描述
+
+    if (tuples1_.size() == 0 || tuples2_.size() == 0)
     {
       return;
     }
-    // join字段类型是什么
 
-    //a表的多行 tuples_left 多行
-
-    for (const Tuple &item_left : tuples_left)
+    //t1.rows[i][j]
+    //t2.rows[i][j]
+    for (const Tuple &item_left : tuples1_)
     {
       std::shared_ptr<TupleValue> sp1;
       int col1 = 0;
       std::stringstream os_left;
-
       {
         //std::vector<std::shared_ptr<TupleValue>>  values_; 每一行 多个字段
         const std::vector<std::shared_ptr<TupleValue>> &values = item_left.values();
@@ -375,8 +433,7 @@ void TupleSet::print(std::ostream &os) const
       }
 
       //b表的多行 tuples_right 多行
-
-      for (const Tuple &item_right : tuples_right)
+      for (const Tuple &item_right : tuples2_)
       {
         std::shared_ptr<TupleValue> sp2;
         int col2 = 0;
@@ -442,7 +499,6 @@ bool TupleSet::is_empty() const
 {
   return tuples_.empty();
 }
-
 int TupleSet::size() const
 {
   return tuples_.size();
@@ -480,28 +536,24 @@ void TupleRecordConverter::add_record(const char *record)
     {
       int value = *(int *)(record + field_meta->offset());
       tuple.add(value);
-      // LOG_INFO(" tuple add_record INTS,table =%s,name=%s,value=%d", table_meta.name(), field.field_name(), value);
     }
     break;
     case FLOATS:
     {
       float value = *(float *)(record + field_meta->offset());
       tuple.add(value);
-      //LOG_INFO(" tuple add_record FLOATS,table =%s,name=%s,value=%d", table_meta.name(), field.field_name(), value);
     }
     break;
     case CHARS:
     {
       const char *s = record + field_meta->offset(); // 现在当做Cstring来处理
       tuple.add(s, strlen(s));
-      //LOG_INFO(" tuple add_record table =%s,type=%d,name=%s,value=%s,len=%d", table_meta.name(), field_meta->type(), field.field_name(), s, strlen(s));
     }
     break;
     case DATES:
     {
       int value = *(int *)(record + field_meta->offset());
       tuple.add_date(value);
-      //LOG_INFO(" tuple add_record table =%s,type=%d,name=%s,value=%s,len=%d", table_meta.name(), field_meta->type(), field.field_name(), s, strlen(s));
     }
     break;
     default:
@@ -695,4 +747,190 @@ bool TupleSet::avg_print(std::ostream &os) const
   }
 
   return isWindows;
+}
+
+void TupleSchema::add_if_not_exists_visible(AttrType type, const char *table_name, const char *field_name, bool visible)
+{
+  for (const auto &field : fields_)
+  {
+    if (0 == strcmp(field.table_name(), table_name) &&
+        0 == strcmp(field.field_name(), field_name))
+    {
+      LOG_INFO(">>>>>>>>>>add_if_exists. %s.%s", table_name, field_name);
+      return;
+    }
+  }
+
+  add(type, table_name, field_name, visible);
+}
+
+//2个表的join操作
+void TupleSet::print_two(std::ostream &os) const
+{
+  //列信息: (type_ = INTS, table_name_ = "t1", field_name_ = "id")
+  if (schema_.fields().empty())
+  {
+    LOG_WARN("Got empty schema");
+    return;
+  }
+
+  schema_.print(os); //打印 列字段 （已经考虑到多个表）
+
+  // 判断有多张表还是只有一张表
+  std::set<std::string> table_names;
+  for (const auto &field : schema_.fields())
+  {
+    table_names.insert(field.table_name());
+  }
+  if (2 != table_names.size())
+  {
+    return;
+  }
+
+  ////多表操作/////////////////////////////////////
+  //笛卡尔积算法描述
+
+  if (tuples1_.size() == 0 || tuples2_.size() == 0)
+  {
+    return;
+  }
+
+  //t1.rows[i][j]
+  //t2.rows[i][j]
+  for (const Tuple &item_left : tuples1_)
+  {
+    std::shared_ptr<TupleValue> sp1;
+
+    vector<std::shared_ptr<TupleValue>> left(dp.size());
+    //几个过滤条件
+    //select t1.age,t1.id ,t2.id,t2.age  from t1,t2 where  t1.id=t2.id  and t1.age =t2.age;
+
+    int col1 = 0;
+    std::stringstream os_left; //第一个表的 全部行
+    {
+      //std::vector<std::shared_ptr<TupleValue>>  values_; 每一行 多个字段
+      const std::vector<std::shared_ptr<TupleValue>> &values = item_left.values();
+      for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+           iter != end; ++iter)
+      {
+        if (is_join == true && joins_index == col1)
+        {
+          sp1 = *iter;
+          cout << ">>>>>>>>>>>>>join select " << endl;
+        }
+
+        if (is_join == true)
+        {
+          for (int i = 0; i < dp.size(); i++)
+          {
+            if (col1 == dp[i][0].m_index)
+            {
+              left[i] = *iter;
+              cout << "right " << col1<<  endl;
+            }
+          }
+        }
+
+        (*iter)->to_string(os_left);
+        os_left << " | ";
+
+        col1++;
+      }
+    }
+
+    //b表的多行 tuples_right 多行
+    for (const Tuple &item_right : tuples2_)
+    {
+      std::shared_ptr<TupleValue> sp2;
+      vector<std::shared_ptr<TupleValue>> right(dp.size());
+      right.clear();
+      int col2 = 0;
+      std::stringstream os_right; //第二个表：一行记录
+      {
+        const std::vector<std::shared_ptr<TupleValue>> &values = item_right.values();
+        for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+             iter != end; ++iter)
+        {
+          //笛卡尔积:查询条件
+          if (is_join == true && joins_index == col2)
+          {
+            sp2 = *iter;
+            
+          }
+          if (is_join == true)
+          {
+            for (int ri = 0; ri < dp.size(); ri++)
+            {
+              if (col2 == dp[ri][1].m_index)
+              {
+                right[ri] = *iter;
+                cout << "right " << col2<<  endl;
+              }
+            }
+          }
+          //判断是否最后一行
+          if (col2 == values.size() - 1)
+          {
+
+            (*iter)->to_string(os_right);
+            os_right << std::endl;
+          }
+          else
+          {
+
+            (*iter)->to_string(os_right);
+            os_right << " | ";
+          }
+
+          col2++;
+        }
+      }
+
+      //多表：有join条件
+      if (is_join == true)
+      {
+        LOG_INFO(" two table join select ");
+        bool b_equal =true;
+        //join条件全部相等
+        for(int i=0;i<dp.size();i++)
+        {  
+          std::stringstream s1;
+          std::stringstream s2;
+          left[i]->to_string(s1); 
+          right[i]->to_string(s2); 
+          std::cout<< "left:" <<s1.str() << "right:" <<s2.str()<<std::endl;
+          if(left[i] && right[i] && 0 == left[i]->compare(*right[i]))
+          {
+              
+          }else
+          {
+              b_equal =false;
+          }
+          
+        }
+
+        if(true ==b_equal)
+        {
+           os << os_left.str();
+           os << os_right.str();
+        }
+        
+        /**
+        if (sp1 && sp2 && 0 == sp1->compare(*sp2))
+        {
+          os << os_left.str();
+          os << os_right.str();
+        }
+        else
+        {
+          LOG_INFO(" not equal  ");
+        }**/
+      }
+      else
+      { //没有join条件
+        os << os_left.str();
+        os << os_right.str();
+      }
+    }
+  }
 }

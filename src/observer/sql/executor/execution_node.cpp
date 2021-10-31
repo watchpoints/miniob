@@ -34,7 +34,7 @@ SelectExeNode::init(Trx *trx, Table *table, TupleSchema &&tuple_schema, std::vec
   condition_filters_ = std::move(condition_filters); //查询条件
   return RC::SUCCESS;
 }
-
+//解析查询记录:data-> 
 void record_reader(const char *data, void *context) {
   TupleRecordConverter *converter = (TupleRecordConverter *)context;
   converter->add_record(data);

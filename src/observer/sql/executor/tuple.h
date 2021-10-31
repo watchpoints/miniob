@@ -25,6 +25,21 @@ See the Mulan PSL v2 for more details. */
 using namespace std;
 class Table;
 
+class FilterField
+{
+public:
+FilterField()
+{
+    m_index=-1;
+    m_table_name =nullptr;
+    m_col_name =nullptr;
+}
+public:
+std::shared_ptr<TupleValue> m_value;
+int m_index;
+char* m_table_name;
+char* m_col_name;
+};
 class Tuple {
 public:
   Tuple() = default;
@@ -67,14 +82,17 @@ class TupleField {
 public:
   TupleField(AttrType type, const char *table_name, const char *field_name) :
           type_(type), table_name_(table_name), field_name_(field_name){
-            isShow_ =true;
+            visible_ =true;
   }
    TupleField(AttrType type, const char *table_name, const char *field_name,FunctionType functiontype) :
           type_(type), table_name_(table_name), field_name_(field_name){
-            isShow_ =true;
+            visible_ =true;
             function_type =functiontype;
   }
-
+  TupleField(AttrType type, const char *table_name, const char *field_name,bool visible) :
+          type_(type), table_name_(table_name), field_name_(field_name){
+            visible_ =visible;
+  }
   AttrType  type() const{
     return type_;
   }
@@ -87,11 +105,11 @@ public:
   }
 
   std::string to_string() const;
-  bool get_show() const {
-    return isShow_;
+  bool visible() const {
+    return visible_;
   }
-  void set_show(bool show)  {
-    isShow_ =show;
+  void set_visible(bool show)  {
+    visible_ =show;
   }
   FunctionType get_function_type() const {
     return function_type;
@@ -100,7 +118,7 @@ private:
   AttrType  type_;//
   std::string table_name_;//t
   std::string field_name_;//id
-  bool isShow_;
+  bool visible_;
   FunctionType function_type;//函数
 };
 
@@ -111,8 +129,12 @@ public:
 
   void add(AttrType type, const char *table_name, const char *field_name);
   void add(AttrType type, const char *table_name, const char *field_name,FunctionType functiontype);
+  void add(AttrType type, const char *table_name, const char *field_name,bool visible);
+
   void add_if_not_exists(AttrType type, const char *table_name, const char *field_name);
   void add_if_not_exists(AttrType type, const char *table_name, const char *field_name,FunctionType ftype);
+  void add_if_not_exists_visible(AttrType type, const char *table_name, const char *field_name,bool visible);
+
 
   // void merge(const TupleSchema &other);
   void append(const TupleSchema &other);
@@ -166,6 +188,7 @@ public:
   const std::vector<Tuple> &tuples() const;
 
   void print(std::ostream &os) const;
+  void print_two(std::ostream &os) const;
   bool avg_print(std::ostream &os) const;
   void add_tuple_schema(const TupleSchema &schema)
   {
@@ -191,23 +214,33 @@ public:
   {
     return tuples_;
   }
-  std::vector<Tuple> &get_tuples_left() 
+  std::vector<Tuple> &tuples1() 
   {
-    return tuples_left;
+    return tuples1_;
   }
-  std::vector<Tuple> &get_tuples_right() 
+  std::vector<Tuple> &tuples2() 
   {
-    return tuples_right;
+    return tuples2_;
+  }
+  std::vector<Tuple> &tuples3() 
+  {
+    return tuples3_;
   }
 
-  void set_tuples_left( std::vector<Tuple>&& left) 
+  void set_tuples1( std::vector<Tuple>&& tuples) 
   {
-     tuples_left =std::move(left);
+     tuples1_ =std::move(tuples);
      
   }
-  void set_tuples_right(std::vector<Tuple>&& right) 
+ void set_tuples2( std::vector<Tuple>&& tuples) 
   {
-     tuples_right =std::move(right);
+     tuples2_ =std::move(tuples);
+     
+  }
+  void set_tuples3( std::vector<Tuple>&& tuples) 
+  {
+     tuples3_ =std::move(tuples);
+     
   }
   /**
   void set_filter(std::vector<DefaultConditionFilter*>&& filter) 
@@ -224,16 +257,54 @@ public:
     is_join = join;
     joins_index =index;
   }
+  void set_schema1(const TupleSchema &schema)
+  {
+    schema1_ =schema;
+  }
+
+  void set_schema2(const TupleSchema &schema)
+  {
+    schema2_ =schema;
+  }
+
+  void set_schema3(const TupleSchema &schema)
+  {
+    schema3_ =schema;
+  }
+
+  TupleSchema &schema1() 
+  {
+    return schema1_;
+  }
+
+   TupleSchema &schema2() 
+  {
+    return schema2_;
+  }
+ 
+  TupleSchema &schema3() 
+  {
+    return schema3_;
+  }
+ 
  
 private:
   std::vector<Tuple> tuples_;
-  std::vector<Tuple> tuples_left; //join
-  std::vector<Tuple> tuples_right; //join
-  //std::vector<DefaultConditionFilter*> filter_;
   TupleSchema schema_; 
   //列信息: schema_ (type_ = INTS, table_name_ = "t1", field_name_ = "id")
+  
   bool is_join;
   int joins_index;
+  
+  std::vector<Tuple> tuples1_; //table1 
+  std::vector<Tuple> tuples2_; //table2;
+  std::vector<Tuple> tuples3_; //table3;
+  TupleSchema  schema1_; //join
+  TupleSchema  schema2_; //join
+  TupleSchema  schema3_; //join
+
+public:
+    vector<vector<FilterField>> dp;
 
 };
 

@@ -34,7 +34,9 @@ See the Mulan PSL v2 for more details. */
 #include "storage/trx/trx.h"
 
 using namespace common;
-static RC schema_add_field_function(Table *table, const char *field_name, TupleSchema &schema,FunctionType ft);
+static RC schema_add_field_visible(Table *table, const char *field_name, TupleSchema &schema, bool visible);
+
+static RC schema_add_field_function(Table *table, const char *field_name, TupleSchema &schema, FunctionType ft);
 
 RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, const char *table_name, SelectExeNode &select_node);
 
@@ -319,9 +321,9 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       end_trx_if_need(session, trx, false);
       return rc;
     }
-    else 
-    { 
-      if(rc == RC::RECORD_NO_MORE_IDX_IN_MEM)
+    else
+    {
+      if (rc == RC::RECORD_NO_MORE_IDX_IN_MEM)
       {
         //tuple_set.get_tuple().clear();
         LOG_INFO(">>>>>execute failed rc=%d:%s", rc, strrc(rc));
@@ -337,28 +339,29 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
   {
     //单表：
     tuple_sets.front().print(ss);
-    
+
     //题目：多表查询
   }
   else if (tuple_sets.size() == 2)
   {
 
+    LOG_INFO("two table query");
+
     TupleSet twoSet;
 
     //添加列信息：
     //列信息: schema_ (type_ = INTS, table_name_ = "t1", field_name_ = "id")
-
     twoSet.set_schema(tuple_sets[1].get_schema());       //第一个表信息
     twoSet.add_tuple_schema(tuple_sets[0].get_schema()); // 第二个表信息
+
+    twoSet.set_schema1(tuple_sets[1].get_schema()); //第一个表内容
+    twoSet.set_schema2(tuple_sets[0].get_schema()); //第一个表内容
     //一个表 有2个字段，2个表 这里就四行记录
 
     //添加行信息
-    //std::vector<Tuple> tuples_;
-    //twoSet.add_tuple_value(tuple_sets[1].get_tuple());
-    //twoSet.add_tuple_value(tuple_sets[0].get_tuple());
 
-    twoSet.set_tuples_left(std::move(tuple_sets[1].get_tuple()));
-    twoSet.set_tuples_right(std::move(tuple_sets[0].get_tuple()));
+    twoSet.set_tuples1(std::move(tuple_sets[1].get_tuple()));
+    twoSet.set_tuples2(std::move(tuple_sets[0].get_tuple()));
 
     //通过selects判断是否有联合查询不合适，因为这个是多个表查询，拆分单独一个表查询
     //虽然你看到过滤，但是没有认真从上到下阅读代码导致 ，不清楚上面逻辑
@@ -371,9 +374,12 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       }**/
 
     //这里假设只有一个join条件 并且查找返回字段和查询条件是一致的。
-
     bool isJoin = false;
     int joinIndex = 0;
+
+    //寻找join条件
+    // select t1.age,t1.id ,t2.id,t2.age  from t1,t2 where  t1.id=t2.id  and t1.age =t2.age;
+    vector<Condition> filterField;
     for (int i = 0; i < selects.condition_num; i++)
     {
       const Condition &condition = selects.conditions[i];
@@ -383,11 +389,56 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       {
         isJoin = true;
         joinIndex = i;
+        filterField.push_back(condition);
+      }
+    }
+    //过滤条件有几个，多少行
+    //a[1][2],a[2][2],a[3][2],a[4][2]
+    int rows = filterField.size();
+    int cols = 2;
+    //vector<vector<FilterField>> dp; //不知道多少行，多少列
+    if (rows >0)
+    {
+      
+      FilterField temp;
+      twoSet.dp.resize(rows, vector<FilterField>(cols,temp));
+      //t1.id=t2.id
+      //[1,2]
+      for (int filterIndex = 0; filterIndex < rows; filterIndex++)
+      {
+        Condition condition = filterField[filterIndex];
+        //twoSet.set_schema(tuple_sets[1].get_schema());       //第一个表信息
+        //twoSet.add_tuple_schema(tuple_sets[0].get_schema()); // 第二个表信息
+
+        //twoSet.set_schema1(tuple_sets[1].get_schema()); //第一个表内容
+        //twoSet.set_schema2(tuple_sets[0].get_schema()); //第一个表内容
+        //std::vector<TupleField> fields_;
+        std::vector<TupleField> fields1 = twoSet.schema1().fields();
+        for (int i = 0; i < fields1.size(); i++)
+        {
+          if (0 == strcmp(fields1[i].field_name(), condition.left_attr.attribute_name))
+          {
+            twoSet.dp[filterIndex][0].m_index = i;
+           // break;
+          }
+        }
+
+        std::vector<TupleField> fields2 = twoSet.schema2().fields();
+        for (int i = 0; i < fields2.size(); i++)
+        {
+          if (0 == strcmp(fields2[i].field_name(), condition.left_attr.attribute_name))
+          {
+            twoSet.dp[filterIndex][1].m_index = i;
+            //break;
+          }
+        }
       }
     }
     
     twoSet.set_join(isJoin, joinIndex);
-    twoSet.print(ss);
+
+    twoSet.print_two(ss);
+
   }
   else
   {
@@ -420,11 +471,11 @@ bool match_table(const Selects &selects, const char *table_name_in_condition, co
 }
 
 static RC schema_add_field(Table *table, const char *field_name, TupleSchema &schema)
-{  
+{
   if (0 == strcmp("*", field_name))
   {
-       TupleSchema::from_table(table, schema);
-       return RC::SUCCESS;
+    TupleSchema::from_table(table, schema);
+    return RC::SUCCESS;
   }
   const FieldMeta *field_meta = table->table_meta().field(field_name);
   if (nullptr == field_meta)
@@ -454,67 +505,71 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
   {
     const RelAttr &attr = selects.attributes[i];
     if (nullptr == attr.relation_name || 0 == strcmp(table_name, attr.relation_name))
-    {  
+    {
       //count(*) count(id)
       //支持部分聚合函数
-      if(attr.funtype == FunctionType::FUN_COUNT ||  
-         attr.funtype == FunctionType::FUN_COUNT_ALL||
-         attr.funtype == FunctionType::FUN_MAX ||
-         attr.funtype == FunctionType::FUN_MIN ||
-         attr.funtype == FunctionType::FUN_AVG )
+      if (attr.funtype == FunctionType::FUN_COUNT ||
+          attr.funtype == FunctionType::FUN_COUNT_ALL ||
+          attr.funtype == FunctionType::FUN_MAX ||
+          attr.funtype == FunctionType::FUN_MIN ||
+          attr.funtype == FunctionType::FUN_AVG)
       {
         LOG_WARN("this is window functions");
       }
       //select count(*) from t;
       if (0 == strcmp("*", attr.attribute_name))
       {
-        if(attr.funtype == FunctionType::FUN_COUNT_ALL)
+        if (attr.funtype == FunctionType::FUN_COUNT_ALL)
         {
           // 列出这张表第一个字段到 schema
           //
-          TupleSchema::from_table_first(table, schema,attr.funtype);
-        }else
+          TupleSchema::from_table_first(table, schema, attr.funtype);
+        }
+        else
         {
           // 列出这张表所有字段到 schema
-           TupleSchema::from_table(table, schema);
-           break;
+          TupleSchema::from_table(table, schema);
+          break;
         }
       }
       else
-      {  
+      {
         LOG_WARN(" table [%s] in db [%s]", table_name, attr.attribute_name);
         //select count(id),count(name) from t;
-        FunctionType ft=attr.funtype ;
-        if(ft == FunctionType::FUN_COUNT || ft == FunctionType::FUN_MAX
-          || ft == FunctionType::FUN_MIN || ft ==FunctionType::FUN_AVG)
+        FunctionType ft = attr.funtype;
+        if (ft == FunctionType::FUN_COUNT || ft == FunctionType::FUN_MAX || ft == FunctionType::FUN_MIN || ft == FunctionType::FUN_AVG)
         {
-            // 列出这张表相关字段
-            RC rc = schema_add_field_function(table, attr.attribute_name, schema,ft);
-            if (rc != RC::SUCCESS)
-            {
-                return rc;
-            }
-        }else if (ft == FunctionType::FUN_COUNT_ALL)
-        {
-          TupleSchema::from_table_first(table, schema,attr.funtype);
-        }else  
-        {
-            // 列出这张表相关字段
-            RC rc = schema_add_field(table, attr.attribute_name, schema);
-            if (rc != RC::SUCCESS)
-            {
-                return rc;
-            }
+          // 列出这张表相关字段
+          RC rc = schema_add_field_function(table, attr.attribute_name, schema, ft);
+          if (rc != RC::SUCCESS)
+          {
+            return rc;
+          }
         }
-       
+        else if (ft == FunctionType::FUN_COUNT_ALL)
+        {
+          TupleSchema::from_table_first(table, schema, attr.funtype);
+        }
+        else
+        {
+          // 列出这张表相关字段
+          RC rc = schema_add_field(table, attr.attribute_name, schema);
+          if (rc != RC::SUCCESS)
+          {
+            return rc;
+          }
+        }
       }
     }
   }
 
   // 找出仅与此表相关的过滤条件, 或者都是值的过滤条件
+  // 找出仅与此表相关的过滤条件, 或者都是值的过滤条件
+  // 找出仅与此表相关的过滤条件, 或者都是值的过滤条件
   //潜台词：
   // 1 t1.id=t2.id 左右都是属性名，并且表名都符合 [多表不符合]
   // 2 t1.age >10  左边是属性右边是值  table_name
+  //https://github.com/oceanbase/miniob/blob/main/src/observer/sql/executor/execute_stage.cpp#334
   std::vector<DefaultConditionFilter *> condition_filters;
   for (size_t i = 0; i < selects.condition_num; i++)
   {
@@ -542,68 +597,68 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
       condition_filters.push_back(condition_filter);
     }
   }
-   /**
-   //03 过滤算法描述：
-    //前提是多表查询
-    //1 多表的寻找join 条件
-    //2 选择 ==left ｜｜ right字段
-    //3 调用schema_add_field
-    // select t1.* , t2.name from t1,t2 where t1.id=t2.id;
 
-    if (selects.relation_num > 1)
+  //03 过滤条件包含字段,查询条件,不包含
+  //前提是多表查询
+  //1 多表的寻找join 条件
+  //2 选择 left.right 字段
+  //3 调用schema_add_field
+  // select t1.* , t2.name from t1,t2 where t1.id=t2.id;
+
+  if (selects.relation_num > 1)
+  {
+    for (size_t i = 0; i < selects.condition_num; i++)
     {
-      for (size_t i = 0; i < selects.condition_num; i++)
+      const Condition &condition = selects.conditions[i];
+      if (
+          (condition.left_is_attr == 1 && condition.right_is_attr == 1 &&
+           condition.comp == EQUAL_TO) // 左右都是属性名，并且表名都符合
+      )
       {
-        const Condition &condition = selects.conditions[i];
-        if (
-            (condition.left_is_attr == 1 && condition.right_is_attr == 1 &&
-             condition.comp == EQUAL_TO) // 左右都是属性名，并且表名都符合
-        )
+
+        if (match_table(selects, condition.left_attr.relation_name, table_name))
         {
 
-          if (match_table(selects, condition.left_attr.relation_name, table_name))
+          // 列出这张表相关字段
+          RC rc = schema_add_field_visible(table, condition.left_attr.attribute_name, schema, false);
+          if (rc != RC::SUCCESS)
           {
-
-            // 列出这张表相关字段
-            RC rc = schema_add_field(table, condition.left_attr.attribute_name, schema);
-            if (rc != RC::SUCCESS)
-            {
-              return rc;
-            }
-          }
-          else if (match_table(selects, condition.right_attr.relation_name, table_name))
-          {
-            // 列出这张表相关字段
-            RC rc = schema_add_field(table, condition.right_attr.attribute_name, schema);
-            if (rc != RC::SUCCESS)
-            {
-              return rc;
-            }
-          }
-          else
-          {
-            LOG_INFO(" 表不存在 ");
+            return rc;
           }
         }
+        else if (match_table(selects, condition.right_attr.relation_name, table_name))
+        {
+          // 列出这张表相关字段
+          RC rc = schema_add_field_visible(table, condition.right_attr.attribute_name, schema, false);
+          if (rc != RC::SUCCESS)
+          {
+            return rc;
+          }
+        }
+        else
+        {
+          LOG_INFO(" 表不存在 ");
+        }
       }
-    }**/
+    }
+  }
 
   return select_node.init(trx, table, std::move(schema), std::move(condition_filters));
 }
 //检查字段是否合法
-static RC schema_add_field_function(Table *table, const char *field_name, TupleSchema &schema,FunctionType ft)
-{  
-  if(nullptr == field_name)
-  { 
+static RC schema_add_field_function(Table *table, const char *field_name, TupleSchema &schema, FunctionType ft)
+{
+  if (nullptr == field_name)
+  {
     LOG_WARN("schema_add_field_function");
     return RC::SCHEMA_FIELD_MISSING;
   }
   //select count(id) from t;
-  //[更错错误 需要测试] 
+  //[更错错误 需要测试]
   if (0 == strcmp("*", field_name))
-  {    
-      LOG_WARN("schema_add_field_function");
-      return RC::SCHEMA_FIELD_MISSING;
+  {
+    LOG_WARN("schema_add_field_function");
+    return RC::SCHEMA_FIELD_MISSING;
   }
   const FieldMeta *field_meta = table->table_meta().field(field_name);
   if (nullptr == field_meta)
@@ -612,6 +667,20 @@ static RC schema_add_field_function(Table *table, const char *field_name, TupleS
     return RC::SCHEMA_FIELD_MISSING;
   }
   //避免 t.id,t.id
-  schema.add_if_not_exists(field_meta->type(), table->name(), field_meta->name(),ft);
+  schema.add_if_not_exists(field_meta->type(), table->name(), field_meta->name(), ft);
+  return RC::SUCCESS;
+}
+
+static RC schema_add_field_visible(Table *table, const char *field_name, TupleSchema &schema, bool visible)
+{
+
+  const FieldMeta *field_meta = table->table_meta().field(field_name);
+  if (nullptr == field_meta)
+  {
+    LOG_WARN("No such field. %s.%s", table->name(), field_name);
+    return RC::SCHEMA_FIELD_MISSING;
+  }
+  //避免 t.id,t.id
+  schema.add_if_not_exists_visible(field_meta->type(), table->name(), field_meta->name(), visible);
   return RC::SUCCESS;
 }
