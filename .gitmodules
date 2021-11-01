@@ -7,3 +7,6 @@
 [submodule "deps/jsoncpp"]
 	path = deps/jsoncpp
 	url = https://github.com/open-source-parsers/jsoncpp
+[submodule "deps/deps/googletest"]
+	path = deps/deps/googletest
+	url = https://github.com/google/googletest
