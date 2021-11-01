@@ -114,12 +114,19 @@ public:
   FunctionType get_function_type() const {
     return function_type;
   }
+  const char *field_name_count_number() const
+  {
+    return field_name_count_number_.c_str();
+  }
 private:
   AttrType  type_;//
   std::string table_name_;//t
   std::string field_name_;//id
   bool visible_;
   FunctionType function_type;//函数
+public:
+  std::string field_name_count_number_; //count(1)
+
 };
 
 class TupleSchema {
@@ -130,6 +137,7 @@ public:
   void add(AttrType type, const char *table_name, const char *field_name);
   void add(AttrType type, const char *table_name, const char *field_name,FunctionType functiontype);
   void add(AttrType type, const char *table_name, const char *field_name,bool visible);
+  void add_number(AttrType type, const char *table_name, const char *field_name, FunctionType functiontype, const char *field_name_count_number);
 
   void add_if_not_exists(AttrType type, const char *table_name, const char *field_name);
   void add_if_not_exists(AttrType type, const char *table_name, const char *field_name,FunctionType ftype);
@@ -159,9 +167,11 @@ public:
 public:
   static void from_table(const Table *table, TupleSchema &schema);
   static void from_table_first(const Table *table, TupleSchema &schema,FunctionType functiontype);
+  static void from_table_first_count_number(const Table *table, TupleSchema &schema, FunctionType functiontype, const char *field_name_count_number);
 
 private:
   std::vector<TupleField> fields_;
+
 };
 
 class TupleSet {

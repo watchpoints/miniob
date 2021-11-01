@@ -523,7 +523,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
         if (attr.funtype == FunctionType::FUN_COUNT_ALL)
         {
           // 列出这张表第一个字段到 schema
-          //
+          //count(*) 
           TupleSchema::from_table_first(table, schema, FunctionType::FUN_COUNT_ALL_ALl);
         }
         else
@@ -549,7 +549,8 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
         }
         else if (ft == FunctionType::FUN_COUNT_ALL)
         {
-          TupleSchema::from_table_first(table, schema, attr.funtype);
+           //count(1)
+          TupleSchema::from_table_first_count_number(table, schema, attr.funtype, attr.attribute_name);
         }
         else
         {

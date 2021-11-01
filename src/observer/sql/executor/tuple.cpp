@@ -200,7 +200,7 @@ void TupleSchema::print(std::ostream &os) const
         }
         else
         {
-          os << "count(" << iter->field_name() << ")"
+          os << "count(" << iter->field_name_count_number() << ")"
              << " | ";
         }
       }if (FunctionType::FUN_COUNT_ALL_ALl == iter->get_function_type())
@@ -252,14 +252,14 @@ void TupleSchema::print(std::ostream &os) const
     else if (fields_.back().get_function_type() == FunctionType::FUN_COUNT_ALL)
     {
       //os << "count(*)" << std::endl; //select count(*) from t;
-      if (0 == strcmp("*", fields_.back().field_name()))
-      {
-        os << "count(*)" << std::endl;
-      }
-      else
-      {
-        os << "count(" << fields_.back().field_name() << ")" << std::endl;
-      }
+      //if (0 == strcmp("*", fields_.back().field_name()))
+      //{
+        //os << "count(*)" << std::endl;
+      //}
+      //else
+      //{
+        os << "count(" << fields_.back().field_name_count_number() << ")" << std::endl;
+      //}
     }
     else if (fields_.back().get_function_type() == FunctionType::FUN_COUNT)
     {
@@ -946,4 +946,30 @@ void TupleSet::print_two(std::ostream &os) const
       }
     }
   }
+}
+
+//聚合
+void TupleSchema::from_table_first_count_number(const Table *table, TupleSchema &schema, FunctionType functiontype, const char *field_name_count_number)
+{
+  const char *table_name = table->name();            //表名字
+  const TableMeta &table_meta = table->table_meta(); //表结构
+                                                     //const int field_num = table_meta.field_num();      //字段个数
+
+  const FieldMeta *field_meta = table_meta.field(1);
+  if (field_meta && field_meta->visible())
+  {
+   // schema.add(field_meta->type(), table_name, field_meta->name(), functiontype);
+   
+  schema.add_number(field_meta->type(), table_name, field_meta->name(), functiontype,field_name_count_number);
+
+  }
+}
+void TupleSchema::add_number(AttrType type, const char *table_name, const char *field_name, FunctionType functiontype,const char *field_name_count_number)
+{  
+    TupleField temp(type,table_name,field_name, functiontype);
+    temp.field_name_count_number_ =field_name_count_number;
+    fields_.push_back(temp);
+    //fields_.emplace_back(std::move(temp));
+
+   //fields_.emplace_back(type, table_name, field_name, functiontype);
 }

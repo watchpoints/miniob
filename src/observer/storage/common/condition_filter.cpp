@@ -135,7 +135,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
       LOG_INFO(" check_where_date");
       if (false == check_where_date((char *)condition.left_value.data))
       {
-        //LOG_INFO(" check_where_date failed,value=%s", right.value);
+        // LOG_INFO(" check_where_date failed,value=%s", right.value);
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
       }
 
