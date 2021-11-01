@@ -191,7 +191,8 @@ void TupleSchema::print(std::ostream &os) const
       }
 
       if (FunctionType::FUN_COUNT_ALL == iter->get_function_type())
-      {
+      { 
+        //count(1)
         if (0 == strcmp("*", iter->field_name()))
         {
           os << "count(*)"
@@ -202,6 +203,12 @@ void TupleSchema::print(std::ostream &os) const
           os << "count(" << iter->field_name() << ")"
              << " | ";
         }
+      }if (FunctionType::FUN_COUNT_ALL_ALl == iter->get_function_type())
+      { 
+        //count(*)
+        os << "count(*)"
+             << " | ";
+  
       }
       else if (iter->get_function_type() == FunctionType::FUN_COUNT)
       {
@@ -237,7 +244,12 @@ void TupleSchema::print(std::ostream &os) const
       os << fields_.back().table_name() << ".";
     }
     //id ---- 最后一个列,后面没有 ｜，只有名字
-    if (fields_.back().get_function_type() == FunctionType::FUN_COUNT_ALL)
+    if (FunctionType::FUN_COUNT_ALL_ALl == fields_.back().get_function_type())
+      { 
+        //count(*)
+       os << "count(*)" << std::endl;
+      }
+    else if (fields_.back().get_function_type() == FunctionType::FUN_COUNT_ALL)
     {
       //os << "count(*)" << std::endl; //select count(*) from t;
       if (0 == strcmp("*", fields_.back().field_name()))
@@ -601,7 +613,7 @@ bool TupleSet::avg_print(std::ostream &os) const
   {
 
     FunctionType window_function = iter->get_function_type();
-    if (FunctionType::FUN_COUNT_ALL == window_function || FunctionType::FUN_COUNT == window_function)
+    if (FunctionType::FUN_COUNT_ALL_ALl == window_function||FunctionType::FUN_COUNT_ALL == window_function || FunctionType::FUN_COUNT == window_function)
     {
       isWindows = true;
       int count = tuples_.size();
@@ -728,6 +740,7 @@ bool TupleSet::avg_print(std::ostream &os) const
     if (FunctionType::FUN_AVG == window_function ||
         FunctionType::FUN_COUNT == window_function ||
         FunctionType::FUN_COUNT_ALL == window_function ||
+        FunctionType::FUN_COUNT_ALL_ALl == window_function ||
         FunctionType::FUN_MIN == window_function ||
         FunctionType::FUN_MAX == window_function)
     {

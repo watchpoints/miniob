@@ -510,6 +510,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
       //支持部分聚合函数
       if (attr.funtype == FunctionType::FUN_COUNT ||
           attr.funtype == FunctionType::FUN_COUNT_ALL ||
+          attr.funtype == FunctionType::FUN_COUNT_ALL_ALl ||
           attr.funtype == FunctionType::FUN_MAX ||
           attr.funtype == FunctionType::FUN_MIN ||
           attr.funtype == FunctionType::FUN_AVG)
@@ -523,7 +524,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
         {
           // 列出这张表第一个字段到 schema
           //
-          TupleSchema::from_table_first(table, schema, attr.funtype);
+          TupleSchema::from_table_first(table, schema, FunctionType::FUN_COUNT_ALL_ALl);
         }
         else
         {
