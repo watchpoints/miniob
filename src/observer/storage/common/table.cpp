@@ -357,7 +357,7 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
   // 检查字段类型是否一致
   if (value_num + table_meta_.sys_field_num() != table_meta_.field_num())
   {
-    LOG_INFO("   SCHEMA_FIELD_MISSING ");
+    LOG_INFO(" make_record  SCHEMA_FIELD_MISSING ");
     return RC::SCHEMA_FIELD_MISSING;
   }
 
