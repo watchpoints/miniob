@@ -342,13 +342,14 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
   if (tuple_sets.size() == 1)
   { 
     TupleSet &ts = tuple_sets.front();
+    ts.realTabeNumber =0;
     if (selects.relation_num > 1)
     {
       ts.realTabeNumber = selects.relation_num;
        LOG_INFO("1111111 =%d",ts.realTabeNumber);
     }
     //单表：
-    tuple_sets.front().print(ss);
+    ts.print(ss);
 
     //题目：多表查询
   }

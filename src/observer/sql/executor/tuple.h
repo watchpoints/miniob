@@ -131,8 +131,8 @@ public:
 
 class TupleSchema {
 public:
-  TupleSchema() = default;
-  ~TupleSchema() = default;
+  TupleSchema() {realTabeNumber =-1;};
+  ~TupleSchema() {realTabeNumber =-1;} ;
 
   void add(AttrType type, const char *table_name, const char *field_name);
   void add(AttrType type, const char *table_name, const char *field_name,FunctionType functiontype);
@@ -178,9 +178,10 @@ public:
 
 class TupleSet {
 public:
-  TupleSet() = default;
+  TupleSet() {realTabeNumber =-1;};
   TupleSet(TupleSet &&other);
   explicit TupleSet(const TupleSchema &schema) : schema_(schema) {
+    realTabeNumber =-1;
   }
   TupleSet &operator =(TupleSet &&other);
 

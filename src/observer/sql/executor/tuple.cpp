@@ -333,6 +333,7 @@ void TupleSchema::print(std::ostream &os) const
 TupleSet::TupleSet(TupleSet &&other) : tuples_(std::move(other.tuples_)), schema_(other.schema_)
 {
   other.schema_.clear();
+  realTabeNumber =other.realTabeNumber;
 }
 
 TupleSet &TupleSet::operator=(TupleSet &&other)
@@ -345,7 +346,7 @@ TupleSet &TupleSet::operator=(TupleSet &&other)
   schema_.clear();
   schema_.append(other.schema_);
   other.schema_.clear();
-
+  realTabeNumber =-1;
   tuples_.clear();
   tuples_.swap(other.tuples_);
   return *this;
@@ -375,7 +376,11 @@ void TupleSet::print(std::ostream &os)
     
     schema_.realTabeNumber = realTabeNumber;
     LOG_INFO("22222 =%d",schema_.realTabeNumber);
+  }else
+  {
+    schema_.realTabeNumber =-1;
   }
+  
   schema_.print(os); //打印 列字段 （已经考虑到多个表）
 
   // 判断有多张表还是只有一张表
