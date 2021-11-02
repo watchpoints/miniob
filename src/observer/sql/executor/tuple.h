@@ -172,6 +172,8 @@ public:
 private:
   std::vector<TupleField> fields_;
 
+public:
+  int realTabeNumber;
 };
 
 class TupleSet {
@@ -197,7 +199,7 @@ public:
   const Tuple &get(int index) const;
   const std::vector<Tuple> &tuples() const;
 
-  void print(std::ostream &os) const;
+  void print(std::ostream &os) ;
   void print_two(std::ostream &os) const;
   bool avg_print(std::ostream &os) const;
   void add_tuple_schema(const TupleSchema &schema)
@@ -315,6 +317,7 @@ private:
 
 public:
     vector<vector<FilterField>> dp;
+    int realTabeNumber;
 
 };
 

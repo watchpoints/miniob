@@ -168,7 +168,6 @@ void TupleSchema::print(std::ostream &os) const
     os << "No schema";
     return;
   }
-
   // 判断有多张表还是只有一张表
   //并不使用 table_names的数据
   std::set<std::string> table_names;
@@ -185,7 +184,7 @@ void TupleSchema::print(std::ostream &os) const
          iter != end; ++iter)
     {
       //如果多个表:添加表名t.id
-      if (table_names.size() > 1)
+      if (table_names.size() > 1|| realTabeNumber > 1 )
       {
         os << iter->table_name() << ".";
       }
@@ -239,7 +238,7 @@ void TupleSchema::print(std::ostream &os) const
     //last col
     //visible
 
-    if (table_names.size() > 1)
+    if (table_names.size() > 1 || realTabeNumber > 1)
     {
       os << fields_.back().table_name() << ".";
     }
@@ -363,7 +362,7 @@ void TupleSet::clear()
   schema_.clear();
 }
 //print shows
-void TupleSet::print(std::ostream &os) const
+void TupleSet::print(std::ostream &os) 
 {
   //列信息: (type_ = INTS, table_name_ = "t1", field_name_ = "id")
   if (schema_.fields().empty())
@@ -371,7 +370,12 @@ void TupleSet::print(std::ostream &os) const
     LOG_WARN("Got empty schema");
     return;
   }
-
+ if (realTabeNumber > 1)
+  {  
+    
+    schema_.realTabeNumber = realTabeNumber;
+    LOG_INFO("22222 =%d",schema_.realTabeNumber);
+  }
   schema_.print(os); //打印 列字段 （已经考虑到多个表）
 
   // 判断有多张表还是只有一张表
@@ -386,10 +390,11 @@ void TupleSet::print(std::ostream &os) const
   {
     //单表聚合:只有一行
     if (true == avg_print(os))
-    {
+    {  
+     LOG_INFO("this is avg query >>>>>>>>>>>>>>>>>> ");
       return;
     }
-    LOG_INFO("common  qury");
+    LOG_INFO("common  qury >>>>>>>>>>>>>>>>>>>>");
     //单表显示多行 tuples_ 多行
     for (const Tuple &item : tuples_)
     {
@@ -607,11 +612,10 @@ bool TupleSet::avg_print(std::ostream &os) const
   const std::vector<TupleField> &fields = schema_.fields();
   int count = fields.size();
   int index = 0;
-  //遍历n-1个元素.
+  //遍历n个元素.
   for (std::vector<TupleField>::const_iterator iter = fields.begin(), end = fields.end();
        iter != end; ++iter)
   {
-
     FunctionType window_function = iter->get_function_type();
     if (FunctionType::FUN_COUNT_ALL_ALl == window_function||FunctionType::FUN_COUNT_ALL == window_function || FunctionType::FUN_COUNT == window_function)
     {
@@ -703,7 +707,7 @@ bool TupleSet::avg_print(std::ostream &os) const
       for (const Tuple &item : tuples_)
       {
         int colIndex = 0;
-        //第n-1列
+        //第n列
         const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
         for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
              iter != end; ++iter)

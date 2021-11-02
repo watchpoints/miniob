@@ -328,7 +328,11 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
         //tuple_set.get_tuple().clear();
         LOG_INFO(">>>>>execute failed rc=%d:%s", rc, strrc(rc));
       }
-      tuple_sets.push_back(std::move(tuple_set));
+      //select t1.* from t1,t2;
+      if(tuple_set.schema().fields().size() >0)
+      {
+        tuple_sets.push_back(std::move(tuple_set));
+      }
     }
   }
 
@@ -336,7 +340,13 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
 
   // 当前只查询一张表，直接返回结果即可
   if (tuple_sets.size() == 1)
-  {
+  { 
+    TupleSet &ts = tuple_sets.front();
+    if (selects.relation_num > 1)
+    {
+      ts.realTabeNumber = selects.relation_num;
+       LOG_INFO("1111111 =%d",ts.realTabeNumber);
+    }
     //单表：
     tuple_sets.front().print(ss);
 
