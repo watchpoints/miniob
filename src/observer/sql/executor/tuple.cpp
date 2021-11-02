@@ -193,16 +193,16 @@ void TupleSchema::print(std::ostream &os) const
       if (FunctionType::FUN_COUNT_ALL == iter->get_function_type())
       { 
         //count(1)
-        if (0 == strcmp("*", iter->field_name()))
-        {
-          os << "count(*)"
-             << " | ";
-        }
-        else
-        {
+        //if (0 == strcmp("*", iter->field_name()))
+        //{
+          //os << "count(*)"
+            // << " | ";
+        //}
+        //else
+        //{
           os << "count(" << iter->field_name_count_number() << ")"
              << " | ";
-        }
+        //}
       }if (FunctionType::FUN_COUNT_ALL_ALl == iter->get_function_type())
       { 
         //count(*)
