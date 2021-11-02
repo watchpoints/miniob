@@ -199,7 +199,7 @@ void TupleSchema::print(std::ostream &os) const
         //}
         //else
         //{
-          os << "count(" << iter->field_name_count_number() << ")"
+          os << "count111(" << iter->field_name_count_number() << ")"
              << " | ";
         //}
       }if (FunctionType::FUN_COUNT_ALL_ALl == iter->get_function_type())
@@ -211,7 +211,7 @@ void TupleSchema::print(std::ostream &os) const
       }
       else if (iter->get_function_type() == FunctionType::FUN_COUNT)
       {
-        os << "count(" << iter->field_name() << ")"
+        os << "count222(" << iter->field_name() << ")"
            << " | ";
       }
       else if (iter->get_function_type() == FunctionType::FUN_MAX)
@@ -257,12 +257,12 @@ void TupleSchema::print(std::ostream &os) const
       //}
       //else
       //{
-        os << "count(" << fields_.back().field_name_count_number() << ")" << std::endl;
+        os << "count333(" << fields_.back().field_name_count_number() << ")" << std::endl;
       //}
     }
     else if (fields_.back().get_function_type() == FunctionType::FUN_COUNT)
     {
-      os << "count(" << fields_.back().field_name() << ")" << std::endl;
+      os << "count4444(" << fields_.back().field_name() << ")" << std::endl;
     }
     else if (fields_.back().get_function_type() == FunctionType::FUN_MAX)
     {
