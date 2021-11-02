@@ -617,9 +617,11 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
   //2 选择 left.right 字段
   //3 调用schema_add_field
   // select t1.* , t2.name from t1,t2 where t1.id=t2.id;
-
+  /**
   if (selects.relation_num > 1)
-  {
+  { 
+
+    //深度拷贝
     for (size_t i = 0; i < selects.condition_num; i++)
     {
       const Condition &condition = selects.conditions[i];
@@ -654,7 +656,8 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
         }
       }
     }
-  }
+  }**/
+  //去掉多表查询：判断是否正确
 
   return select_node.init(trx, table, std::move(schema), std::move(condition_filters));
 }
