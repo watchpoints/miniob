@@ -83,6 +83,7 @@ public:
   TupleField(AttrType type, const char *table_name, const char *field_name) :
           type_(type), table_name_(table_name), field_name_(field_name){
             visible_ =true;
+            function_type =FunctionType::FUN_NO;
   }
    TupleField(AttrType type, const char *table_name, const char *field_name,FunctionType functiontype) :
           type_(type), table_name_(table_name), field_name_(field_name){
@@ -92,6 +93,7 @@ public:
   TupleField(AttrType type, const char *table_name, const char *field_name,bool visible) :
           type_(type), table_name_(table_name), field_name_(field_name){
             visible_ =visible;
+            function_type =FunctionType::FUN_NO;
   }
   AttrType  type() const{
     return type_;

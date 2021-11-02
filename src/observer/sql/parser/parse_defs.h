@@ -26,11 +26,11 @@ See the Mulan PSL v2 for more details. */
 typedef enum {
   FUN_NO,   //  0
   FUN_COUNT, 		//1 count(id)
-  FUN_COUNT_ALL, 		//1 count(1)
+  FUN_COUNT_ALL, 		//2 count(1)
   FUN_MAX, //       3
   FUN_MIN, //       4
   FUN_AVG, //       5
-  FUN_COUNT_ALL_ALl //count(*)
+  FUN_COUNT_ALL_ALl //7count(*)
 } FunctionType;
 
 //属性结构体
