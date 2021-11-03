@@ -794,7 +794,7 @@ void TupleSchema::add_if_not_exists_visible(AttrType type, const char *table_nam
 }
 
 //2个表的join操作
-void TupleSet::print_two(std::ostream &os) const
+void TupleSet::print_two(std::ostream &os) 
 {
   //列信息: (type_ = INTS, table_name_ = "t1", field_name_ = "id")
   if (schema_.fields().empty())
@@ -804,7 +804,11 @@ void TupleSet::print_two(std::ostream &os) const
   }
   if (old_schema.get_size() > 0)
   {
-    old_schema.print(os); //打印 列字段 （已经考虑到多个表）
+    old_schema.realTabeNumber =2;
+    //修改old_schema成员变量， 去掉const函数
+    old_schema.print(os); 
+    // 原始查询条件
+    //select t2.age from t1 ,t2 where t1.age=21;
   }
   else
   {
@@ -907,12 +911,12 @@ void TupleSet::print_two(std::ostream &os) const
             if (col1 == dp[i][0].m_index)
             {
               left[i] = *iter;
-              cout << "right " << col1 << endl;
+              cout << "left " << col1 << endl;
             }
           }
         }
         //一个表：是否隐藏
-        if (rightVisibleMap.size() > 0 && rightVisibleMap.count(col1) == 1)
+        if (leftVisibleMap.size() > 0 && leftVisibleMap.count(col1) == 1)
         {
         }
         else

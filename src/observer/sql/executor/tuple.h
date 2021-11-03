@@ -241,7 +241,7 @@ public:
 
   void print(std::ostream &os);
 
-  void print_two(std::ostream &os) const;         //two
+  void print_two(std::ostream &os) ;         //two
   void print_multi_table(std::ostream &os) const; //three
 
   bool avg_print(std::ostream &os) const;
