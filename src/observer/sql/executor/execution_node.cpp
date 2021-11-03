@@ -17,6 +17,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 
 SelectExeNode::SelectExeNode() : table_(nullptr) {
+  old_tuple_schema.clear();
 }
 
 SelectExeNode::~SelectExeNode() {
@@ -46,6 +47,7 @@ RC SelectExeNode::execute(TupleSet &tuple_set) {
 
   tuple_set.clear();
   tuple_set.set_schema(tuple_schema_);
+  tuple_set.old_schema =old_tuple_schema;
   TupleRecordConverter converter(table_, tuple_set);
   return table_->scan_record(trx_, &condition_filter, -1, (void *)&converter, record_reader);
 }

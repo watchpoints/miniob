@@ -41,12 +41,18 @@ public:
   const std::vector<DefaultConditionFilter *> & get_condition_filters() const
   {
     return condition_filters_;
-  }
+  }    
+   
 private:
   Trx *trx_ = nullptr;
   Table  * table_;
   TupleSchema  tuple_schema_;
   std::vector<DefaultConditionFilter *> condition_filters_;
+
+public:
+
+TupleSchema  old_tuple_schema;
+
 };
 
 #endif //__OBSERVER_SQL_EXECUTOR_EXECUTION_NODE_H_

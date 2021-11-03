@@ -184,6 +184,15 @@ public:
   {
     fields_.clear();
   }
+  int size()
+  {
+    return fields_.size();
+  }
+
+  int get_size() const
+  {
+       return fields_.size();
+  }
 
   void print(std::ostream &os) const;
 
@@ -239,6 +248,10 @@ public:
   void add_tuple_schema(const TupleSchema &schema)
   {
     schema_.append(schema);
+  }
+  void add_old_tuple_schema(const TupleSchema &schema)
+  {
+    old_schema.append(schema);
   }
   void add_tuple_value(std::vector<Tuple> &other)
   {
@@ -355,6 +368,8 @@ private:
 public:
   vector<vector<FilterField>> dp;
   int realTabeNumber;
+  TupleSchema old_schema; //一个表内容信息  缺失字段
+
 };
 
 class TupleRecordConverter

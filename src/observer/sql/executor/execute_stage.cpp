@@ -362,8 +362,28 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
 
     //添加列信息：
     //列信息: schema_ (type_ = INTS, table_name_ = "t1", field_name_ = "id")
-    twoSet.set_schema(tuple_sets[1].get_schema());       //第一个表信息
-    twoSet.add_tuple_schema(tuple_sets[0].get_schema()); // 第二个表信息
+    
+    if(tuple_sets[1].old_schema.size() >0 )
+    {
+      //可能存在缺失字段：
+      twoSet.old_schema =tuple_sets[1].old_schema;       //第一个表信息
+    }
+
+    {
+      twoSet.set_schema(tuple_sets[1].get_schema());       //第一个表信息
+    }
+    
+    if(tuple_sets[0].old_schema.size() >0 )
+    {
+      //可能存在缺失字段：
+      twoSet.add_old_tuple_schema(tuple_sets[0].old_schema); 
+
+    }
+
+    {
+      twoSet.add_tuple_schema(tuple_sets[0].get_schema()); // 第二个表信息
+    }
+ 
 
     twoSet.set_schema1(tuple_sets[1].get_schema()); //第一个表内容
     twoSet.set_schema2(tuple_sets[0].get_schema()); //第一个表内容
@@ -641,8 +661,12 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
   
   if (selects.relation_num > 1)
   { 
+    //保存原来查询条件
 
-    //深度拷贝
+    //功能：缺失字段
+    select_node.old_tuple_schema =schema;
+
+    bool isNeed =false;
     for (size_t i = 0; i < selects.condition_num; i++)
     {
       const Condition &condition = selects.conditions[i];
@@ -661,6 +685,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
           {
             return rc;
           }
+          isNeed =true;
         }
         else if (match_table(selects, condition.right_attr.relation_name, table_name))
         {
@@ -670,13 +695,15 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
           {
             return rc;
           }
+          isNeed =true;
         }
         else
         {
           LOG_INFO(" 表不存在 ");
         }
       }
-    }
+    }//end where
+    
   }
   //去掉多表查询：判断是否正确
 

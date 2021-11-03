@@ -334,6 +334,9 @@ TupleSet::TupleSet(TupleSet &&other) : tuples_(std::move(other.tuples_)), schema
 {
   other.schema_.clear();
   realTabeNumber = other.realTabeNumber;
+  //push_back(std::move(TupleSet))
+  old_schema =other.old_schema;
+  dp = other.dp;
 }
 
 TupleSet &TupleSet::operator=(TupleSet &&other)
@@ -348,6 +351,7 @@ TupleSet &TupleSet::operator=(TupleSet &&other)
   other.schema_.clear();
   realTabeNumber = -1;
   tuples_.clear();
+  //swap 交换
   tuples_.swap(other.tuples_);
   return *this;
 }
@@ -361,6 +365,8 @@ void TupleSet::clear()
 {
   tuples_.clear();
   schema_.clear();
+  old_schema.clear();
+  dp.clear();
 }
 //print shows
 void TupleSet::print(std::ostream &os)
@@ -796,8 +802,16 @@ void TupleSet::print_two(std::ostream &os) const
     LOG_WARN("Got empty schema");
     return;
   }
-
-  schema_.print(os); //打印 列字段 （已经考虑到多个表）
+  if(old_schema.get_size()  >0)
+  {
+     old_schema.print(os); //打印 列字段 （已经考虑到多个表）
+  }
+  else
+  {
+   schema_.print(os); //打印 列字段 （已经考虑到多个表）
+  }
+  
+  
 
   // 判断有多张表还是只有一张表
   std::set<std::string> table_names;
