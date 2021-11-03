@@ -384,13 +384,11 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       twoSet.add_tuple_schema(tuple_sets[0].get_schema()); // 第二个表信息
     }
  
-
     twoSet.set_schema1(tuple_sets[1].get_schema()); //第一个表内容
     twoSet.set_schema2(tuple_sets[0].get_schema()); //第一个表内容
     //一个表 有2个字段，2个表 这里就四行记录
 
-    //添加行信息
-
+    //添加行信息 过滤显示
     twoSet.set_tuples1(std::move(tuple_sets[1].get_tuple()));
     twoSet.set_tuples2(std::move(tuple_sets[0].get_tuple()));
 
@@ -690,6 +688,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
         else if (match_table(selects, condition.right_attr.relation_name, table_name))
         {
           // 列出这张表相关字段
+          //false 不显示
           RC rc = schema_add_field_visible(table, condition.right_attr.attribute_name, schema, false);
           if (rc != RC::SUCCESS)
           {

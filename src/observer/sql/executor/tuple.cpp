@@ -335,7 +335,7 @@ TupleSet::TupleSet(TupleSet &&other) : tuples_(std::move(other.tuples_)), schema
   other.schema_.clear();
   realTabeNumber = other.realTabeNumber;
   //push_back(std::move(TupleSet))
-  old_schema =other.old_schema;
+  old_schema = other.old_schema;
   dp = other.dp;
 }
 
@@ -802,16 +802,14 @@ void TupleSet::print_two(std::ostream &os) const
     LOG_WARN("Got empty schema");
     return;
   }
-  if(old_schema.get_size()  >0)
+  if (old_schema.get_size() > 0)
   {
-     old_schema.print(os); //打印 列字段 （已经考虑到多个表）
+    old_schema.print(os); //打印 列字段 （已经考虑到多个表）
   }
   else
   {
-   schema_.print(os); //打印 列字段 （已经考虑到多个表）
+    schema_.print(os); //打印 列字段 （已经考虑到多个表）
   }
-  
-  
 
   // 判断有多张表还是只有一张表
   std::set<std::string> table_names;
@@ -832,13 +830,59 @@ void TupleSet::print_two(std::ostream &os) const
     return;
   }
 
+  //select t1.age,t2.age from t1 ,t2 where t1.id =t2.id;
+  //[id(隐藏),age] [age,id(隐藏)）
+
+  std::map<int, bool> leftVisibleMap;
+  leftVisibleMap.clear();
+  int index1 = 0;
+  int count1 = schema1_.get_size() - 1;
+  for (const auto &field : schema1_.fields())
+  {
+    if (false == field.visible())
+    {
+      if (index1 == count1)
+      {
+        leftVisibleMap[index1] = true; //最后一个字段
+      }
+      else
+      {
+        leftVisibleMap[index1] = false;
+      }
+    }
+    index1++;
+  }
+
+  std::map<int, bool> rightVisibleMap;
+  rightVisibleMap.clear();
+  int index2 = 0;
+  int count2 = schema2_.get_size() - 1;
+  for (const auto &field : schema2_.fields())
+  {
+    if (false == field.visible())
+    {
+      if (index2 == count2)
+      {
+        rightVisibleMap[index2] = true;
+      }
+      else
+      {
+        rightVisibleMap[index2] = false;
+      }
+    }
+    index2++;
+  }
+
   //t1.rows[i][j]
   //t2.rows[i][j]
+  //item_left 一行记录
   for (const Tuple &item_left : tuples1_)
   {
     std::shared_ptr<TupleValue> sp1;
 
     vector<std::shared_ptr<TupleValue>> left(dp.size());
+
+    //多个过滤条件
     //几个过滤条件
     //select t1.age,t1.id ,t2.id,t2.age  from t1,t2 where  t1.id=t2.id  and t1.age =t2.age;
 
@@ -867,9 +911,15 @@ void TupleSet::print_two(std::ostream &os) const
             }
           }
         }
-
-        (*iter)->to_string(os_left);
-        os_left << " | ";
+        //一个表：是否隐藏
+        if (rightVisibleMap.size() > 0 && rightVisibleMap.count(col1) == 1)
+        {
+        }
+        else
+        {
+          (*iter)->to_string(os_left);
+          os_left << " | ";
+        }
 
         col1++;
       }
@@ -908,14 +958,40 @@ void TupleSet::print_two(std::ostream &os) const
           if (col2 == values.size() - 1)
           {
 
-            (*iter)->to_string(os_right);
-            os_right << std::endl;
+            //一个表：是否隐藏
+            if (rightVisibleMap.size() > 0 && rightVisibleMap.count(col2) == 1)
+            {
+              //隐藏 什么都不操作
+            }
+            else
+            {
+              (*iter)->to_string(os_right);
+              os_right << std::endl;
+            }
           }
           else
           {
 
-            (*iter)->to_string(os_right);
-            os_right << " | ";
+            if (rightVisibleMap.size() > 0 && rightVisibleMap.count(col2) == 1)
+            {
+              //隐藏 什么都不操作
+            }
+            else if (rightVisibleMap.size() > 0 && rightVisibleMap.count(col2) == 0)
+            {
+              //自己不隐藏，下一行隐藏，下一行是最后一行
+              ////age（当前）,id(隐藏)
+              int next = col2 + 1;
+              if (rightVisibleMap.count(next) == 1 && true == rightVisibleMap[next])
+              {
+                (*iter)->to_string(os_right);
+                os_right << std::endl;
+              }
+            }
+            else
+            {
+              (*iter)->to_string(os_right);
+              os_right << " | ";
+            }
           }
 
           col2++;
@@ -1038,11 +1114,10 @@ void TupleSet::print_multi_table(std::ostream &os) const
       os_tuples_2.clear();
       item_2.head_table_row_string(os_tuples_2);
 
-      
       std::stringstream os_tuples_1_2;
       os_tuples_1_2.clear();
-      os_tuples_1_2<< os_tuples_1.str();
-      os_tuples_1_2<< os_tuples_2.str();
+      os_tuples_1_2 << os_tuples_1.str();
+      os_tuples_1_2 << os_tuples_2.str();
 
       for (const Tuple &item_3 : tuples3_)
       {
