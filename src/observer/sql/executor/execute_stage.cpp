@@ -454,14 +454,35 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
   else
   {
     //不支持次操作
-    LOG_INFO("No such three table");
+    LOG_INFO("MULTI-TABLE QUERY.......................begin");
+
+    TupleSet threeSet;
+
+    //添加列信息：
+    threeSet.set_schema(tuple_sets[2].get_schema());       //第一个表信息
+    threeSet.add_tuple_schema(tuple_sets[1].get_schema()); // 第二个表信息
+    threeSet.add_tuple_schema(tuple_sets[0].get_schema()); // 第三个表信息
+  
+
+    threeSet.set_tuples1(std::move(tuple_sets[2].get_tuple()));
+    threeSet.set_tuples2(std::move(tuple_sets[1].get_tuple()));
+    threeSet.set_tuples3(std::move(tuple_sets[0].get_tuple()));
+
+    //这里假设没有过滤条件
+    bool isJoin = false;
+        
+    threeSet.set_join(isJoin, 0);
+
+    threeSet.print_multi_table(ss);
+
   }
 
   for (SelectExeNode *&tmp_node : select_nodes)
   {
     delete tmp_node;
   }
-  //case:查询不到返回列名字
+  
+  //返回：ss长度为0。schema TupleS 都没有记录。返回失败。
   std::string queryresault = ss.str();
 
   session_event->set_response(ss.str());
