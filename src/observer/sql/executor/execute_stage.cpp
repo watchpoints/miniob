@@ -329,7 +329,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
         LOG_INFO(">>>>>execute failed rc=%d:%s", rc, strrc(rc));
       }
       //select t1.* from t1,t2;
-      if(tuple_set.schema().fields().size() >0)
+      if (tuple_set.schema().fields().size() > 0)
       {
         tuple_sets.push_back(std::move(tuple_set));
       }
@@ -340,13 +340,13 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
 
   // 当前只查询一张表，直接返回结果即可
   if (tuple_sets.size() == 1)
-  { 
+  {
     TupleSet &ts = tuple_sets.front();
-    ts.realTabeNumber =0;
+    ts.realTabeNumber = 0;
     if (selects.relation_num > 1)
     {
       ts.realTabeNumber = selects.relation_num;
-       LOG_INFO("1111111 =%d",ts.realTabeNumber);
+      LOG_INFO("1111111 =%d", ts.realTabeNumber);
     }
     //单表：
     ts.print(ss);
@@ -362,28 +362,27 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
 
     //添加列信息：
     //列信息: schema_ (type_ = INTS, table_name_ = "t1", field_name_ = "id")
-    
-    if(tuple_sets[1].old_schema.size() >0 )
+
+    if (tuple_sets[1].old_schema.size() > 0)
     {
       //可能存在缺失字段：
-      twoSet.old_schema =tuple_sets[1].old_schema;       //第一个表信息
+      twoSet.old_schema = tuple_sets[1].old_schema; //第一个表信息
     }
 
     {
-      twoSet.set_schema(tuple_sets[1].get_schema());       //第一个表信息
+      twoSet.set_schema(tuple_sets[1].get_schema()); //第一个表信息
     }
-    
-    if(tuple_sets[0].old_schema.size() >0 )
+
+    if (tuple_sets[0].old_schema.size() > 0)
     {
       //可能存在缺失字段：
-      twoSet.add_old_tuple_schema(tuple_sets[0].old_schema); 
-
+      twoSet.add_old_tuple_schema(tuple_sets[0].old_schema);
     }
 
     {
       twoSet.add_tuple_schema(tuple_sets[0].get_schema()); // 第二个表信息
     }
- 
+
     twoSet.set_schema1(tuple_sets[1].get_schema()); //第一个表内容
     twoSet.set_schema2(tuple_sets[0].get_schema()); //第一个表内容
     //一个表 有2个字段，2个表 这里就四行记录
@@ -426,11 +425,11 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     int rows = filterField.size();
     int cols = 2;
     //vector<vector<FilterField>> dp; //不知道多少行，多少列
-    if (rows >0)
+    if (rows > 0)
     {
-      
+
       FilterField temp;
-      twoSet.dp.resize(rows, vector<FilterField>(cols,temp));
+      twoSet.dp.resize(rows, vector<FilterField>(cols, temp));
       //t1.id=t2.id
       //[1,2]
       for (int filterIndex = 0; filterIndex < rows; filterIndex++)
@@ -448,7 +447,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
           if (0 == strcmp(fields1[i].field_name(), condition.left_attr.attribute_name))
           {
             twoSet.dp[filterIndex][0].m_index = i;
-           // break;
+            // break;
           }
         }
 
@@ -463,11 +462,10 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
         }
       }
     }
-    
+
     twoSet.set_join(isJoin, joinIndex);
 
     twoSet.print_two(ss);
-
   }
   else
   {
@@ -480,26 +478,171 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     threeSet.set_schema(tuple_sets[2].get_schema());       //第一个表信息
     threeSet.add_tuple_schema(tuple_sets[1].get_schema()); // 第二个表信息
     threeSet.add_tuple_schema(tuple_sets[0].get_schema()); // 第三个表信息
-  
+
+    threeSet.set_schema1(tuple_sets[2].get_schema());
+    threeSet.set_schema2(tuple_sets[1].get_schema());
+    threeSet.set_schema3(tuple_sets[0].get_schema());
 
     threeSet.set_tuples1(std::move(tuple_sets[2].get_tuple()));
     threeSet.set_tuples2(std::move(tuple_sets[1].get_tuple()));
     threeSet.set_tuples3(std::move(tuple_sets[0].get_tuple()));
 
-    //这里假设没有过滤条件
+    //这里假设没有过滤条件 [假设不正确，测试没通过]
     bool isJoin = false;
-        
-    threeSet.set_join(isJoin, 0);
+    int select_table_type = 0;
+    //0 查询无过滤条件  2 三表完全过滤 3 2表过滤
+
+    //如何寻找过滤条件，
+    //困难1:有可能id 字段，有可能age字段，
+    //困难2:有可能 t1 t2 t3 其中2个。
+    //图：描述边之间的关系
+    //存储：临街表，临界矩阵
+
+    vector<Condition> filterField;
+    for (int i = 0; i < selects.condition_num; i++)
+    {
+      const Condition &condition = selects.conditions[i];
+      //t1.id =t2.id and t2.id= t3.id
+      if (condition.left_is_attr == 1 && condition.right_is_attr == 1 &&
+          0 != strcmp(condition.left_attr.relation_name, condition.right_attr.relation_name) &&
+          condition.comp == EQUAL_TO)
+      {
+        isJoin = true;
+        filterField.push_back(condition);
+      }
+    }
+
+    //过滤条件有几个，多少行
+    //a[1][2],a[2][2],a[3][2],a[4][2]
+    int rows = filterField.size();
+    int cols = 3;
+    //vector<vector<FilterField>> dp; //不知道多少行，多少列
+
+    //这里假设只有一个过滤条件：--->多个过滤条件 id ,age
+
+    FilterField temp; //-1 表示没有占用
+    vector<FilterField> usedTable(cols, temp);
+
+    if (rows > 0)
+    {
+
+      //图的结构：a -b  b -c 整体 a b c 之间关系呢
+      //map<string,vector<FilterField>> multiFilterMap; //多个过滤条件【如果判断是多个呢？没有解决】
+
+      for (int filterIndex = 0; filterIndex < rows; filterIndex++)
+      {
+
+        Condition condition = filterField[filterIndex];
+        //twoSet.set_schema(tuple_sets[1].get_schema());       //第一个表信息
+        //twoSet.add_tuple_schema(tuple_sets[0].get_schema()); // 第二个表信息
+
+        //twoSet.set_schema1(tuple_sets[1].get_schema()); //第一个表内容
+        //twoSet.set_schema2(tuple_sets[0].get_schema()); //第一个表内容
+        //std::vector<TupleField> fields_;
+        std::vector<TupleField> fields1 = threeSet.schema1().fields();
+        for (int i = 0; i < fields1.size(); i++)
+        {
+          if (0 == strcmp(fields1[i].field_name(), condition.left_attr.attribute_name) &&
+
+              0 == strcmp(fields1[i].table_name(), condition.left_attr.relation_name))
+          {
+            usedTable[0].m_index = i;
+          }
+
+          if (0 == strcmp(fields1[i].field_name(), condition.right_attr.attribute_name) &&
+
+              0 == strcmp(fields1[i].table_name(), condition.right_attr.relation_name))
+          {
+            usedTable[0].m_index = i;
+          }
+        }
+
+        std::vector<TupleField> fields2 = threeSet.schema2().fields();
+        for (int i = 0; i < fields2.size(); i++)
+        {
+          if (0 == strcmp(fields2[i].field_name(), condition.left_attr.attribute_name) &&
+
+              0 == strcmp(fields2[i].table_name(), condition.left_attr.relation_name))
+          {
+            usedTable[1].m_index = i;
+          }
+
+          if (0 == strcmp(fields2[i].field_name(), condition.right_attr.attribute_name) &&
+
+              0 == strcmp(fields2[i].table_name(), condition.right_attr.relation_name))
+          {
+            usedTable[1].m_index = i;
+          }
+        }
+
+        std::vector<TupleField> fields3 = threeSet.schema3().fields();
+        for (int i = 0; i < fields3.size(); i++)
+        {
+
+          if (0 == strcmp(fields3[i].field_name(), condition.left_attr.attribute_name) &&
+
+              0 == strcmp(fields3[i].table_name(), condition.left_attr.relation_name))
+          {
+            usedTable[2].m_index = i;
+          }
+
+          if (0 == strcmp(fields3[i].field_name(), condition.right_attr.attribute_name) &&
+
+              0 == strcmp(fields3[i].table_name(), condition.right_attr.relation_name))
+          {
+            usedTable[2].m_index = i;
+          }
+        }
+      }
+    }
+
+    //为了简化问题：这里假如只有一个过滤条件，
+    //这里解决的是在一个过滤条件下，判断 三个表 还是2个表
+    //需要记录 select * from t1,t2,t3 where t1.id= t2.id and t2.id =t3.id;
+    //id -type --table --index--{1,2 3}表
+    //table-->第几个记录
+
+    if (usedTable[0].m_index >= 0 && usedTable[1].m_index >= 0 && usedTable[2].m_index >= 0)
+    {
+      select_table_type = 1; //a ok b ok  c ok
+    }
+    else if (usedTable[0].m_index >= 0 && usedTable[1].m_index >= 0)
+    {
+      select_table_type = 2; //a ok b ok  c (no)
+    }
+    else if (usedTable[1].m_index >= 0 && usedTable[2].m_index >= 0)
+    {
+      select_table_type = 3; //a (no)  b ok  c ok
+    }
+    else if (usedTable[0].m_index >= 0 && usedTable[2].m_index >= 0)
+    {
+      select_table_type = 4; //a (ok)  b (no)  c ok
+    }
+
+    //判断是否标准sql 语句.这里假设是 如果不是参考上面方案
+    int commonIndex = -1;
+    for (int i = 0; i < 3; i++)
+    {
+      if (usedTable[i].m_index >= 0)
+      {
+        commonIndex = usedTable[i].m_index;
+      }
+    }
+
+    threeSet.set_join(isJoin, 0); //存在过滤条件
+    threeSet.commonIndex = commonIndex;
+    //测试使用：threeSet.commonIndex  =0;
+    //测试使用：threeSet.select_table_type =1;
+    threeSet.select_table_type = select_table_type;
 
     threeSet.print_multi_table(ss);
-
   }
 
   for (SelectExeNode *&tmp_node : select_nodes)
   {
     delete tmp_node;
   }
-  
+
   //返回：ss长度为0。schema TupleS 都没有记录。返回失败。
   std::string queryresault = ss.str();
 
@@ -573,7 +716,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
         if (attr.funtype == FunctionType::FUN_COUNT_ALL)
         {
           // 列出这张表第一个字段到 schema
-          //count(*) 
+          //count(*)
           TupleSchema::from_table_first(table, schema, FunctionType::FUN_COUNT_ALL_ALl);
         }
         else
@@ -599,7 +742,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
         }
         else if (ft == FunctionType::FUN_COUNT_ALL)
         {
-           //count(1)
+          //count(1)
           TupleSchema::from_table_first_count_number(table, schema, attr.funtype, attr.attribute_name);
         }
         else
@@ -656,15 +799,15 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
   //2 选择 left.right 字段
   //3 调用schema_add_field
   // select t1.* , t2.name from t1,t2 where t1.id=t2.id;
-  
+
   if (selects.relation_num > 1)
-  { 
+  {
     //保存原来查询条件
 
     //功能：缺失字段
-    select_node.old_tuple_schema =schema;
+    select_node.old_tuple_schema = schema;
 
-    bool isNeed =false;
+    bool isNeed = false;
     for (size_t i = 0; i < selects.condition_num; i++)
     {
       const Condition &condition = selects.conditions[i];
@@ -683,7 +826,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
           {
             return rc;
           }
-          isNeed =true;
+          isNeed = true;
         }
         else if (match_table(selects, condition.right_attr.relation_name, table_name))
         {
@@ -694,15 +837,14 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
           {
             return rc;
           }
-          isNeed =true;
+          isNeed = true;
         }
         else
         {
           LOG_INFO(" 表不存在 ");
         }
       }
-    }//end where
-    
+    } //end where
   }
   //去掉多表查询：判断是否正确
 

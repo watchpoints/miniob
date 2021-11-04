@@ -44,7 +44,10 @@ public:
 class Tuple
 {
 public:
-  Tuple() = default;
+  Tuple() 
+  {
+    selectComareIndex =-1;
+  }
 
   Tuple(const Tuple &other);
 
@@ -80,11 +83,21 @@ public:
     return values_[index];
   }
   //t1| t2 |t3
-  void head_table_row_string(std::ostream &os) const;
-  void tail_table_row_string(std::ostream &os) const;
+  void head_table_row_string(std::ostream &os) ;
+  void tail_table_row_string(std::ostream &os) ;
+  void head_table_row_string(std::ostream &os,int type) ;
+  void tail_table_row_string(std::ostream &os,int type) ;
 
 private:
   std::vector<std::shared_ptr<TupleValue>> values_;
+public:
+
+std::shared_ptr<TupleValue> sp1;
+std::shared_ptr<TupleValue> sp2;
+std::shared_ptr<TupleValue> sp3;
+int selectComareIndex;
+ 
+
 };
 
 class TupleField
@@ -214,13 +227,17 @@ public:
   TupleSet()
   {
     realTabeNumber = -1;
+    commonIndex =-1;
     is_join = false;
+    select_table_type =0;
   };
   TupleSet(TupleSet &&other);
   explicit TupleSet(const TupleSchema &schema) : schema_(schema)
   {
     realTabeNumber = -1;
+    commonIndex =-1;
     is_join = false;
+    select_table_type =0;
   }
   TupleSet &operator=(TupleSet &&other);
 
@@ -242,7 +259,7 @@ public:
   void print(std::ostream &os);
 
   void print_two(std::ostream &os) ;         //two
-  void print_multi_table(std::ostream &os) const; //three
+  void print_multi_table(std::ostream &os) ; //three
 
   bool avg_print(std::ostream &os) const;
   void add_tuple_schema(const TupleSchema &schema)
@@ -369,6 +386,9 @@ public:
   vector<vector<FilterField>> dp;
   int realTabeNumber;
   TupleSchema old_schema; //一个表内容信息  缺失字段
+  int commonIndex;
+  int select_table_type ;
+
 
 };
 

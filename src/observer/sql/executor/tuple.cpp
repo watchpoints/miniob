@@ -25,6 +25,7 @@ Tuple::Tuple(const Tuple &other)
 
 Tuple::Tuple(Tuple &&other) noexcept : values_(std::move(other.values_))
 {
+  selectComareIndex = -1;
 }
 
 Tuple &Tuple::operator=(Tuple &&other) noexcept
@@ -336,6 +337,8 @@ TupleSet::TupleSet(TupleSet &&other) : tuples_(std::move(other.tuples_)), schema
   realTabeNumber = other.realTabeNumber;
   //push_back(std::move(TupleSet))
   old_schema = other.old_schema;
+  commonIndex = other.commonIndex;
+  select_table_type = other.select_table_type;
   dp = other.dp;
 }
 
@@ -794,7 +797,7 @@ void TupleSchema::add_if_not_exists_visible(AttrType type, const char *table_nam
 }
 
 //2个表的join操作
-void TupleSet::print_two(std::ostream &os) 
+void TupleSet::print_two(std::ostream &os)
 {
   //列信息: (type_ = INTS, table_name_ = "t1", field_name_ = "id")
   if (schema_.fields().empty())
@@ -804,9 +807,9 @@ void TupleSet::print_two(std::ostream &os)
   }
   if (old_schema.get_size() > 0)
   {
-    old_schema.realTabeNumber =2;
+    old_schema.realTabeNumber = 2;
     //修改old_schema成员变量， 去掉const函数
-    old_schema.print(os); 
+    old_schema.print(os);
     // 原始查询条件
     //select t2.age from t1 ,t2 where t1.age=21;
   }
@@ -1076,7 +1079,7 @@ void TupleSchema::add_number(AttrType type, const char *table_name, const char *
 }
 
 //至少3个表
-void TupleSet::print_multi_table(std::ostream &os) const
+void TupleSet::print_multi_table(std::ostream &os)
 {
   if (schema_.fields().empty())
   {
@@ -1106,31 +1109,42 @@ void TupleSet::print_multi_table(std::ostream &os) const
   }
 
   //三次循环
-  for (const Tuple &item_1 : tuples1_)
+  for (Tuple &item_1 : tuples1_)
   {
     std::stringstream os_tuples_1; //node1
     os_tuples_1.clear();
-    item_1.head_table_row_string(os_tuples_1);
 
-    for (const Tuple &item_2 : tuples2_)
+    // std::shared_ptr<TupleValue> sp1;
+    item_1.sp1.reset();
+    item_1.selectComareIndex = commonIndex; //比较字段位置
+
+    item_1.head_table_row_string(os_tuples_1, 1);
+
+    for (Tuple &item_2 : tuples2_)
     {
       std::stringstream os_tuples_2; //node2
       os_tuples_2.clear();
-      item_2.head_table_row_string(os_tuples_2);
+      item_2.sp2.reset();
+      item_2.selectComareIndex = commonIndex; //比较字段位置
+      item_2.head_table_row_string(os_tuples_2, 2);
 
       std::stringstream os_tuples_1_2;
       os_tuples_1_2.clear();
       os_tuples_1_2 << os_tuples_1.str();
       os_tuples_1_2 << os_tuples_2.str();
 
-      for (const Tuple &item_3 : tuples3_)
+      for (Tuple &item_3 : tuples3_)
       {
 
         std::stringstream os_tuples_3; //node3
         os_tuples_3.clear();
-        item_3.tail_table_row_string(os_tuples_3);
+
+        item_3.sp3.reset();
+        item_3.selectComareIndex = commonIndex; //比较字段位置
+        item_3.tail_table_row_string(os_tuples_3, 3);
 
         //多表：有join条件
+        //select * from t1,t2,t3;
         if (false == is_join)
         {
           //没有join条件
@@ -1139,26 +1153,123 @@ void TupleSet::print_multi_table(std::ostream &os) const
         }
         else
         {
-          //遗留
-        }
+          //select_table_type
+          //0 查询无过滤条件
+          //1 三表完全过滤
+          //2表过滤 //a ok b ok  c (no)
+          //3 //a (no)  b ok  c ok
+          ////a (no)  b ok  c ok
+          if (select_table_type == 1)
+          {
+            bool b_equal = true;
+            if (item_1.sp1 && item_2.sp2 && 0 == item_1.sp1->compare(*item_2.sp2))
+            {
+            }
+            else
+            {
+              b_equal = false;
+            }
+
+            if (item_1.sp1 && item_3.sp3 && 0 == item_1.sp1->compare(*item_3.sp3))
+            {
+            }
+            else
+            {
+              b_equal = false;
+            }
+
+            if (true == b_equal)
+            {
+              os << os_tuples_1_2.str();
+              os << os_tuples_3.str();
+            }
+            //end if 1
+          }
+          else if (select_table_type == 2)
+          {
+            //2表过滤 //a ok b ok  c (no)
+            //组合完毕---过滤 
+            bool b_equal = true;
+            if (item_1.sp1 && item_2.sp2 && 0 == item_2.sp2->compare(*item_2.sp2))
+            {
+            }
+            else
+            {
+              b_equal = false;
+            }
+
+            if (true == b_equal)
+            {
+              os << os_tuples_1_2.str();
+              os << os_tuples_3.str();
+            }
+          } //end select_table_type == 2
+          else if (select_table_type == 3)
+          {
+            //3 //a (no)  b ok  c ok
+            bool b_equal = true;
+            //组合完毕---过滤 
+            if (item_2.sp2 && item_3.sp3 && 0 == item_2.sp2->compare(*item_3.sp3))
+            {
+            }
+            else
+            {
+              b_equal = false;
+            }
+
+            if (true == b_equal)
+            {
+              os << os_tuples_1_2.str();
+              os << os_tuples_3.str();
+            }
+            ////end select_table_type == 3
+          }
+          else if (4 == select_table_type)
+          {
+            //a (ok)  b (no)  c ok
+            //组合完毕---过滤 
+            bool b_equal = true;
+            if (item_1.sp1 && item_3.sp3 && 0 == item_1.sp1->compare(*item_3.sp3))
+            {
+
+            }
+            else
+            {
+              b_equal = false;
+            }
+            if (true == b_equal)
+            {
+              os << os_tuples_1_2.str();
+              os << os_tuples_3.str();
+            }
+          }
+
+        } //end else
       }
     }
   }
 }
 
-void Tuple::head_table_row_string(std::ostream &os) const
+void Tuple::head_table_row_string(std::ostream &os)
 {
 
   const std::vector<std::shared_ptr<TupleValue>> &values = this->values();
+  //int cols =0;
   for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
        iter != end; ++iter)
   {
     (*iter)->to_string(os);
     os << " | ";
+
+    //if(cols ==selectComareIndex)
+    //{
+    // sp1 = *iter;
+    //}
+    //cols++;
   }
 }
 
-void Tuple::tail_table_row_string(std::ostream &os) const
+void Tuple::tail_table_row_string(std::ostream &os)
 {
   size_t col2 = 0;
   const std::vector<std::shared_ptr<TupleValue>> &values = this->values();
@@ -1179,6 +1290,76 @@ void Tuple::tail_table_row_string(std::ostream &os) const
       os << " | ";
     }
 
+    col2++;
+  }
+}
+
+void Tuple::head_table_row_string(std::ostream &os, int type)
+{
+  const std::vector<std::shared_ptr<TupleValue>> &values = this->values();
+  int cols = 0;
+  for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+       iter != end; ++iter)
+  {
+    (*iter)->to_string(os);
+    os << " | ";
+
+    //如果多个查询条件，考虑 需要更多考虑
+    if (cols == selectComareIndex)
+    {
+      if (1 == type)
+      {
+        sp1 = *iter;
+      }
+      else if (2 == type)
+      {
+        sp2 = *iter;
+      }
+      else if (3 == type)
+      {
+        sp3 = *iter;
+      }
+    }
+    cols++;
+  }
+}
+
+void Tuple::tail_table_row_string(std::ostream &os, int type)
+{
+  size_t col2 = 0;
+  const std::vector<std::shared_ptr<TupleValue>> &values = this->values();
+  for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+       iter != end; ++iter)
+  {
+    //判断是否最后一行
+    if (col2 == values.size() - 1)
+    {
+
+      (*iter)->to_string(os);
+      os << std::endl;
+    }
+    else
+    {
+
+      (*iter)->to_string(os);
+      os << " | ";
+    }
+    //如果多个查询条件，考虑 需要更多考虑
+    if (col2 == selectComareIndex)
+    {
+      if (1 == type)
+      {
+        sp1 = *iter;
+      }
+      else if (2 == type)
+      {
+        sp2 = *iter;
+      }
+      else if (3 == type)
+      {
+        sp3 = *iter;
+      }
+    }
     col2++;
   }
 }
