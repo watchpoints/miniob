@@ -547,6 +547,8 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
               0 == strcmp(fields1[i].table_name(), condition.left_attr.relation_name))
           {
             usedTable[0].m_index = i;
+            usedTable[0].m_table_name = strdup(fields1[i].table_name());
+
           }
 
           if (0 == strcmp(fields1[i].field_name(), condition.right_attr.attribute_name) &&
@@ -554,6 +556,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
               0 == strcmp(fields1[i].table_name(), condition.right_attr.relation_name))
           {
             usedTable[0].m_index = i;
+            usedTable[0].m_table_name =strdup(fields1[i].table_name());
           }
         }
 
@@ -565,6 +568,8 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
               0 == strcmp(fields2[i].table_name(), condition.left_attr.relation_name))
           {
             usedTable[1].m_index = i;
+            usedTable[1].m_table_name =strdup(fields2[i].table_name());
+
           }
 
           if (0 == strcmp(fields2[i].field_name(), condition.right_attr.attribute_name) &&
@@ -572,6 +577,8 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
               0 == strcmp(fields2[i].table_name(), condition.right_attr.relation_name))
           {
             usedTable[1].m_index = i;
+            usedTable[1].m_table_name =strdup(fields2[i].table_name());
+
           }
         }
 
@@ -584,6 +591,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
               0 == strcmp(fields3[i].table_name(), condition.left_attr.relation_name))
           {
             usedTable[2].m_index = i;
+            usedTable[2].m_table_name =strdup(fields3[i].table_name());
           }
 
           if (0 == strcmp(fields3[i].field_name(), condition.right_attr.attribute_name) &&
@@ -591,6 +599,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
               0 == strcmp(fields3[i].table_name(), condition.right_attr.relation_name))
           {
             usedTable[2].m_index = i;
+            usedTable[2].m_table_name =strdup(fields3[i].table_name());
           }
         }
       }
@@ -609,6 +618,8 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     else if (usedTable[0].m_index >= 0 && usedTable[1].m_index >= 0)
     {
       select_table_type = 2; //a ok b ok  c (no)
+      LOG_INFO(" >>>>>>>>>>>>>select_table_type = 2; 1=%s,2=%s",usedTable[0].m_table_name,usedTable[1].m_table_name);
+
     }
     else if (usedTable[1].m_index >= 0 && usedTable[2].m_index >= 0)
     {

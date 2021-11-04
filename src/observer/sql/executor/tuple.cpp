@@ -1130,8 +1130,26 @@ void TupleSet::print_multi_table(std::ostream &os)
 
       std::stringstream os_tuples_1_2;
       os_tuples_1_2.clear();
-      os_tuples_1_2 << os_tuples_1.str();
-      os_tuples_1_2 << os_tuples_2.str();
+
+      if (select_table_type == 2)
+      {
+        LOG_WARN(" >>>>>>>>>>>>>>>>>> select_table_type =2");
+        if (item_1.sp1 && item_2.sp2 && 0 == item_1.sp1->compare(*item_2.sp2))
+        {
+          os_tuples_1_2 << os_tuples_1.str();
+          os_tuples_1_2 << os_tuples_2.str();
+          LOG_WARN(" >>>>>>>>>>>>>>>>>> 相等 select_table_type =2");
+        }
+        else
+        {
+             LOG_WARN(" >>>>>>>>>>>>>>>>>> 不相等 select_table_type =2");
+        }
+      }else
+      {
+        os_tuples_1_2 << os_tuples_1.str();
+        os_tuples_1_2 << os_tuples_2.str();
+      }
+    
 
       for (Tuple &item_3 : tuples3_)
       {
@@ -1188,9 +1206,9 @@ void TupleSet::print_multi_table(std::ostream &os)
           else if (select_table_type == 2)
           {
             //2表过滤 //a ok b ok  c (no)
-            //组合完毕---过滤 
+            //组合完毕---过滤
             bool b_equal = true;
-            if (item_1.sp1 && item_2.sp2 && 0 == item_2.sp2->compare(*item_2.sp2))
+            if (item_1.sp1 && item_2.sp2 && 0 == item_1.sp1->compare(*item_2.sp2))
             {
             }
             else
@@ -1208,7 +1226,7 @@ void TupleSet::print_multi_table(std::ostream &os)
           {
             //3 //a (no)  b ok  c ok
             bool b_equal = true;
-            //组合完毕---过滤 
+            //组合完毕---过滤
             if (item_2.sp2 && item_3.sp3 && 0 == item_2.sp2->compare(*item_3.sp3))
             {
             }
@@ -1227,11 +1245,10 @@ void TupleSet::print_multi_table(std::ostream &os)
           else if (4 == select_table_type)
           {
             //a (ok)  b (no)  c ok
-            //组合完毕---过滤 
+            //组合完毕---过滤
             bool b_equal = true;
             if (item_1.sp1 && item_3.sp3 && 0 == item_1.sp1->compare(*item_3.sp3))
             {
-
             }
             else
             {
