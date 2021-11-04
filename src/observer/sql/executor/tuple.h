@@ -33,6 +33,7 @@ public:
     m_index = -1;
     m_table_name = nullptr;
     m_col_name = nullptr;
+    comp=CompOp::NO_OP;
   }
 
 public:
@@ -40,6 +41,7 @@ public:
   int m_index;
   char *m_table_name;
   char *m_col_name;
+  CompOp comp;         // comparison operator
 };
 class Tuple
 {

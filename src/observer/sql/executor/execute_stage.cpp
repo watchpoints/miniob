@@ -404,6 +404,16 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     //这里假设只有一个join条件 并且查找返回字段和查询条件是一致的。
     bool isJoin = false;
     int joinIndex = 0;
+    /**
+    typedef enum {
+    EQUAL_TO,     //"="     0
+    LESS_EQUAL,   //"<="    1
+    NOT_EQUAL,    //"<>"    2
+    LESS_THAN,    //"<"     3
+    GREAT_EQUAL,  //">="    4
+    GREAT_THAN,   //">"     5
+    NO_OP
+    } CompOp;**/
 
     //寻找join条件
     // select t1.age,t1.id ,t2.id,t2.age  from t1,t2 where  t1.id=t2.id  and t1.age =t2.age;
@@ -413,7 +423,14 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       const Condition &condition = selects.conditions[i];
       if (condition.left_is_attr == 1 && condition.right_is_attr == 1 &&
           0 != strcmp(condition.left_attr.relation_name, condition.right_attr.relation_name) &&
-          condition.comp == EQUAL_TO)
+          (
+            condition.comp == EQUAL_TO  || 
+            condition.comp == GREAT_EQUAL  || 
+            condition.comp == GREAT_THAN  || 
+            condition.comp == LESS_EQUAL  || 
+            condition.comp == LESS_THAN  
+          )
+        )
       {
         isJoin = true;
         joinIndex = i;
@@ -447,6 +464,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
           if (0 == strcmp(fields1[i].field_name(), condition.left_attr.attribute_name))
           {
             twoSet.dp[filterIndex][0].m_index = i;
+            twoSet.dp[filterIndex][0].comp=condition.comp;
             // break;
           }
         }
@@ -457,6 +475,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
           if (0 == strcmp(fields2[i].field_name(), condition.left_attr.attribute_name))
           {
             twoSet.dp[filterIndex][1].m_index = i;
+            twoSet.dp[filterIndex][1].comp=condition.comp;
             //break;
           }
         }

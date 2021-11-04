@@ -1009,21 +1009,53 @@ void TupleSet::print_two(std::ostream &os)
       if (is_join == true)
       {
         LOG_INFO(" two table join select ");
-        bool b_equal = true;
+        bool b_equal = false; //符合条件
         //join条件全部相等
         for (int i = 0; i < dp.size(); i++)
         {
+
+          CompOp two_comp = dp[i][0].comp;
           std::stringstream s1;
           std::stringstream s2;
           left[i]->to_string(s1);
           right[i]->to_string(s2);
-          std::cout << "left:" << s1.str() << "right:" << s2.str() << std::endl;
-          if (left[i] && right[i] && 0 == left[i]->compare(*right[i]))
+          std::cout << " >>>>>>> left:" << s1.str() << "right:" << s2.str() << std::endl;
+          //"=="
+          if (two_comp == EQUAL_TO)
           {
-          }
-          else
-          {
-            b_equal = false;
+            if (left[i] && right[i] && 0 == left[i]->compare(*right[i]))
+            {
+
+              b_equal = true;
+            }
+          }else if (two_comp == GREAT_EQUAL)
+          {  
+            // ">=" t1.id >=t2.id
+            if (left[i] && right[i] &&  left[i]->compare(*right[i]) >=0)
+            {
+              b_equal = true;
+            }
+          }else if (two_comp == GREAT_THAN)
+          {  
+            // ">" 
+            if (left[i] && right[i] &&  left[i]->compare(*right[i]) >0)
+            {
+              b_equal = true;
+            }
+          }else if (two_comp == LESS_EQUAL)
+          {  
+            // "<=" 
+            if (left[i] && right[i] &&  left[i]->compare(*right[i]) <= 0)
+            {
+              b_equal = true;
+            }
+          }else if (two_comp == LESS_THAN)
+          {  
+            // "<" 
+            if (left[i] && right[i] &&  left[i]->compare(*right[i]) < 0)
+            {
+              b_equal = true;
+            }
           }
         }
 
@@ -1142,14 +1174,14 @@ void TupleSet::print_multi_table(std::ostream &os)
         }
         else
         {
-             LOG_WARN(" >>>>>>>>>>>>>>>>>> 不相等 select_table_type =2");
+          LOG_WARN(" >>>>>>>>>>>>>>>>>> 不相等 select_table_type =2");
         }
-      }else
+      }
+      else
       {
         os_tuples_1_2 << os_tuples_1.str();
         os_tuples_1_2 << os_tuples_2.str();
       }
-    
 
       for (Tuple &item_3 : tuples3_)
       {
