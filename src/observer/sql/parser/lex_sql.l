@@ -48,6 +48,7 @@ QUOTE            [\'\"]
 [Tt][Aa][Bb][Ll][Ee]					           RETURN_TOKEN(TABLE);
 [Tt][Aa][Bb][Ll][Ee][Ss]			           RETURN_TOKEN(TABLES);
 [Ii][Nn][Dd][Ee][Xx]                  	 RETURN_TOKEN(INDEX);
+[Uu][Nn][Ii][Qq][Uu][Ee]                 RETURN_TOKEN(UNIQUE);
 [Oo][Nn]								                 RETURN_TOKEN(ON);
 [Ss][Hh][Oo][Ww]                         RETURN_TOKEN(SHOW);
 [Ss][Yy][Nn][Cc]                         RETURN_TOKEN(SYNC);

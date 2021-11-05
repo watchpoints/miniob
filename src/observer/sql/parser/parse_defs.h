@@ -181,6 +181,7 @@ enum SqlCommandFlag {
   SCF_ROLLBACK,
   SCF_LOAD_DATA,
   SCF_HELP,
+  SCF_CREATE_UNIQUE_INDEX,
   SCF_EXIT
 };
 // struct of flag and sql_struct

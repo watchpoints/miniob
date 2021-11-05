@@ -23,7 +23,7 @@ RC BplusTreeIndex::create(const char *file_name, const IndexMeta &index_meta, co
   if (inited_) {
     return RC::RECORD_OPENNED;
   }
-
+  //不太明白，Index::init用意
   RC rc = Index::init(index_meta, field_meta);
   if (rc != RC::SUCCESS) {
     return rc;

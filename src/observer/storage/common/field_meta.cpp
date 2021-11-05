@@ -147,7 +147,6 @@ RC FieldMeta::from_json(const Json::Value &json_value, FieldMeta &field) {
     LOG_ERROR("Got invalid field type. type=%d", type);
     return RC::GENERIC_ERROR;
   }
-
   const char *name = name_value.asCString();
   int offset = offset_value.asInt();
   int len = len_value.asInt();

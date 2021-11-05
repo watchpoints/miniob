@@ -22,25 +22,44 @@ See the Mulan PSL v2 for more details. */
 
 const static Json::StaticString FIELD_NAME("name");
 const static Json::StaticString FIELD_FIELD_NAME("field_name");
+const static Json::StaticString FIELD_IS_UNIQUE("unique");
 
+//不在构造函数抛出异常
 RC IndexMeta::init(const char *name, const FieldMeta &field) {
   if (nullptr == name || common::is_blank(name)) {
     return RC::INVALID_ARGUMENT;
+    //https://songlee24.github.io/2015/01/12/cpp-exception-in-constructor/
   }
 
   name_ = name;
   field_ = field.name();
+  isUnique_ =false;
+  return RC::SUCCESS;
+}
+
+RC IndexMeta::init(const char *name, const FieldMeta &field,bool isUnique) {
+  if (nullptr == name || common::is_blank(name)) {
+    return RC::INVALID_ARGUMENT;
+    //https://songlee24.github.io/2015/01/12/cpp-exception-in-constructor/
+  }
+
+  name_ = name;
+  field_ = field.name();
+  isUnique_ =isUnique;
   return RC::SUCCESS;
 }
 
 void IndexMeta::to_json(Json::Value &json_value) const {
   json_value[FIELD_NAME] = name_;
   json_value[FIELD_FIELD_NAME] = field_;
+  json_value[FIELD_IS_UNIQUE] = isUnique_;
 }
 
 RC IndexMeta::from_json(const TableMeta &table, const Json::Value &json_value, IndexMeta &index) {
   const Json::Value &name_value = json_value[FIELD_NAME];
   const Json::Value &field_value = json_value[FIELD_FIELD_NAME];
+  const Json::Value &unique_value = json_value[FIELD_IS_UNIQUE];
+
   if (!name_value.isString()) {
     LOG_ERROR("Index name is not a string. json value=%s", name_value.toStyledString().c_str());
     return RC::GENERIC_ERROR;
@@ -51,6 +70,10 @@ RC IndexMeta::from_json(const TableMeta &table, const Json::Value &json_value, I
               name_value.asCString(), field_value.toStyledString().c_str());
     return RC::GENERIC_ERROR;
   }
+   if (!unique_value.isBool()) {
+    //LOG_ERROR("Visible field is not a bool value. json value=%s", visible_value.toStyledString().c_str());
+    return RC::GENERIC_ERROR;
+  }
 
   const FieldMeta *field = table.field(field_value.asCString());
   if (nullptr == field) {
@@ -58,7 +81,9 @@ RC IndexMeta::from_json(const TableMeta &table, const Json::Value &json_value, I
     return RC::SCHEMA_FIELD_MISSING;
   }
 
-  return index.init(name_value.asCString(), *field);
+  bool unique = unique_value.asBool();
+
+  return index.init(name_value.asCString(), *field,unique);
 }
 
 const char *IndexMeta::name() const {
