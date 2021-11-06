@@ -314,6 +314,11 @@ RC Table::insert_record(Trx *trx, Record *record)
       LOG_PANIC("Failed to rollback record data when insert index entries failed. table name=%s, rc=%d:%s",
                 name(), rc2, strrc(rc2));
     }
+    if(rc ==RC::RECORD_DUPLICATE_KEY)
+    {
+      //题目：唯一索引 unique 插入之前做判断
+      LOG_PANIC("出现重复 key，出现重复key");
+    }
     return rc;
   }
   return rc;
@@ -941,6 +946,10 @@ RC Table::insert_entry_of_indexes(const char *record, const RID &rid)
 
   for (Index *index : indexes_)
   {
+     if(true ==index->index_meta().isUnique_)
+     {
+        LOG_INFO("我是唯一索引, 我是唯一索引 %s:%s",index->index_meta().name(),index->index_meta().field());
+     }
     //LOG_INFO("insert_entry_of_indexes name=%s,field=%s,value=%s \n", index->index_meta().name(), index->index_meta().field(), record);
     rc = index->insert_entry(record, &rid);
     if (rc != RC::SUCCESS)
@@ -1399,11 +1408,10 @@ RC Table::create_unique_index(Trx *trx, const char *index_name, const char *attr
   }
 
   IndexMeta new_index_meta;
-  new_index_meta.set_isUnique(true);
   //create unique index unique_index_01 on t(id);
   //attribute_name:id 
   //index_name:unique_index_01
-  RC rc = new_index_meta.init(index_name, *field_meta);
+  RC rc = new_index_meta.init(index_name, *field_meta,true);
   if (rc != RC::SUCCESS)
   {
     return rc;

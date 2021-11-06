@@ -40,6 +40,11 @@ public:
       isUnique_ =isUnique;
   }
 
+  bool unique()
+  {
+    return isUnique_;
+  }
+
   void desc(std::ostream &os) const;
 public:
   void to_json(Json::Value &json_value) const;
@@ -48,6 +53,7 @@ public:
 private:
   std::string       name_;
   std::string       field_;
+public:
   bool              isUnique_;
 };
 #endif // __OBSERVER_STORAGE_COMMON_INDEX_META_H__
