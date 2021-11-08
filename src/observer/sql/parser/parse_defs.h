@@ -140,6 +140,9 @@ typedef struct {
   char *index_name;      // Index name
   char *relation_name;   // Relation name
   char *attribute_name;  // Attribute name
+  
+  size_t attr_num; //多列索引
+  char * attributes[MAX_NUM]; //Attribute name
 } CreateIndex;
 
 // struct of  drop_index
@@ -203,6 +206,8 @@ typedef struct Query {
 extern "C" {
 #endif  // __cplusplus
 
+void create_index_append_attribute(CreateIndex *create_index, const char *attr_name);
+void create_index_init_multi(CreateIndex *create_index, const char *index_name,const char *relation_name);
 void inserts_init_appends_rows_values(Inserts *inserts, Value values[], size_t value_num);
 void inserts_init_appends_rows_length(Inserts *inserts);
 void inserts_init_table_name(Inserts *inserts,const char *relation_name);

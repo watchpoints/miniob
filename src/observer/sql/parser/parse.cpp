@@ -95,6 +95,15 @@ bool removeLastZero(char *numstr)
     return true;
 }
 
+void create_index_init_multi(CreateIndex *create_index, const char *index_name, 
+                       const char *relation_name ) {
+  create_index->index_name = strdup(index_name);
+  create_index->relation_name = strdup(relation_name);
+  //create_index->attribute_name = strdup(attr_name);
+}
+void create_index_append_attribute(CreateIndex *create_index, const char *attr_name) {
+    create_index->attributes[create_index->attr_num++] = strdup(attr_name);;
+}
 void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name) {
   if (relation_name != nullptr) {
     relation_attr->relation_name = strdup(relation_name);
