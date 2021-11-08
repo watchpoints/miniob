@@ -85,11 +85,20 @@ typedef struct {
   Condition conditions[MAX_NUM];    // conditions in Where clause 20
 } Selects;
 
+typedef struct {
+  char *relation_name;    // Relation to insert into
+  size_t value_num;       // Length of values
+  Value values[MAX_NUM];  // values to insert
+} InsertLeft;
+
 // struct of insert
 typedef struct {
   char *relation_name;    // Relation to insert into
   size_t value_num;       // Length of values
   Value values[MAX_NUM];  // values to insert
+  
+   size_t left_num;  //values（）,(),（）
+   InsertLeft left_insert[MAX_NUM];
 } Inserts;
 
 // struct of delete
@@ -193,6 +202,10 @@ typedef struct Query {
 #ifdef __cplusplus
 extern "C" {
 #endif  // __cplusplus
+
+void inserts_init_appends_rows_values(Inserts *inserts, Value values[], size_t value_num);
+void inserts_init_appends_rows_length(Inserts *inserts);
+void inserts_init_table_name(Inserts *inserts,const char *relation_name);
 
 void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name);
 void relation_attr_destroy(RelAttr *relation_attr);

@@ -295,8 +295,9 @@ ID_get:
 
 	
 insert:				/*insert   语句的语法解析树*/
-    INSERT INTO ID VALUES LBRACE value value_list RBRACE SEMICOLON 
-		{
+    //INSERT INTO ID VALUES LBRACE value value_list RBRACE SEMICOLON 
+	INSERT INTO ID VALUES tuple tuple_list SEMICOLON 
+	{
 			// CONTEXT->values[CONTEXT->value_length++] = *$6;
 
 			CONTEXT->ssql->flag=SCF_INSERT;//"insert";
@@ -305,12 +306,30 @@ insert:				/*insert   语句的语法解析树*/
 			// for(i = 0; i < CONTEXT->value_length; i++){
 			// 	CONTEXT->ssql->sstr.insertion.values[i] = CONTEXT->values[i];
       // }
-			inserts_init(&CONTEXT->ssql->sstr.insertion, $3, CONTEXT->values, CONTEXT->value_length);
+			//inserts_init(&CONTEXT->ssql->sstr.insertion, $3, CONTEXT->values, CONTEXT->value_length);
+			inserts_init_table_name(&CONTEXT->ssql->sstr.insertion, $3);
 
       //临时变量清零
       CONTEXT->value_length=0;
-    }
+    };
+tuple:
+	LBRACE value value_list RBRACE
+	{
+       //inserts_init(&CONTEXT->ssql->sstr.insertion, $3, CONTEXT->values, CONTEXT->value_length);
 
+	   	inserts_init_appends_rows_values(&CONTEXT->ssql->sstr.insertion,CONTEXT->values,CONTEXT->value_length);
+
+		//插入一行记录，长度增加一行
+		inserts_init_appends_rows_length(&CONTEXT->ssql->sstr.insertion);
+		CONTEXT->value_length = 0;
+
+
+	};
+tuple_list:
+  /* empty */
+    | COMMA tuple tuple_list  { 
+	  }
+    ;
 value_list:
     /* empty */
     | COMMA value value_list  { 

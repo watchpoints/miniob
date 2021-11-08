@@ -22,6 +22,49 @@ RC parse(char *st, Query *sqln);
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
+void inserts_init_appends_rows_length(Inserts *inserts)
+{
+    if (nullptr == inserts)
+    {
+      return;
+    }
+    inserts->left_num++;
+
+    LOG_INFO("inserts_init_appends_rows rows=%d", inserts->left_num);
+
+    //inserts_init_appends_rows(&CONTEXT->ssql->sstr.insertion);
+}
+
+ void inserts_init_appends_rows_values(Inserts *inserts, Value values[], size_t value_num)
+  {
+    if (nullptr == inserts)
+    {
+      return;
+    }
+    assert(value_num <= sizeof(inserts->values) / sizeof(inserts->values[0]));
+
+    int rows = inserts->left_num;
+    InsertLeft &pcur = inserts->left_insert[rows]; //rows
+    //pcur.relation_name = strdup(relation_name);
+    
+
+    for (size_t i = 0; i < value_num; i++)
+    {
+      pcur.values[i] = values[i];
+      LOG_INFO("inserts_init_appends_rows_values rows=%d,cols=%d,type=%d", rows, i,  values[i].type);
+
+    }
+    pcur.value_num = value_num;
+  }
+
+   void inserts_init_table_name(Inserts *inserts,const char *relation_name)
+  {
+    for(size_t rows =0;rows <inserts->left_num;rows++)
+    {
+      inserts->left_insert[rows].relation_name =strdup(relation_name);
+    }
+  }
+  
 bool removeLastZero(char *numstr)
 {
     if (NULL == strchr(numstr, '.'))

@@ -178,8 +178,18 @@ void DefaultStorageStage::handle_event(StageEvent *event)
   case SCF_INSERT:
   { // insert into
     const Inserts &inserts = sql->sstr.insertion;
-    const char *table_name = inserts.relation_name;
-    rc = handler_->insert_record(current_trx, current_db, table_name, inserts.value_num, inserts.values);
+    //为了减少影响 插入一行逻辑 和插入多行逻辑分开处理了
+    if(inserts.left_num >1  )
+    {
+      LOG_INFO("SCF_INSERT:插入多个行");
+    }else if(1 ==inserts.left_num )
+    { 
+      LOG_INFO("SCF_INSERT:插入一行");
+      //插入一行逻辑
+      const char *table_name = inserts.left_insert[0].relation_name;
+      int value_num =inserts.left_insert[0].value_num;
+      rc = handler_->insert_record(current_trx, current_db, table_name, value_num, inserts.left_insert[0].values);
+    }
     snprintf(response, sizeof(response), "%s\n", rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
   }
   break;
