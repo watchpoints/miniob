@@ -163,6 +163,15 @@ RC DefaultHandler::insert_record(Trx *trx, const char *dbname, const char *relat
 
   return table->insert_record(trx, value_num, values);
 }
+//作为参数时，数组名退化为常量指针
+RC DefaultHandler::insert_record_rows(Trx *trx, const char *dbname, const char *relation_name, int values_length, const InsertLeft* pValues) {
+  Table *table = find_table(dbname, relation_name);
+  if (nullptr == table) {
+    return RC::SCHEMA_TABLE_NOT_EXIST;
+  }
+  //函数重载
+  return table->insert_record_rows(trx, values_length, pValues);
+}
 RC DefaultHandler::delete_record(Trx *trx, const char *dbname, const char *relation_name,
                                  int condition_num, const Condition *conditions, int *deleted_count) {
   Table *table = find_table(dbname, relation_name);

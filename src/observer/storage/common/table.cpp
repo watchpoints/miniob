@@ -31,19 +31,19 @@ See the Mulan PSL v2 for more details. */
 
 static time_t StringToDatetime(string str)
 {
-    char *cha = (char*)str.data();             // 将string转换成char*。
-    tm tm_;                                    // 定义tm结构体。
-    int year, month, day, hour, minute, second;// 定义时间的各个int临时变量。
-    sscanf(cha, "%d-%d-%d %d:%d:%d", &year, &month, &day, &hour, &minute, &second);// 将string存储的日期时间，转换为int临时变量。
-    tm_.tm_year = year - 1900;                 // 年，由于tm结构体存储的是从1900年开始的时间，所以tm_year为int临时变量减去1900。
-    tm_.tm_mon = month - 1;                    // 月，由于tm结构体的月份存储范围为0-11，所以tm_mon为int临时变量减去1。
-    tm_.tm_mday = day;                         // 日。
-    tm_.tm_hour = hour;                        // 时。
-    tm_.tm_min = minute;                       // 分。
-    tm_.tm_sec = second;                       // 秒。
-    tm_.tm_isdst = 0;                          // 非夏令时。
-    time_t t_ = mktime(&tm_);                  // 将tm结构体转换成time_t格式。
-    return t_;                                 // 返回值。
+  char *cha = (char *)str.data();                                                 // 将string转换成char*。
+  tm tm_;                                                                         // 定义tm结构体。
+  int year, month, day, hour, minute, second;                                     // 定义时间的各个int临时变量。
+  sscanf(cha, "%d-%d-%d %d:%d:%d", &year, &month, &day, &hour, &minute, &second); // 将string存储的日期时间，转换为int临时变量。
+  tm_.tm_year = year - 1900;                                                      // 年，由于tm结构体存储的是从1900年开始的时间，所以tm_year为int临时变量减去1900。
+  tm_.tm_mon = month - 1;                                                         // 月，由于tm结构体的月份存储范围为0-11，所以tm_mon为int临时变量减去1。
+  tm_.tm_mday = day;                                                              // 日。
+  tm_.tm_hour = hour;                                                             // 时。
+  tm_.tm_min = minute;                                                            // 分。
+  tm_.tm_sec = second;                                                            // 秒。
+  tm_.tm_isdst = 0;                                                               // 非夏令时。
+  time_t t_ = mktime(&tm_);                                                       // 将tm结构体转换成time_t格式。
+  return t_;                                                                      // 返回值。
 }
 
 Table::Table() : data_buffer_pool_(nullptr),
@@ -314,7 +314,7 @@ RC Table::insert_record(Trx *trx, Record *record)
       LOG_PANIC("Failed to rollback record data when insert index entries failed. table name=%s, rc=%d:%s",
                 name(), rc2, strrc(rc2));
     }
-    if(rc ==RC::RECORD_DUPLICATE_KEY)
+    if (rc == RC::RECORD_DUPLICATE_KEY)
     {
       //题目：唯一索引 unique 插入之前做判断
       LOG_PANIC("出现重复 key，出现重复key");
@@ -371,7 +371,7 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
   {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
-   
+
     if (field->type() == AttrType::DATES)
     {
       //LOG_INFO(" insert:AttrType::DATES, value.data=%s", value.data);
@@ -382,12 +382,11 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
       }
       else
       {
-       // LOG_INFO(" make_record  [0-9]{4}-[0-9]{1,2}-[0-9]{1,2}  value.data=%s", value.data);
+        // LOG_INFO(" make_record  [0-9]{4}-[0-9]{1,2}-[0-9]{1,2}  value.data=%s", value.data);
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
       }
 
-  
-        //检查日期是否合法
+      //检查日期是否合法
       char *ptr = static_cast<char *>(value.data);
       if (false == isValid_date(ptr))
       {
@@ -396,7 +395,6 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
 
       //value.type =AttrType::DATES;
       //value 按照字节存储,不区分类型
-
     }
     else if (field->type() != value.type)
     {
@@ -423,15 +421,14 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
       char *ptr = static_cast<char *>(value.data);
       string temp(ptr);
       temp.append(" 00:00:00");
-      int time_t=StringToDatetime(temp);
+      int time_t = StringToDatetime(temp);
       memcpy(record + field->offset(), &time_t, field->len());
-
-    }else
+    }
+    else
     {
       memcpy(record + field->offset(), value.data, field->len());
     }
-    
-    
+
     //LOG_INFO("insert: memcpy value=%s,field->len()=%d,record=%s,record_size=%d", value.data, field->len(), record);
   }
 
@@ -846,7 +843,7 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
     LOG_ERROR("Invalid argument. attribute_name=%p, values=%p", attribute_name, value);
     return RC::INVALID_ARGUMENT;
   }
- 
+
   //设置过滤条件
   CompositeConditionFilter condition_filter;
   RC rc = condition_filter.init(*this, conditions, condition_num);
@@ -864,9 +861,9 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
   {
     *updated_count = updater.updated_count();
   }
-  
+
   if (rc == RC::RECORD_NO_MORE_IDX_IN_MEM)
-  { 
+  {
     return RC::SUCCESS;
   }
 
@@ -946,10 +943,10 @@ RC Table::insert_entry_of_indexes(const char *record, const RID &rid)
 
   for (Index *index : indexes_)
   {
-     if(true ==index->index_meta().isUnique_)
-     {
-        LOG_INFO("我是唯一索引, 我是唯一索引 %s:%s",index->index_meta().name(),index->index_meta().field());
-     }
+    if (true == index->index_meta().isUnique_)
+    {
+      LOG_INFO("我是唯一索引, 我是唯一索引 %s:%s", index->index_meta().name(), index->index_meta().field());
+    }
     //LOG_INFO("insert_entry_of_indexes name=%s,field=%s,value=%s \n", index->index_meta().name(), index->index_meta().field(), record);
     rc = index->insert_entry(record, &rid);
     if (rc != RC::SUCCESS)
@@ -1132,7 +1129,7 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
     return RC::INVALID_ARGUMENT;
   }
 
-   //步骤1:检查更新字段属性是否合法：set id=10;
+  //步骤1:检查更新字段属性是否合法：set id=10;
 
   //根据upate字段----查找属性----获取偏移量
   const FieldMeta *field_meta = table_meta_.field(attribute_name);
@@ -1152,23 +1149,24 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
     }
     else
     {
-     // LOG_INFO(" make_record  [0-9]{4}-[0-9]{1,2}-[0-9]{1,2}  value.data=%s", value->data);
+      // LOG_INFO(" make_record  [0-9]{4}-[0-9]{1,2}-[0-9]{1,2}  value.data=%s", value->data);
       return RC::SCHEMA_FIELD_TYPE_MISMATCH;
     }
 
     //检查日期是否合法
-    
-     char *ptr = static_cast<char *>(value->data);
+
+    char *ptr = static_cast<char *>(value->data);
     if (false == isValid_date(ptr))
     {
       return RC::SCHEMA_FIELD_TYPE_MISMATCH;
     }
     //特殊处理：AttrType::DATES
-  }else if(field_meta->type() == AttrType::DATES && value->type !=AttrType::CHARS)
+  }
+  else if (field_meta->type() == AttrType::DATES && value->type != AttrType::CHARS)
   {
-       LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
-                field_meta->name(), field_meta->type(), value->type);
-      return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+    LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
+              field_meta->name(), field_meta->type(), value->type);
+    return RC::SCHEMA_FIELD_TYPE_MISMATCH;
   }
   else if (field_meta->type() != value->type)
   {
@@ -1176,7 +1174,7 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
     //&& > ||
     //if ((field_meta->type() == AttrType::INTS && value->type == AttrType::FLOATS) || (field_meta->type() == AttrType::FLOATS && value->type == AttrType::INTS))
     //{
-      //LOG_INFO(" 对于整数与浮点数之间的转换，不做考察。学有余力的同学，可以做一下");
+    //LOG_INFO(" 对于整数与浮点数之间的转换，不做考察。学有余力的同学，可以做一下");
     //}
     //else
     {
@@ -1186,7 +1184,7 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
     }
   }
 
-//步骤2  查询记录---修改value--更新
+  //步骤2  查询记录---修改value--更新
   Record oldrecord;
   rc = record_handler_->get_record(&rid, &oldrecord);
   if (rc != RC::SUCCESS)
@@ -1198,20 +1196,20 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
   Record newrecord;
   newrecord.rid = oldrecord.rid;
   newrecord.data = strdup(oldrecord.data);
-  
-  if(field_meta->type() == AttrType::DATES && value->type == AttrType::CHARS)
-  {
-      char *ptr = static_cast<char *>(value->data);
-      string temp(ptr);
-      temp.append(" 00:00:00");
-      int time_t=StringToDatetime(temp);
-      memcpy(oldrecord.data + field_meta->offset(), &time_t, field_meta->len());
 
-  }else
+  if (field_meta->type() == AttrType::DATES && value->type == AttrType::CHARS)
+  {
+    char *ptr = static_cast<char *>(value->data);
+    string temp(ptr);
+    temp.append(" 00:00:00");
+    int time_t = StringToDatetime(temp);
+    memcpy(oldrecord.data + field_meta->offset(), &time_t, field_meta->len());
+  }
+  else
   {
     memcpy(oldrecord.data + field_meta->offset(), value->data, field_meta->len());
   }
-  
+
   //03  update_record
   rc = record_handler_->update_record(&oldrecord);
   if (rc != RC::SUCCESS)
@@ -1227,7 +1225,7 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
   //步骤02:无索引--value 怎么变化都不影响key排序 。直接返回结束。
   //步骤03：有索引---key变化，排序位置发送变化。需要调整。先删除后插入方式。
   //查缺补漏： b+,map 二查搜索tree
-  if (nullptr !=index_meta)
+  if (nullptr != index_meta)
   {
     Index *index = find_index(index_meta->name());
     if (nullptr != index)
@@ -1243,13 +1241,11 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
       {
         LOG_ERROR(" update:Failed to delete indexes of record(rid=%d.%d). rc=%d:%s",
                   rid.page_num, rid.slot_num, rc, strrc(rc)); // panic?
-        
       }
-      if(rc ==RC::RECORD_DUPLICATE_KEY)
+      if (rc == RC::RECORD_DUPLICATE_KEY)
       {
-        rc =RC::SUCCESS;
+        rc = RC::SUCCESS;
       }
-      
     }
   }
   return rc;
@@ -1351,39 +1347,39 @@ RC Table::drop_index(Trx *trx, const char *relation_name, const char *index_name
   return rc;
 }
 
-bool Table::isValid_date(const char* pdata)//判断日期（年月日）是否合法的函数定义
-{   
-    if(nullptr ==pdata)
-    {
-        return false;
-    }
-    int year, month, day;
-    sscanf(pdata, "%d-%d-%d", &year, &month, &day);
-        
-    cout << "1please input year:" <<year <<endl;
-    cout << "1please input month:" <<month <<endl;
-    cout << "1please input day:" <<day<<endl;
-   
-    if(year <1970 || year >2038 || (year ==2038 && month >=2))
-    {
-      return false;
-    }
-  
-   int leap=0;  //判断闰年的标记
-	
-	if(month<1||month>12||day<1||day>31)
-	    return 0; //返回不合法
-	
-	if((month==4||month==6||month==9||month==11)&&(day==31))
-	     return 0;//返回不合法
+bool Table::isValid_date(const char *pdata) //判断日期（年月日）是否合法的函数定义
+{
+  if (nullptr == pdata)
+  {
+    return false;
+  }
+  int year, month, day;
+  sscanf(pdata, "%d-%d-%d", &year, &month, &day);
 
-	if((year%4==0&&year%100!=0)||year%400==0)//判断是否是闰年
-		leap=1; //是闰年
+  cout << "1please input year:" << year << endl;
+  cout << "1please input month:" << month << endl;
+  cout << "1please input day:" << day << endl;
 
-    if((leap==1&&month==2&&day>29)||(leap==0&&month==2&&day>28))
-         return false;//返回不合法
+  if (year < 1970 || year > 2038 || (year == 2038 && month >= 2))
+  {
+    return false;
+  }
 
-	return true; //返回合法
+  int leap = 0; //判断闰年的标记
+
+  if (month < 1 || month > 12 || day < 1 || day > 31)
+    return 0; //返回不合法
+
+  if ((month == 4 || month == 6 || month == 9 || month == 11) && (day == 31))
+    return 0; //返回不合法
+
+  if ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0) //判断是否是闰年
+    leap = 1;                                                //是闰年
+
+  if ((leap == 1 && month == 2 && day > 29) || (leap == 0 && month == 2 && day > 28))
+    return false; //返回不合法
+
+  return true; //返回合法
 }
 
 //唯一索引unique
@@ -1409,9 +1405,9 @@ RC Table::create_unique_index(Trx *trx, const char *index_name, const char *attr
 
   IndexMeta new_index_meta;
   //create unique index unique_index_01 on t(id);
-  //attribute_name:id 
+  //attribute_name:id
   //index_name:unique_index_01
-  RC rc = new_index_meta.init(index_name, *field_meta,true);
+  RC rc = new_index_meta.init(index_name, *field_meta, true);
   if (rc != RC::SUCCESS)
   {
     return rc;
@@ -1478,6 +1474,56 @@ RC Table::create_unique_index(Trx *trx, const char *index_name, const char *attr
   table_meta_.swap(new_table_meta);
 
   LOG_INFO("add a new index (%s) on the table (%s)", index_name, name());
+
+  return rc;
+}
+
+RC Table::insert_record_rows(Trx *trx, int values_length, const InsertLeft *pValues)
+{
+  RC rc = RC::SUCCESS;
+  if (values_length <= 1 || nullptr == pValues)
+  {
+    return RC::INVALID_ARGUMENT;
+  }
+  //步骤01：指针数组
+  //https://www.cjavapy.com/article/1753/
+
+  char *pRecordArray[values_length];
+  for (int rows = 0; rows < values_length; rows++)
+  {
+    int value_num = pValues[rows].value_num;
+    const Value *values = pValues[rows].values;
+
+    //指针的引用：二级指针 可以修改pRecordArray里的值
+    rc = make_record(value_num, values, pRecordArray[rows]);
+    if (rc != RC::SUCCESS)
+    {
+      LOG_ERROR("Failed to create a record. rc=%d:%s", rc, strrc(rc));
+      return rc;
+    }
+  }
+  /**
+  char *record_data;
+  RC rc = make_record(value_num, values, record_data);
+  if (rc != RC::SUCCESS)
+  {
+    LOG_ERROR("Failed to create a record. rc=%d:%s", rc, strrc(rc));
+    return rc;
+  }**/
+
+  //步骤02:批量插入
+  for (int rows = 0; rows < values_length; rows++)
+  {
+    Record record;
+    record.data = pRecordArray[rows];
+    rc = insert_record(trx, &record);
+    if (rc != RC::SUCCESS)
+    {
+      LOG_ERROR("insert_record rc=%d:%s", rc, strrc(rc));
+      return rc;
+    }
+    delete[] pRecordArray[rows];
+  }
 
   return rc;
 }

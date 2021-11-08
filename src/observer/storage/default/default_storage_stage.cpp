@@ -181,7 +181,12 @@ void DefaultStorageStage::handle_event(StageEvent *event)
     //为了减少影响 插入一行逻辑 和插入多行逻辑分开处理了
     if(inserts.left_num >1  )
     {
-      LOG_INFO("SCF_INSERT:插入多个行");
+       //size_t left_num;  //values（）,(),（）
+       //InsertLeft left_insert[MAX_NUM];
+      int values_length =inserts.left_num;
+      const char *table_name = inserts.left_insert[0].relation_name;
+       LOG_INFO("SCF_INSERT:插入多个行 =%d",values_length);
+      rc = handler_->insert_record_rows(current_trx, current_db, table_name,values_length, inserts.left_insert);
     }else if(1 ==inserts.left_num )
     { 
       LOG_INFO("SCF_INSERT:插入一行");
