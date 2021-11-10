@@ -121,6 +121,7 @@ typedef struct {
   char *name;     // Attribute name
   AttrType type;  // Type of attribute
   size_t length;  // Length of attribute
+  int nullable; //  0 is not 
 } AttrInfo;
 
 // struct of craete_table
@@ -140,7 +141,6 @@ typedef struct {
   char *index_name;      // Index name
   char *relation_name;   // Relation name
   char *attribute_name;  // Attribute name
-  
   size_t attr_num; //多列索引
   char * attributes[MAX_NUM]; //Attribute name
 } CreateIndex;
@@ -226,6 +226,7 @@ void condition_init(Condition *condition, CompOp comp, int left_is_attr, RelAttr
 void condition_destroy(Condition *condition);
 
 void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length);
+void attr_info_init_nullable(AttrInfo *attr_info, const char *name, AttrType type, size_t length,int nullable);
 void attr_info_destroy(AttrInfo *attr_info);
 
 void selects_init(Selects *selects, ...);
