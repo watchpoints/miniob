@@ -228,8 +228,8 @@ void attr_info_init_nullable(AttrInfo *attr_info, const char *name, AttrType typ
   attr_info->name = strdup(name);
   attr_info->type = type;
   attr_info->length = length;
-  attr_info->nullable = nullable;
-  LOG_INFO("attr_info_init_nullable name:%s,nullable:%d",name,nullable);
+  attr_info->nullable = nullable; //0 不能为null ，可以为null
+  //LOG_INFO("attr_info_init_nullable name:%s,nullable:%d",name,nullable);
 }
 void attr_info_destroy(AttrInfo *attr_info) {
   free(attr_info->name);

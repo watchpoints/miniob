@@ -659,7 +659,7 @@ void TupleRecordConverter::add_record(const char *record)
       {
 
         const char *s = record + field_meta->offset(); // 现在当做Cstring来处理
-       // LOG_INFO(" tuple add string =%s ", s);
+        LOG_INFO(" tuple add string =%s ", s);
         tuple.add(s, strlen(s));
       }
     }
