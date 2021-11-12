@@ -12,6 +12,7 @@ See the Mulan PSL v2 for more details. */
 // Created by Longda on 2021/4/13.
 //
 #include "storage/common/bplus_tree.h"
+#include "storage/common/field_meta.h"
 #include "storage/default/disk_buffer_pool.h"
 #include "rc.h"
 #include "common/log/log.h"
@@ -39,6 +40,8 @@ RC BplusTreeHandler::sync()
 {
   return disk_buffer_pool_->flush_all_pages(file_id_);
 }
+
+
 
 RC BplusTreeHandler::create(const char *file_name, AttrType attr_type, int attr_length)
 {
@@ -2588,3 +2591,87 @@ RC BplusTreeHandler::insert_into_leaf_unique(PageNum leaf_page, const char *pkey
   }
   return SUCCESS;
 }
+
+
+RC BplusTreeHandler::create_multi_index(const char *file_name)
+{
+ /**
+  BPPageHandle page_handle;
+  IndexNode *root;
+  char *pdata;
+  RC rc;
+  DiskBufferPool *disk_buffer_pool = theGlobalDiskBufferPool();
+  rc = disk_buffer_pool->create_file(file_name);
+  if (rc != SUCCESS)
+  {
+    return rc;
+  }
+
+  int file_id;
+  //根据文件名打开一个分页文件，返回文件ID
+  rc = disk_buffer_pool->open_file(file_name, &file_id);
+  if (rc != SUCCESS)
+  {
+    LOG_ERROR("Failed to open file. file name=%s, rc=%d:%s", file_name, rc, strrc(rc));
+    return rc;
+  }
+  //在指定文件中分配一个新的页面，并将其放入缓冲区，返回页面句柄指针。
+  rc = disk_buffer_pool->allocate_page(file_id, &page_handle);
+  if (rc != SUCCESS)
+  {
+    LOG_ERROR("Failed to allocate page. file name=%s, rc=%d:%s", file_name, rc, strrc(rc));
+    return rc;
+  }
+  //根据页面句柄指针返回对应的数据区指针
+  rc = disk_buffer_pool->get_data(&page_handle, &pdata);
+  if (rc != SUCCESS)
+  {
+    LOG_ERROR("Failed to get data. file name=%s, rc=%d:%s", file_name, rc, strrc(rc));
+    return rc;
+  }
+  //根据页面句柄指针返回对应的页面号
+  PageNum page_num;
+  rc = disk_buffer_pool->get_page_num(&page_handle, &page_num);
+  if (rc != SUCCESS)
+  {
+    LOG_ERROR("Failed to get page num. file name=%s, rc=%d:%s", file_name, rc, strrc(rc));
+    return rc;
+  }
+
+  //参考 mmap的用法 操作内存地址，就操作磁盘
+  IndexFileHeader *file_header = (IndexFileHeader *)pdata;
+  //file_header->attr_length = attr_length;
+  //file_header->key_length = attr_length + sizeof(RID);
+  //file_header->attr_type = attr_type;
+  file_header->node_num = 1;
+  file_header->order = ((int)BP_PAGE_DATA_SIZE - sizeof(IndexFileHeader) - sizeof(IndexNode)) / (attr_length + 2 * sizeof(RID));
+  file_header->root_page = page_num;
+
+  root = get_index_node(pdata);
+  root->is_leaf = 1;
+  root->key_num = 0;
+  root->parent = -1;
+  root->keys = nullptr;
+  root->rids = nullptr;
+
+  rc = disk_buffer_pool->mark_dirty(&page_handle);
+  if (rc != SUCCESS)
+  {
+    return rc;
+  }
+
+  rc = disk_buffer_pool->unpin_page(&page_handle);
+  if (rc != SUCCESS)
+  {
+    return rc;
+  }
+
+  disk_buffer_pool_ = disk_buffer_pool;
+  file_id_ = file_id;
+
+  memcpy(&file_header_, pdata, sizeof(file_header_));
+  header_dirty_ = false;
+  **/
+  return SUCCESS;
+}
+

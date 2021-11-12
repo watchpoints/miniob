@@ -253,6 +253,9 @@ void DefaultStorageStage::handle_event(StageEvent *event)
       {
         LOG_INFO("multi-index field=%s",create_index.attributes[i]);
       }
+      
+      //rc = handler_->create_index_multi(current_trx, current_db, create_index.relation_name,
+      //                          create_index.index_name,create_index.attr_num, create_index.attributes);
     }
     snprintf(response, sizeof(response), "%s\n", rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
   }

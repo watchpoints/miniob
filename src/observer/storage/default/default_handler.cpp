@@ -143,6 +143,14 @@ RC DefaultHandler::create_index(Trx *trx, const char *dbname, const char *relati
   }
   return table->create_index(trx, index_name, attribute_name);
 }
+//int main(int argc, char *argv[]) {
+RC DefaultHandler::create_index_multi(Trx *trx, const char *dbname, const char *relation_name, const char *index_name,int attr_num,  char * const attributes[]) {
+  Table *table = find_table(dbname, relation_name); //索引的结构发生了变化
+  if (nullptr == table) {
+    return RC::SCHEMA_TABLE_NOT_EXIST;
+  }
+  return table->create_index_multi(trx, index_name, attr_num,attributes);
+}
 
 RC DefaultHandler::drop_index(Trx *trx, const char *dbname, const char *relation_name, const char *index_name) {
 

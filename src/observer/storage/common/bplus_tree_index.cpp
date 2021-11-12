@@ -133,3 +133,29 @@ RC BplusTreeIndexScanner::destroy()
   delete this;
   return RC::SUCCESS;
 }
+//RC BplusTreeIndex::create(const char *file_name, const IndexMeta &index_meta, const FieldMeta &field_meta)
+
+RC BplusTreeIndex::create_multi(const char *file_name, const IndexMeta &index_meta, std::vector<FieldMeta> &fields_meta)
+{
+  if (inited_)
+  {
+    return RC::RECORD_OPENNED;
+  }
+  //class BplusTreeIndex : public Index
+  //调用base类的方法
+  //这里没有采用函数重载。
+  RC rc = Index::init_multi(index_meta, fields_meta);
+  if (rc != RC::SUCCESS)
+  {
+    return rc;
+  }
+
+  //rc = index_handler_.create_multi_index(file_name, fields_meta);
+  index_handler_.fields_meta =fields_meta;
+  rc = index_handler_.create_multi_index(file_name);
+  if (RC::SUCCESS == rc)
+  {
+    inited_ = true;
+  }
+  return rc;
+}

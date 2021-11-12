@@ -104,6 +104,8 @@ public:
    */
   RC create_index(Trx *trx, const char *dbname, const char *relation_name, const char *index_name, const char *attribute_name);
   RC create_unique_index(Trx *trx, const char *dbname, const char *relation_name, const char *index_name, const char *attribute_name);
+  RC create_index_multi(Trx *trx, const char *dbname, const char *relation_name, const char *index_name, int attr_num, char * const attributes[]);
+
 
   /**
    * 该函数用来删除名为indexName的索引。
