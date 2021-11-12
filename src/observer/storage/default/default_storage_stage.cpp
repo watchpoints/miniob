@@ -251,7 +251,7 @@ void DefaultStorageStage::handle_event(StageEvent *event)
     { 
       for(int i=0;i<create_index.attr_num;i++)
       {
-        LOG_INFO("multi-index field=%s",create_index.attributes[i]);
+        //LOG_INFO("multi-index field=%s",create_index.attributes[i]);
       }
       
       //rc = handler_->create_index_multi(current_trx, current_db, create_index.relation_name,

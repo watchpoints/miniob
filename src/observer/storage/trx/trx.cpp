@@ -270,7 +270,6 @@ RC Trx::update_record(Table *table, Record *record) {
   start_if_not_started();
   Operation *old_oper = find_operation(table, record->rid);
   if (old_oper != nullptr) {
-  //  LOG_INFO("update_record  begin old_oper is null");
     //小王疑问：插入操作类型：Operation::Type::INSERT 怎么有这个？？？
    // if (old_oper->type() == Operation::Type::INSERT) {
    //   delete_operation(table, record->rid);

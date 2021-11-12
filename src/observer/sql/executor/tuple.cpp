@@ -140,7 +140,7 @@ void TupleSchema::add_if_not_exists1(AttrType type, const char *table_name, cons
       return;
     }
   }
-  LOG_INFO("add_if_not_exists. %s.%s", table_name, field_name);
+ // LOG_INFO("add_if_not_exists. %s.%s", table_name, field_name);
   add(type, table_name, field_name, nullable);
 }
 
@@ -202,7 +202,6 @@ void TupleSchema::print(std::ostream &os) const
   //单表逻辑
   if (table_names.size() == 1)
   {
-    LOG_INFO(" join  query cols >>>>>>>>>>>>>>");
     //遍历n-1个元素.
     for (std::vector<TupleField>::const_iterator iter = fields_.begin(), end = --fields_.end();
          iter != end; ++iter)
@@ -407,7 +406,6 @@ void TupleSet::print(std::ostream &os)
   {
 
     schema_.realTabeNumber = realTabeNumber;
-    LOG_INFO("22222 =%d", schema_.realTabeNumber);
   }
   else
   {
@@ -432,7 +430,6 @@ void TupleSet::print(std::ostream &os)
       LOG_INFO("this is avg query >>>>>>>>>>>>>>>>>> ");
       return;
     }
-    LOG_INFO("common  qury >>>>>>>>>>>>>>>>>>>>");
     //单表显示多行 tuples_ 多行
     for (const Tuple &item : tuples_)
     {
@@ -595,20 +592,20 @@ void TupleRecordConverter::add_record(const char *record)
         const char *s = record + field_meta->offset();
         if (0 == strcmp(s, "999"))
         {
-          LOG_INFO("99999");
+         
           tuple.add_null_value();
         }
         else
         {
           int value = *(int *)(record + field_meta->offset());
-          LOG_INFO(" tuple add int =%d ", value);
+          //LOG_INFO(" tuple add int =%d ", value);
           tuple.add(value);
         }
       }
       else
       {
         int value = *(int *)(record + field_meta->offset());
-        LOG_INFO(" tuple add int =%d ", value);
+       // LOG_INFO(" tuple add int =%d ", value);
         tuple.add(value);
       }
     }
@@ -621,14 +618,14 @@ void TupleRecordConverter::add_record(const char *record)
         const char *s = record + field_meta->offset();
         if (0 == strcmp(s, "999"))
         {
-          LOG_INFO("99999 FLOATS");
+          //LOG_INFO("99999 FLOATS");
           tuple.add_null_value();
         }
         else
         {
 
           float value = *(float *)(record + field_meta->offset());
-          LOG_INFO(" tuple add float =%d ", value);
+          //LOG_INFO(" tuple add float =%d ", value);
           tuple.add(value);
         }
       }
@@ -648,13 +645,13 @@ void TupleRecordConverter::add_record(const char *record)
         const char *s = record + field_meta->offset();
         if (0 == strcmp(s, "999"))
         {
-          LOG_INFO("99999 FLOATS");
+          //LOG_INFO("99999 FLOATS");
           tuple.add_null_value();
         }
         else
         {
           const char *s = record + field_meta->offset(); // 现在当做Cstring来处理
-          LOG_INFO(" tuple add string =%s ", s);
+         // LOG_INFO(" tuple add string =%s ", s);
           tuple.add(s, strlen(s));
         }
       }
@@ -662,7 +659,7 @@ void TupleRecordConverter::add_record(const char *record)
       {
 
         const char *s = record + field_meta->offset(); // 现在当做Cstring来处理
-        LOG_INFO(" tuple add string =%s ", s);
+       // LOG_INFO(" tuple add string =%s ", s);
         tuple.add(s, strlen(s));
       }
     }
@@ -675,20 +672,20 @@ void TupleRecordConverter::add_record(const char *record)
         const char *s = record + field_meta->offset();
         if (0 == strcmp(s, "999"))
         {
-          LOG_INFO("99999 FLOATS");
+         // LOG_INFO("99999 FLOATS");
           tuple.add_null_value();
         }
         else
         {
           int value = *(int *)(record + field_meta->offset());
-          LOG_INFO(" tuple.add_date=%d ", value);
+         // LOG_INFO(" tuple.add_date=%d ", value);
           tuple.add_date(value);
         }
       }
       else
       {
         int value = *(int *)(record + field_meta->offset());
-        LOG_INFO(" tuple.add_date=%d ", value);
+       // LOG_INFO(" tuple.add_date=%d ", value);
         tuple.add_date(value);
       }
     }

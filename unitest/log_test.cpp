@@ -47,7 +47,7 @@ void *LogTest::log_loop(void *param) {
   int i = 0;
   while (i < 100) {
     i++;
-    LOG_INFO("index:%d --> %d", index, i);
+   // LOG_INFO("index:%d --> %d", index, i);
   }
 
   return NULL;
