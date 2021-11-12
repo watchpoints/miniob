@@ -64,6 +64,7 @@ public:
   virtual AttrType get_type() const = 0;
   virtual void add_value(const TupleValue &other) = 0;
   virtual void to_avg(int total, std::ostream &os) = 0;
+  virtual int get_null_type() const= 0;
 
 private:
 };
@@ -73,16 +74,32 @@ class IntValue : public TupleValue
 public:
   explicit IntValue(int value) : value_(value)
   {
+    null_able_is_null =0;
   }
-
+  explicit IntValue(int value,int null_able) : value_(value),null_able_is_null(null_able)
+  {
+  }
   void to_string(std::ostream &os) const override
   {
     std::cout << "IntValue:value_" << value_ << std::endl;
-    os << value_;
+    if(1 ==null_able_is_null)
+    {
+      os << "NULL";
+    }else
+    {
+       os << value_;
+    }
   }
-
-  int compare(const TupleValue &other) const override
+  int get_null_type() const override 
   {
+    return null_able_is_null;
+  }
+  int compare(const TupleValue &other) const override
+  { 
+    if(1 ==null_able_is_null  || 1 == other.get_null_type())
+    {
+      return -1;
+    }
     const IntValue &int_other = (const IntValue &)other;
     std::cout << " >>> compare::IntValue " << value_ << ":" << int_other.value_ << std::endl;
 
@@ -94,7 +111,12 @@ public:
   }
 
   void add_value(const TupleValue &other) override
-  {
+  {  
+
+    if(1 ==null_able_is_null )
+    {
+      return ;
+    }
     const IntValue &int_other = (const IntValue &)other;
     value_ += int_other.value_;
   }
@@ -138,15 +160,33 @@ public:
 
 private:
   int value_;
+public:
+  int null_able_is_null ;//1 允许为null，并且是null值
 };
 class FloatValue : public TupleValue
 {
 public:
   explicit FloatValue(float value) : value_(value)
   {
+    null_able_is_null =0;
+  }
+
+   explicit FloatValue(float value,int null_able) : value_(value),null_able_is_null(null_able)
+  {
+  }
+  
+   int get_null_type() const override 
+  {
+    return null_able_is_null;
   }
   int compare(const TupleValue &other) const override
-  {
+  {  
+
+    if(1 ==null_able_is_null || 1 ==other.get_null_type())
+    {
+      return -1;
+    }
+
     const FloatValue &float_other = (const FloatValue &)other;
     float result = value_ - float_other.value_;
     std::cout << " >>> compare::FloatValue " << value_ << ":" << float_other.value_ << std::endl;
@@ -164,6 +204,13 @@ public:
 
   void to_string(std::ostream &os) const override
   {
+    
+    if(1 ==null_able_is_null)
+    {
+      os << "NULL";
+      return ;
+    }
+
     //按照输出要求，浮点数最多保留两位小数，并且去掉多余的0
     //os << value_;
     char str[1024];
@@ -188,7 +235,11 @@ public:
   }
 
   void add_value(const TupleValue &other) override
-  {
+  {  
+    if(1 ==null_able_is_null)
+    {
+      return ;
+    }
     const FloatValue &float_other = (const FloatValue &)other;
     value_ += float_other.value_;
   }
@@ -220,24 +271,57 @@ public:
 
 private:
   float value_;
+public:
+  int null_able_is_null ;//1 允许为null，并且是null值
 };
 
 class StringValue : public TupleValue
 {
+
+
 public:
   StringValue(const char *value, int len) : value_(value, len)
   {
+    null_able_is_null =0;
   }
-  explicit StringValue(const char *value) : value_(value)
+   StringValue(const char *value) : value_(value)
   {
+    null_able_is_null =0;
   }
+
+  StringValue(const char *value, int len,int null_able) : value_(value, len)
+  {
+    null_able_is_null =null_able;
+  }
+ /**
+  StringValue(const char *value,int null_able) : value_(value)
+  {
+    null_able_is_null =null_able;
+  }**/
+
+ 
   void to_string(std::ostream &os) const override
   {
+    if(1 ==null_able_is_null)
+    {
+      os << "NULL";
+      return ;
+    }
     os << value_;
+  }
+  
+   int get_null_type() const override 
+  {
+    return null_able_is_null;
   }
 
   int compare(const TupleValue &other) const override
   {
+
+    if(1 ==null_able_is_null || 1 ==other.get_null_type())
+    {
+      return -1;
+    }
     const StringValue &string_other = (const StringValue &)other;
     return strcmp(value_.c_str(), string_other.value_.c_str());
   }
@@ -248,6 +332,10 @@ public:
 
   void add_value(const TupleValue &other) override
   {
+    if(1 ==null_able_is_null)
+    {
+      return ;
+    }
   }
   void to_avg(int total, std::ostream &os) override
   {
@@ -256,17 +344,30 @@ public:
 
 private:
   std::string value_;
+public:
+int null_able_is_null ;//1 允许为null，并且是null值
 };
 
 class DateValue : public TupleValue
 {
+
 public:
   explicit DateValue(int value) : value_(value)
+  {
+    null_able_is_null =0;
+  }
+   explicit DateValue(int value,int  null_able) : value_(value), null_able_is_null(null_able)
   {
   }
   //日期格式输出:
   void to_string(std::ostream &os) const override
-  {
+  { 
+
+    if(1 ==null_able_is_null)
+    {
+      os << "NULL";
+      return ;
+    }
     //std::cout << "IntValue:value_" << value_ << std::endl;
     time_t t = (time_t)value_;
     tm *tm_ = localtime(&t);    // 将time_t格式转换为tm结构体
@@ -281,8 +382,18 @@ public:
     os << rightdate;
   }
 
+   int get_null_type() const override 
+  {
+    return null_able_is_null;
+  }
+
   int compare(const TupleValue &other) const override
   {
+
+    if(1 ==null_able_is_null || 1 ==other.get_null_type())
+    {
+      return -1;
+    }
     const DateValue &int_other = (const DateValue &)other;
     std::cout << " >>> compare::DateValue " << value_ << ":" << int_other.value_ << std::endl;
 
@@ -339,6 +450,45 @@ public:
 
 private:
   int value_;
+
+public:
+int null_able_is_null ;//1 允许为null，并且是null值
+};
+
+
+class NullValue : public TupleValue
+{
+public:
+ explicit NullValue() 
+  {
+
+  }
+public:
+  void to_string(std::ostream &os) const override
+  {
+      os << "NULL";
+  }
+  int compare(const TupleValue &other) const override
+  { 
+       return -1;
+  }
+  AttrType get_type() const override
+  {
+    return AttrType::NULLVALUES;
+  }
+
+  void add_value(const TupleValue &other) override
+  {  
+      return ;
+  }
+  void to_avg(int total, std::ostream &os) override
+  {
+      return;
+  }
+   int get_null_type() const override 
+  {
+    return 1;
+  }
 };
 
 #endif //__OBSERVER_SQL_EXECUTOR_VALUE_H_

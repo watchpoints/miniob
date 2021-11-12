@@ -708,7 +708,7 @@ static RC schema_add_field(Table *table, const char *field_name, TupleSchema &sc
     return RC::SCHEMA_FIELD_MISSING;
   }
   //避免 t.id,t.id
-  schema.add_if_not_exists(field_meta->type(), table->name(), field_meta->name());
+  schema.add_if_not_exists1(field_meta->type(), table->name(), field_meta->name(),field_meta->nullable());
   return RC::SUCCESS;
 }
 

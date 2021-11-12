@@ -165,6 +165,14 @@ void value_init_string(Value *value, const char *v) {
      value->type = CHARS;
      value->data = strdup(v);
 }
+//任何类型的值 都可能为null
+void value_init_null_value(Value *value) {
+     value->type = NULLVALUES;
+     //value->data = nullptr;
+     value->data = strdup("999");
+     //null_value 如何存储
+     LOG_INFO("题目：支持NULL类型 value_init_null_value");
+}
 void value_init_date(Value *value, int v) {
   value->type = DATES;
   value->data = malloc(sizeof(v));

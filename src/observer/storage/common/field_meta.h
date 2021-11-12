@@ -55,6 +55,6 @@ private:
   int          attr_offset_;
   int          attr_len_;
   bool         visible_;
-  int         nullable_;//支持NULL类型
+  int         nullable_;//支持NULL类型 0 不支持， 1 支持
 };
 #endif // __OBSERVER_STORAGE_COMMON_FIELD_META_H__

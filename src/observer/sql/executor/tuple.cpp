@@ -55,22 +55,27 @@ void Tuple::add(const std::shared_ptr<TupleValue> &other)
 }
 void Tuple::add(int value)
 {
-  add(new IntValue(value));
+  add(new IntValue(value, 0));
+}
+
+void Tuple::add_null_value()
+{
+  add(new NullValue());
 }
 
 void Tuple::add(float value)
 {
-  add(new FloatValue(value));
+  add(new FloatValue(value, 0));
 }
 //按照列的名字，添加 values
 void Tuple::add(const char *s, int len)
 {
-  add(new StringValue(s, len));
+  add(new StringValue(s, len, 0));
 }
 
 void Tuple::add_date(int value)
 {
-  add(new DateValue(value));
+  add(new DateValue(value, 0));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -91,16 +96,20 @@ void TupleSchema::from_table(const Table *table, TupleSchema &schema)
     const FieldMeta *field_meta = table_meta.field(i);
     if (field_meta->visible())
     {
-      schema.add(field_meta->type(), table_name, field_meta->name());
+      schema.add(field_meta->type(), table_name, field_meta->name(), field_meta->nullable());
     }
   }
+}
+
+void TupleSchema::add(AttrType type, const char *table_name, const char *field_name, int nullable)
+{
+  fields_.emplace_back(type, table_name, field_name, nullable);
 }
 
 void TupleSchema::add(AttrType type, const char *table_name, const char *field_name)
 {
   fields_.emplace_back(type, table_name, field_name);
 }
-
 void TupleSchema::add(AttrType type, const char *table_name, const char *field_name, bool visible)
 {
   fields_.emplace_back(type, table_name, field_name, visible);
@@ -119,6 +128,20 @@ void TupleSchema::add_if_not_exists(AttrType type, const char *table_name, const
   }
   LOG_INFO("add_if_not_exists. %s.%s", table_name, field_name);
   add(type, table_name, field_name);
+}
+void TupleSchema::add_if_not_exists1(AttrType type, const char *table_name, const char *field_name, int nullable)
+{
+  for (const auto &field : fields_)
+  {
+    if (0 == strcmp(field.table_name(), table_name) &&
+        0 == strcmp(field.field_name(), field_name))
+    {
+      LOG_INFO(">>>>>>>>>>add_if_exists. %s.%s", table_name, field_name);
+      return;
+    }
+  }
+  LOG_INFO("add_if_not_exists. %s.%s", table_name, field_name);
+  add(type, table_name, field_name, nullable);
 }
 
 void TupleSchema::add_if_not_exists(AttrType type, const char *table_name, const char *field_name, FunctionType ftype)
@@ -562,30 +585,112 @@ void TupleRecordConverter::add_record(const char *record)
   {
     const FieldMeta *field_meta = table_meta.field(field.field_name());
     assert(field_meta != nullptr);
+    int null_able = field_meta->nullable();
     switch (field_meta->type())
     {
     case INTS:
     {
-      int value = *(int *)(record + field_meta->offset());
-      tuple.add(value);
+      if (null_able == 1)
+      {
+        const char *s = record + field_meta->offset();
+        if (0 == strcmp(s, "999"))
+        {
+          LOG_INFO("99999");
+          tuple.add_null_value();
+        }
+        else
+        {
+          int value = *(int *)(record + field_meta->offset());
+          LOG_INFO(" tuple add int =%d ", value);
+          tuple.add(value);
+        }
+      }
+      else
+      {
+        int value = *(int *)(record + field_meta->offset());
+        LOG_INFO(" tuple add int =%d ", value);
+        tuple.add(value);
+      }
     }
     break;
     case FLOATS:
     {
-      float value = *(float *)(record + field_meta->offset());
-      tuple.add(value);
+      if (null_able == 1)
+      {
+        //memset 改为
+        const char *s = record + field_meta->offset();
+        if (0 == strcmp(s, "999"))
+        {
+          LOG_INFO("99999 FLOATS");
+          tuple.add_null_value();
+        }
+        else
+        {
+
+          float value = *(float *)(record + field_meta->offset());
+          LOG_INFO(" tuple add float =%d ", value);
+          tuple.add(value);
+        }
+      }
+      else
+      {
+        float value = *(float *)(record + field_meta->offset());
+        LOG_INFO(" tuple add float =%d ", value);
+        tuple.add(value);
+      }
     }
     break;
     case CHARS:
     {
-      const char *s = record + field_meta->offset(); // 现在当做Cstring来处理
-      tuple.add(s, strlen(s));
+      if (null_able == 1)
+      {
+        //memset 改为
+        const char *s = record + field_meta->offset();
+        if (0 == strcmp(s, "999"))
+        {
+          LOG_INFO("99999 FLOATS");
+          tuple.add_null_value();
+        }
+        else
+        {
+          const char *s = record + field_meta->offset(); // 现在当做Cstring来处理
+          LOG_INFO(" tuple add string =%s ", s);
+          tuple.add(s, strlen(s));
+        }
+      }
+      else
+      {
+
+        const char *s = record + field_meta->offset(); // 现在当做Cstring来处理
+        LOG_INFO(" tuple add string =%s ", s);
+        tuple.add(s, strlen(s));
+      }
     }
     break;
     case DATES:
     {
-      int value = *(int *)(record + field_meta->offset());
-      tuple.add_date(value);
+      if (null_able == 1)
+      {
+        //memset memcpy
+        const char *s = record + field_meta->offset();
+        if (0 == strcmp(s, "999"))
+        {
+          LOG_INFO("99999 FLOATS");
+          tuple.add_null_value();
+        }
+        else
+        {
+          int value = *(int *)(record + field_meta->offset());
+          LOG_INFO(" tuple.add_date=%d ", value);
+          tuple.add_date(value);
+        }
+      }
+      else
+      {
+        int value = *(int *)(record + field_meta->offset());
+        LOG_INFO(" tuple.add_date=%d ", value);
+        tuple.add_date(value);
+      }
     }
     break;
     default:
@@ -608,12 +713,16 @@ void TupleSchema::from_table_first(const Table *table, TupleSchema &schema, Func
   const FieldMeta *field_meta = table_meta.field(1);
   if (field_meta && field_meta->visible())
   {
-    schema.add(field_meta->type(), table_name, field_meta->name(), functiontype);
+    schema.add(field_meta->type(), table_name, field_meta->name(), functiontype, field_meta->nullable());
   }
 }
 void TupleSchema::add(AttrType type, const char *table_name, const char *field_name, FunctionType functiontype)
 {
   fields_.emplace_back(type, table_name, field_name, functiontype);
+}
+void TupleSchema::add(AttrType type, const char *table_name, const char *field_name, FunctionType functiontype, int nullable)
+{
+  fields_.emplace_back(type, table_name, field_name, functiontype, nullable);
 }
 
 bool TupleSet::avg_print(std::ostream &os) const
@@ -635,7 +744,43 @@ bool TupleSet::avg_print(std::ostream &os) const
     if (FunctionType::FUN_COUNT_ALL_ALl == window_function || FunctionType::FUN_COUNT_ALL == window_function || FunctionType::FUN_COUNT == window_function)
     {
       isWindows = true;
-      int count = tuples_.size();
+      int count = 0;
+      //count(*)
+      if (FunctionType::FUN_COUNT_ALL_ALl == window_function || FunctionType::FUN_COUNT_ALL == window_function)
+      {
+        count = tuples_.size();
+      }
+      else
+      {
+        //rows count(id)
+        //字段值是NULL时，比较特殊，不需要统计在内。如果是AVG，不会增加统计行数，也不需要默认值。
+        for (const Tuple &item : tuples_)
+        {
+          int colIndex = 0;
+          bool null_able = true;
+          //cols
+          const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
+          for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+               iter != end; ++iter)
+          {
+            if (colIndex == index)
+            {
+              std::shared_ptr<TupleValue> temp = *iter;
+              if (AttrType::NULLVALUES == temp->get_type())
+              {
+                null_able = false;
+              }
+              break;
+            }
+            colIndex++;
+          }
+
+          if (true == null_able)
+          {
+            count++;
+          }
+        }
+      } //end else
       os << count;
     }
     else if (FunctionType::FUN_MAX == window_function)
@@ -655,16 +800,24 @@ bool TupleSet::avg_print(std::ostream &os) const
           //(*iter)->to_string(os);
           if (colIndex == index)
           {
-            if (nullptr == maxValue)
+            std::shared_ptr<TupleValue> temp = *iter;
+
+            if (AttrType::NULLVALUES == temp->get_type())
             {
-              maxValue = *iter;
+              //不处理
             }
             else
             {
-              std::shared_ptr<TupleValue> temp = *iter;
-              if (maxValue->compare(*temp) < 0)
+              if (nullptr == maxValue)
               {
                 maxValue = temp;
+              }
+              else
+              {
+                if (maxValue->compare(*temp) < 0)
+                {
+                  maxValue = temp;
+                }
               }
             }
 
@@ -684,7 +837,7 @@ bool TupleSet::avg_print(std::ostream &os) const
       for (const Tuple &item : tuples_)
       {
         int colIndex = 0;
-        //第n-1列
+        //列
         const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
         for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
              iter != end; ++iter)
@@ -692,16 +845,25 @@ bool TupleSet::avg_print(std::ostream &os) const
           //(*iter)->to_string(os);
           if (colIndex == index)
           {
-            if (nullptr == minValue)
+            std::shared_ptr<TupleValue> temp = *iter;
+
+            if (AttrType::NULLVALUES == temp->get_type())
             {
-              minValue = *iter;
+              //不处理
             }
             else
             {
-              std::shared_ptr<TupleValue> temp = *iter;
-              if (minValue->compare(*temp) > 0)
+              if (nullptr == minValue)
               {
-                minValue = temp;
+                minValue = *iter;
+              }
+              else
+              {
+                std::shared_ptr<TupleValue> temp = *iter;
+                if (minValue->compare(*temp) > 0)
+                {
+                  minValue = temp;
+                }
               }
             }
 
@@ -718,10 +880,12 @@ bool TupleSet::avg_print(std::ostream &os) const
       isWindows = true;
 
       std::shared_ptr<TupleValue> sumValue;
+      int count = 0;
 
       for (const Tuple &item : tuples_)
       {
         int colIndex = 0;
+        bool null_able = true;
         //第n列
         const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
         for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
@@ -730,26 +894,38 @@ bool TupleSet::avg_print(std::ostream &os) const
           //(*iter)->to_string(os);
           if (colIndex == index)
           {
-            if (nullptr == sumValue)
+            std::shared_ptr<TupleValue> temp = *iter;
+            if (AttrType::NULLVALUES == temp->get_type())
             {
-              sumValue = *iter;
+              //不处理
+              null_able = false;
             }
             else
             {
-              std::shared_ptr<TupleValue> temp = *iter;
-              sumValue->add_value(*temp);
+              if (nullptr == sumValue)
+              {
+                sumValue = temp;
+              }
+              else
+              {
+                sumValue->add_value(*temp);
+              }
             }
 
             break; //get
           }
           colIndex++;
         }
+        if (true == null_able)
+        {
+          count++;
+        }
       } //end
       //防溢出求平均算法
-      int count = tuples_.size();
+
       if (0 == count)
       {
-        return true;
+        return true; //是聚合运算
       }
 
       sumValue->to_avg(count, os);
@@ -776,7 +952,7 @@ bool TupleSet::avg_print(std::ostream &os) const
     }
 
     index++;
-  }
+  } //const std::vector<TupleField> &fields = schema_.fields();
 
   return isWindows;
 }
@@ -1028,31 +1204,35 @@ void TupleSet::print_two(std::ostream &os)
 
               b_equal = true;
             }
-          }else if (two_comp == GREAT_EQUAL)
-          {  
+          }
+          else if (two_comp == GREAT_EQUAL)
+          {
             // ">=" t1.id >=t2.id
-            if (left[i] && right[i] &&  left[i]->compare(*right[i]) >=0)
+            if (left[i] && right[i] && left[i]->compare(*right[i]) >= 0)
             {
               b_equal = true;
             }
-          }else if (two_comp == GREAT_THAN)
-          {  
-            // ">" 
-            if (left[i] && right[i] &&  left[i]->compare(*right[i]) >0)
+          }
+          else if (two_comp == GREAT_THAN)
+          {
+            // ">"
+            if (left[i] && right[i] && left[i]->compare(*right[i]) > 0)
             {
               b_equal = true;
             }
-          }else if (two_comp == LESS_EQUAL)
-          {  
-            // "<=" 
-            if (left[i] && right[i] &&  left[i]->compare(*right[i]) <= 0)
+          }
+          else if (two_comp == LESS_EQUAL)
+          {
+            // "<="
+            if (left[i] && right[i] && left[i]->compare(*right[i]) <= 0)
             {
               b_equal = true;
             }
-          }else if (two_comp == LESS_THAN)
-          {  
-            // "<" 
-            if (left[i] && right[i] &&  left[i]->compare(*right[i]) < 0)
+          }
+          else if (two_comp == LESS_THAN)
+          {
+            // "<"
+            if (left[i] && right[i] && left[i]->compare(*right[i]) < 0)
             {
               b_equal = true;
             }
@@ -1097,10 +1277,10 @@ void TupleSchema::from_table_first_count_number(const Table *table, TupleSchema 
   {
     // schema.add(field_meta->type(), table_name, field_meta->name(), functiontype);
 
-    schema.add_number(field_meta->type(), table_name, field_meta->name(), functiontype, field_name_count_number);
+    schema.add_number(field_meta->type(), table_name, field_meta->name(), functiontype, field_name_count_number, field_meta->nullable());
   }
 }
-void TupleSchema::add_number(AttrType type, const char *table_name, const char *field_name, FunctionType functiontype, const char *field_name_count_number)
+void TupleSchema::add_number(AttrType type, const char *table_name, const char *field_name, FunctionType functiontype, const char *field_name_count_number, int nullable)
 {
   TupleField temp(type, table_name, field_name, functiontype);
   temp.field_name_count_number_ = field_name_count_number;

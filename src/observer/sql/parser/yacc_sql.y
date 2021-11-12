@@ -109,6 +109,7 @@ ParserContext *get_context(yyscan_t scanner)
 		AVG
 		UNIQUE
 		NULLABLE
+		NULLVALUE
 
 %union {
   struct _Attr *attr;
@@ -371,6 +372,10 @@ value:
 			$1 = substr($1,1,strlen($1)-2);
   		value_init_string(&CONTEXT->values[CONTEXT->value_length++], $1);
 		}
+	|NULLVALUE 
+	{
+  		value_init_null_value(&CONTEXT->values[CONTEXT->value_length++]);
+	}
     ;
     
 delete:		/*  delete 语句的语法解析树*/

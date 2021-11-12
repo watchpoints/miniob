@@ -330,7 +330,7 @@ RC Table::insert_record(Trx *trx, int value_num, const Value *values)
     LOG_ERROR("Invalid argument. value num=%d, values=%p", value_num, values);
     return RC::INVALID_ARGUMENT;
   }
-
+  //根据表属性和行属性 构造插入值
   char *record_data;
   RC rc = make_record(value_num, values, record_data);
   if (rc != RC::SUCCESS)
@@ -371,8 +371,16 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
   {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
-
-    if (field->type() == AttrType::DATES)
+    
+    //在字段允许null的情况下 可以插入null。
+    //如果不允许null,插入null 肯定是报错的
+    //value：来着sql命令
+    //field：创建表时候确定了
+    if(value.type == AttrType::NULLVALUES  && 1==field->nullable())
+    {
+      LOG_INFO("题目：支持NULL类型 AttrType::NULLVALUE，null可以插入任何类型");
+      //这个类型不校验
+    }else if (field->type() == AttrType::DATES)
     {
       //LOG_INFO(" insert:AttrType::DATES, value.data=%s", value.data);
       const char *pattern = "[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}";
@@ -414,7 +422,13 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
   {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
-    if (field->type() == AttrType::DATES)
+    if(value.type == AttrType::NULLVALUES)
+    {
+      //说明 memcpy nullptr会core。这个该怎么处理呢
+      LOG_INFO("题目：支持NULL类型 AttrType::NULLVALUE，null可以插入任何类型");
+      //自己约定："999"" 看看有没有问题 
+       memcpy(record + field->offset(),"999", field->len());
+    }else if (field->type() == AttrType::DATES)
     {
       //字符串变成时间戳4字节存储
       //检查日期是否合法
@@ -426,10 +440,8 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
     }
     else
     {
-      memcpy(record + field->offset(), value.data, field->len());
+        memcpy(record + field->offset(), value.data, field->len());
     }
-
-    //LOG_INFO("insert: memcpy value=%s,field->len()=%d,record=%s,record_size=%d", value.data, field->len(), record);
   }
 
   record_out = record;

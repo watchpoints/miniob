@@ -162,7 +162,7 @@ RC DefaultHandler::drop_index(Trx *trx, const char *dbname, const char *relation
 
   return RC::GENERIC_ERROR;
 }
-
+//单行插入
 RC DefaultHandler::insert_record(Trx *trx, const char *dbname, const char *relation_name, int value_num, const Value *values) {
   Table *table = find_table(dbname, relation_name);
   if (nullptr == table) {

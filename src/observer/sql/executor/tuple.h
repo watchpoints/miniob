@@ -64,6 +64,7 @@ public:
   void add(float value);
   void add(const char *s, int len);
   void add_date(int value);
+  void add_null_value();
 
   const std::vector<std::shared_ptr<TupleValue>> &values() const
   {
@@ -109,16 +110,33 @@ public:
   {
     visible_ = true; //显示
     function_type = FunctionType::FUN_NO;
+    nullable_ =0;//不允许 插入null值
+  }
+  TupleField(AttrType type, const char *table_name, const char *field_name,int nullable) : type_(type), table_name_(table_name), field_name_(field_name)
+  {
+    visible_ = true; //显示
+    function_type = FunctionType::FUN_NO;
+    nullable_ =nullable;//0 不允许 插入null值 1 允许
   }
   TupleField(AttrType type, const char *table_name, const char *field_name, FunctionType functiontype) : type_(type), table_name_(table_name), field_name_(field_name)
   {
     visible_ = true;
     function_type = functiontype;
+    nullable_ =0;//不允许插入null值
   }
   TupleField(AttrType type, const char *table_name, const char *field_name, bool visible) : type_(type), table_name_(table_name), field_name_(field_name)
   {
     visible_ = visible;
     function_type = FunctionType::FUN_NO;
+    nullable_ =0;//不允许 入null值
+  }
+
+  //最后统一用这个
+  TupleField(AttrType type, const char *table_name, const char *field_name, FunctionType functiontype,int nullable) : type_(type), table_name_(table_name), field_name_(field_name)
+  {
+    visible_ = true;
+    function_type = functiontype;
+    nullable_ =nullable;//不允许插入null值
   }
   AttrType type() const
   {
@@ -151,6 +169,10 @@ public:
   {
     return field_name_count_number_.c_str();
   }
+  int nullable() const
+  {
+    return nullable_;
+  }
 
 private:
   AttrType type_;          //
@@ -158,6 +180,7 @@ private:
   std::string field_name_; //id
   bool visible_;
   FunctionType function_type; //函数
+  int nullable_;
 public:
   std::string field_name_count_number_; //count(1)
 };
@@ -167,13 +190,17 @@ class TupleSchema
 public:
   TupleSchema() { realTabeNumber = -1; };
   ~TupleSchema() { realTabeNumber = -1; };
-
+  //统一一个函数实现 下面5个太多了。
   void add(AttrType type, const char *table_name, const char *field_name);
+  void add(AttrType type, const char *table_name, const char *field_name,int nullable);
   void add(AttrType type, const char *table_name, const char *field_name, FunctionType functiontype);
   void add(AttrType type, const char *table_name, const char *field_name, bool visible);
-  void add_number(AttrType type, const char *table_name, const char *field_name, FunctionType functiontype, const char *field_name_count_number);
+  void add(AttrType type, const char *table_name, const char *field_name, FunctionType functiontype,int nullable);
+
+  void add_number(AttrType type, const char *table_name, const char *field_name, FunctionType functiontype, const char *field_name_count_number,int nullable);
 
   void add_if_not_exists(AttrType type, const char *table_name, const char *field_name);
+  void add_if_not_exists1(AttrType type, const char *table_name, const char *field_name,int nullable);
   void add_if_not_exists(AttrType type, const char *table_name, const char *field_name, FunctionType ftype);
   void add_if_not_exists_visible(AttrType type, const char *table_name, const char *field_name, bool visible);
 
