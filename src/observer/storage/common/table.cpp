@@ -1054,13 +1054,16 @@ IndexScanner *Table::find_index_for_scan(const ConditionFilter *filter)
   // remove dynamic_cast
   const DefaultConditionFilter *default_condition_filter = dynamic_cast<const DefaultConditionFilter *>(filter);
   if (default_condition_filter != nullptr)
-  {
+  { 
+    LOG_INFO("find_index_for_scan  DefaultConditionFilter");
     return find_index_for_scan(*default_condition_filter);
   }
 
   const CompositeConditionFilter *composite_condition_filter = dynamic_cast<const CompositeConditionFilter *>(filter);
   if (composite_condition_filter != nullptr)
-  {
+  {  
+
+    LOG_INFO("find_index_for_scan  CompositeConditionFilter");
     int filter_num = composite_condition_filter->filter_num();
     for (int i = 0; i < filter_num; i++)
     {

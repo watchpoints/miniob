@@ -41,8 +41,6 @@ RC BplusTreeHandler::sync()
   return disk_buffer_pool_->flush_all_pages(file_id_);
 }
 
-
-
 RC BplusTreeHandler::create(const char *file_name, AttrType attr_type, int attr_length)
 {
   BPPageHandle page_handle;
@@ -183,11 +181,34 @@ static int CmpRid(const RID *rid1, const RID *rid2)
   return 0;
 }
 //比较2个key 大小
+//file_header_.attr_type,
 int CompareKey(const char *pdata, const char *pkey, AttrType attr_type, int attr_length)
 { // 简化
   int i1, i2;
   float f1, f2;
   const char *s1, *s2;
+  //null 与null  true
+  //null 与其他值 false
+  if (0 == strcmp(pkey, "999"))
+  {
+    if (0 == strcmp(pdata, "999"))
+    {
+
+      LOG_INFO(" 9999999999 null 与null  true ");
+      return 0; //相等
+    }
+    else
+    {
+      LOG_INFO(" key is null  与其他值 false");
+      return -1; //不相等
+    }
+  }
+  // null >1 
+  if (0 == strcmp(pdata, "999"))
+  {
+      LOG_INFO(" 999 pdata is null value ");
+      return -1; //相等
+  }
   switch (attr_type)
   {
   case INTS:
@@ -229,6 +250,27 @@ int CompareKey(const char *pdata, const char *pkey, AttrType attr_type, int attr
       return -1;
     if (i1 == i2)
       return 0;
+  }
+  break;
+  case NULLVALUES:
+  {
+    LOG_INFO("CompareKey");
+    // null is null true
+    // null is 999
+    if (0 == strcmp(pkey, "999"))
+    {
+      if (0 == strcmp(pdata, "999"))
+      {
+
+        LOG_INFO(" 9999999999");
+        return 0; //相等
+      }
+      else
+      {
+        return -1; //不相等
+      }
+    }
+    //任何 值与NULL做对比，结果都是FALSE。
   }
   break;
   default:
@@ -305,7 +347,7 @@ int CmpKey(AttrType attr_type, int attr_length, const char *pdata, const char *p
     //对于重复索引来说：内容不相等，地址一定不相等
   }
   //重复内容：不相同行，地址是不同的。
-  
+
   //相同的内容，相同地址 才算重复
   RID *rid1 = (RID *)(pdata + attr_length);
   RID *rid2 = (RID *)(pkey + attr_length);
@@ -313,7 +355,7 @@ int CmpKey(AttrType attr_type, int attr_length, const char *pdata, const char *p
 }
 //真个逻辑没看懂，增加一个函数减少风险
 int CmpKeyUnique(AttrType attr_type, int attr_length, const char *pdata, const char *pkey)
-{ 
+{
 
   //内容相等：就是重复
   int result = CompareKeyUnique(pdata, pkey, attr_type, attr_length);
@@ -356,9 +398,8 @@ RC BplusTreeHandler::find_leaf(const char *pkey, PageNum *leaf_page)
   {
     for (i = 0; i < node->key_num; i++)
     {
-      //11111
-
       tmp = CmpKey(file_header_.attr_type, file_header_.attr_length, pkey, node->keys + i * file_header_.key_length);
+      LOG_INFO("find_leaf 999999  CmpKey =%d",tmp );
       if (tmp < 0)
         break;
     }
@@ -1898,6 +1939,7 @@ RC BplusTreeHandler::print_tree()
 
 RC BplusTreeHandler::find_first_index_satisfied(CompOp compop, const char *key, PageNum *page_num, int *rididx)
 {
+  LOG_INFO("find_first_index_satisfied");
   BPPageHandle page_handle;
   IndexNode *node;
   PageNum leaf_page, next;
@@ -1953,7 +1995,10 @@ RC BplusTreeHandler::find_first_index_satisfied(CompOp compop, const char *key, 
     for (i = 0; i < node->key_num; i++)
     {
       tmp = CompareKey(node->keys + i * file_header_.key_length, key, file_header_.attr_type, file_header_.attr_length);
-      if (compop == EQUAL_TO || compop == GREAT_EQUAL)
+      
+      LOG_INFO("find_first_index_satisfied temp=%d ,compop=%d",tmp,compop);
+      // ==  GREAT_EQUAL >=
+      if (compop == EQUAL_TO || compop == GREAT_EQUAL || compop == IS_NULL)
       {
         if (tmp >= 0)
         {
@@ -1971,6 +2016,7 @@ RC BplusTreeHandler::find_first_index_satisfied(CompOp compop, const char *key, 
           return SUCCESS;
         }
       }
+      // >
       if (compop == GREAT_THAN)
       {
         if (tmp > 0)
@@ -2373,17 +2419,21 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey)
       LOG_PANIC("Unknown attr type: %d", attr_type);
     }
     break;
-    case IS_NULL:
-    {
-      flag =false;
-    }
-    break;
+  case IS_NULL:
+  {  
+    LOG_INFO(" BplusTreeScanner::satisfy_condition  IS_NULL");
+   
+    flag = false;
+  }
+  break;
 
-    case IS_NOT_NULL:
-    {
-      flag =true;
-    }
-    break;
+  case IS_NOT_NULL:
+  {  
+    LOG_INFO(" BplusTreeScanner::satisfy_condition  IS_NOT_NULL");
+
+    flag = true;
+  }
+  break;
 
   default:
     LOG_PANIC("Unknown comp op: %d", comp_op_);
@@ -2478,7 +2528,7 @@ RC BplusTreeHandler::insert_entry_unique(const char *pkey, const RID *rid)
 RC BplusTreeHandler::find_leaf_unique(const char *pkey, PageNum *leaf_page)
 {
   LOG_INFO("find_leaf_unique >>>>>>find_leaf_unique ");
-  
+
   RC rc;
   BPPageHandle page_handle;
   IndexNode *node;
@@ -2604,10 +2654,9 @@ RC BplusTreeHandler::insert_into_leaf_unique(PageNum leaf_page, const char *pkey
   return SUCCESS;
 }
 
-
 RC BplusTreeHandler::create_multi_index(const char *file_name)
 {
- /**
+  /**
   BPPageHandle page_handle;
   IndexNode *root;
   char *pdata;
@@ -2686,4 +2735,3 @@ RC BplusTreeHandler::create_multi_index(const char *file_name)
   **/
   return SUCCESS;
 }
-

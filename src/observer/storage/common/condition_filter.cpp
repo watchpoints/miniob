@@ -242,6 +242,9 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
 
 bool DefaultConditionFilter::filter(const Record &rec) const
 {
+
+  LOG_INFO("DefaultConditionFilter::filter");
+
   char *left_value = nullptr;
   char *right_value = nullptr;
 
@@ -377,8 +380,11 @@ bool DefaultConditionFilter::filter(const Record &rec) const
   
   case IS_NULL:
      // null is null true 
+     LOG_INFO("DefaultConditionFilter::filter IS_NULL"); 
     return 0 == cmp_result;
   case IS_NOT_NULL:
+     
+    LOG_INFO("DefaultConditionFilter::filter IS_NOT_NULL"); 
     return cmp_result != 0;
 
   default:
