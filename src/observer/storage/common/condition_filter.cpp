@@ -144,6 +144,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     if (nullptr == field_right)
     {
       LOG_WARN("No such field in condition. %s.%s", table.name(), condition.right_attr.attribute_name);
+      
       return RC::SCHEMA_FIELD_MISSING;
     }
     right.attr_length = field_right->len();

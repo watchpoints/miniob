@@ -192,6 +192,7 @@ void condition_init(Condition *condition, CompOp comp,
   condition->comp = comp;
   condition->left_is_attr = left_is_attr;
   if (left_is_attr) {
+    LOG_INFO("left_is_attr ...........");
     condition->left_attr = *left_attr;
   } else {
     condition->left_value = *left_value;
@@ -199,6 +200,7 @@ void condition_init(Condition *condition, CompOp comp,
 
   condition->right_is_attr = right_is_attr;
   if (right_is_attr) {
+    LOG_INFO("right_is_attr ...........");
     condition->right_attr = *right_attr;
   } else {
     condition->right_value = *right_value;
