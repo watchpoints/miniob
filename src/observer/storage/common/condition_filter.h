@@ -47,6 +47,8 @@ public:
 
   RC init(const ConDesc &left, const ConDesc &right, AttrType attr_type, CompOp comp_op);
   RC init(Table &table, const Condition &condition);
+  //存在null比较
+  RC init(const ConDesc &left, const ConDesc &right, AttrType attr_type, CompOp comp_op,bool com_null);
 
   virtual bool filter(const Record &rec) const;
   bool check_where_date(char* ptr);
@@ -69,6 +71,7 @@ private:
   ConDesc  right_;
   AttrType attr_type_ = UNDEFINED;
   CompOp   comp_op_ = NO_OP;
+  bool  comp_op_null_value;
 };
 
 class CompositeConditionFilter : public ConditionFilter {

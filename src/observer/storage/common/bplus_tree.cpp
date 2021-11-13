@@ -2230,7 +2230,7 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey)
   {
     return true;
   }
-
+  //列：属性 null类型，但是有null属性
   AttrType attr_type = index_handler_.file_header_.attr_type;
   switch (attr_type)
   {
@@ -2373,6 +2373,18 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey)
       LOG_PANIC("Unknown attr type: %d", attr_type);
     }
     break;
+    case IS_NULL:
+    {
+      flag =false;
+    }
+    break;
+
+    case IS_NOT_NULL:
+    {
+      flag =true;
+    }
+    break;
+
   default:
     LOG_PANIC("Unknown comp op: %d", comp_op_);
   }

@@ -58,7 +58,7 @@ DefaultConditionFilter::~DefaultConditionFilter()
 
 RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrType attr_type, CompOp comp_op)
 {
-  if (attr_type < CHARS || attr_type > DATES)
+  if (attr_type < CHARS || attr_type > NULLVALUES)
   {
     LOG_ERROR("Invalid condition with unsupported attribute type: %d", attr_type);
     return RC::INVALID_ARGUMENT;
@@ -74,6 +74,29 @@ RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrT
   right_ = right;
   attr_type_ = attr_type;
   comp_op_ = comp_op;
+  comp_op_null_value = false; //表达式 不存在null value
+  return RC::SUCCESS;
+}
+
+RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrType attr_type, CompOp comp_op, bool com_null)
+{
+  if (attr_type < CHARS || attr_type > NULLVALUES)
+  {
+    LOG_ERROR("Invalid condition with unsupported attribute type: %d", attr_type);
+    return RC::INVALID_ARGUMENT;
+  }
+
+  if (comp_op < EQUAL_TO || comp_op >= NO_OP)
+  {
+    LOG_ERROR("Invalid condition with unsupported compare operation: %d", comp_op);
+    return RC::INVALID_ARGUMENT;
+  }
+
+  left_ = left;
+  right_ = right;
+  attr_type_ = attr_type;
+  comp_op_ = comp_op;
+  comp_op_null_value = com_null;
   return RC::SUCCESS;
 }
 
@@ -196,12 +219,16 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
   //birthday 是否非法日期类型 需要检查。
 
   //创建日期类型时候，自己value stirng 类型保存的 后面改成vale 类型也必须是date类型的 【遗漏任务】
+  bool comp_have_null = false;
   if (type_left == AttrType::NULLVALUES || type_right == AttrType::NULLVALUES)
   {
     //NULLVALUES 不是一个类型，是一个属性
+    //select * from t12 where  1<>NULL;
+    comp_have_null = true;
   }
   else
   {
+    comp_have_null = false;
     if (type_left != type_right)
     {
       LOG_INFO("init:: type_left != type_right failed type_left=%d,type_right=%d", type_left, type_right);
@@ -209,7 +236,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     }
   }
 
-  return init(left, right, type_left, condition.comp);
+  return init(left, right, type_left, condition.comp, comp_have_null);
 }
 
 bool DefaultConditionFilter::filter(const Record &rec) const
@@ -217,13 +244,14 @@ bool DefaultConditionFilter::filter(const Record &rec) const
   char *left_value = nullptr;
   char *right_value = nullptr;
 
+  //是否属性，false 表示是值
   if (left_.is_attr)
-  { // value
+  { // attr
     left_value = (char *)(rec.data + left_.attr_offset);
   }
   else
   {
-    left_value = (char *)left_.value;
+    left_value = (char *)left_.value; //value
   }
 
   if (right_.is_attr)
@@ -284,17 +312,58 @@ bool DefaultConditionFilter::filter(const Record &rec) const
   switch (comp_op_)
   {
   case EQUAL_TO:
+  {
+    if (true == comp_op_null_value)
+    {
+      return false;
+    }
     return 0 == cmp_result;
+  }
+
   case LESS_EQUAL:
+  {
+    if (true == comp_op_null_value)
+    {
+      return false;
+    }
     return cmp_result <= 0;
+  }
   case NOT_EQUAL:
+  {
+    if (true == comp_op_null_value)
+    {
+      return false;
+    }
     return cmp_result != 0;
+  }
+
   case LESS_THAN:
+  {
+    if (true == comp_op_null_value)
+    {
+      return false;
+    }
     return cmp_result < 0;
+  }
+
   case GREAT_EQUAL:
-    return cmp_result >= 0;
+  {
+    if (true == comp_op_null_value)
+    {
+      return false;
+    }
+     return cmp_result >= 0;
+  }
+   
   case GREAT_THAN:
-    return cmp_result > 0;
+  {
+    if (true == comp_op_null_value)
+    {
+      return false;
+    }
+      return cmp_result > 0;
+  }
+  
   case IS_NULL:
     return 0 == cmp_result;
   case IS_NOT_NULL:
@@ -362,7 +431,7 @@ RC CompositeConditionFilter::init(Table &table, const Condition *conditions, int
   }
   return init((const ConditionFilter **)condition_filters, condition_num, true);
 }
-
+//查询条件
 bool CompositeConditionFilter::filter(const Record &rec) const
 {
   for (int i = 0; i < filter_num_; i++)
