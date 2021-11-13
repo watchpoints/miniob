@@ -299,8 +299,18 @@ bool DefaultConditionFilter::filter(const Record &rec) const
   }
   break;
   case NULLVALUES:
-  {
-    cmp_result = -1;
+  {  
+    LOG_INFO("DefaultConditionFilter::filter left or right is null");
+    // null is null true
+    // null is 999
+    if(left_value && right_value &&0 == strcmp(left_value, "999") && 0 == strcmp(right_value, "999"))
+    {
+      cmp_result =0;
+      LOG_INFO("DefaultConditionFilter::filter left or right  999");
+    }else
+    {
+        cmp_result = -1;
+    }
     //任何 值与NULL做对比，结果都是FALSE。
   }
   break;
@@ -366,6 +376,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const
   }
   
   case IS_NULL:
+     // null is null true 
     return 0 == cmp_result;
   case IS_NOT_NULL:
     return cmp_result != 0;
