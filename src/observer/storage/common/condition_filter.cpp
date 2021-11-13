@@ -22,19 +22,19 @@ using namespace common;
 
 static time_t StringToDatetime(string str)
 {
-    char *cha = (char*)str.data();             // 将string转换成char*。
-    tm tm_;                                    // 定义tm结构体。
-    int year, month, day, hour, minute, second;// 定义时间的各个int临时变量。
-    sscanf(cha, "%d-%d-%d %d:%d:%d", &year, &month, &day, &hour, &minute, &second);// 将string存储的日期时间，转换为int临时变量。
-    tm_.tm_year = year - 1900;                 // 年，由于tm结构体存储的是从1900年开始的时间，所以tm_year为int临时变量减去1900。
-    tm_.tm_mon = month - 1;                    // 月，由于tm结构体的月份存储范围为0-11，所以tm_mon为int临时变量减去1。
-    tm_.tm_mday = day;                         // 日。
-    tm_.tm_hour = hour;                        // 时。
-    tm_.tm_min = minute;                       // 分。
-    tm_.tm_sec = second;                       // 秒。
-    tm_.tm_isdst = 0;                          // 非夏令时。
-    time_t t_ = mktime(&tm_);                  // 将tm结构体转换成time_t格式。
-    return t_;                                 // 返回值。
+  char *cha = (char *)str.data();                                                 // 将string转换成char*。
+  tm tm_;                                                                         // 定义tm结构体。
+  int year, month, day, hour, minute, second;                                     // 定义时间的各个int临时变量。
+  sscanf(cha, "%d-%d-%d %d:%d:%d", &year, &month, &day, &hour, &minute, &second); // 将string存储的日期时间，转换为int临时变量。
+  tm_.tm_year = year - 1900;                                                      // 年，由于tm结构体存储的是从1900年开始的时间，所以tm_year为int临时变量减去1900。
+  tm_.tm_mon = month - 1;                                                         // 月，由于tm结构体的月份存储范围为0-11，所以tm_mon为int临时变量减去1。
+  tm_.tm_mday = day;                                                              // 日。
+  tm_.tm_hour = hour;                                                             // 时。
+  tm_.tm_min = minute;                                                            // 分。
+  tm_.tm_sec = second;                                                            // 秒。
+  tm_.tm_isdst = 0;                                                               // 非夏令时。
+  time_t t_ = mktime(&tm_);                                                       // 将tm结构体转换成time_t格式。
+  return t_;                                                                      // 返回值。
 }
 ConditionFilter::~ConditionFilter()
 {
@@ -112,7 +112,6 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
 
     left.attr_length = 0;
     left.attr_offset = 0;
-
   }
   //1时，操作符右边是属性名，0时，是属性值
   if (1 == condition.right_is_attr)
@@ -130,8 +129,8 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
 
     right.value = nullptr;
 
-     if (type_right == AttrType::DATES && type_left == AttrType::CHARS && left.is_attr == false)
-    {  
+    if (type_right == AttrType::DATES && type_left == AttrType::CHARS && left.is_attr == false)
+    {
       LOG_INFO(" check_where_date");
       if (false == check_where_date((char *)condition.left_value.data))
       {
@@ -144,12 +143,12 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
       char *ptr = static_cast<char *>(condition.left_value.data);
       string temp(ptr);
       temp.append(" 00:00:00");
-      int time_t=StringToDatetime(temp);
+      int time_t = StringToDatetime(temp);
       //right.value = condition.right_value.data;
 
-      left.value  = malloc(sizeof(time_t));
+      left.value = malloc(sizeof(time_t));
       memcpy(left.value, &time_t, sizeof(time_t));
-      type_left =AttrType::DATES;
+      type_left = AttrType::DATES;
     }
   }
   else
@@ -162,7 +161,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     right.attr_offset = 0;
 
     if (type_left == AttrType::DATES && type_right == AttrType::CHARS)
-    {  
+    {
       LOG_INFO(" check_where_date");
       if (false == check_where_date((char *)condition.right_value.data))
       {
@@ -175,12 +174,12 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
       char *ptr = static_cast<char *>(condition.right_value.data);
       string temp(ptr);
       temp.append(" 00:00:00");
-      int time_t=StringToDatetime(temp);
+      int time_t = StringToDatetime(temp);
       //right.value = condition.right_value.data;
 
-      right.value  = malloc(sizeof(time_t));
+      right.value = malloc(sizeof(time_t));
       memcpy(right.value, &time_t, sizeof(time_t));
-      type_right =AttrType::DATES;
+      type_right = AttrType::DATES;
     }
   }
 
@@ -197,10 +196,17 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
   //birthday 是否非法日期类型 需要检查。
 
   //创建日期类型时候，自己value stirng 类型保存的 后面改成vale 类型也必须是date类型的 【遗漏任务】
-  if (type_left != type_right)
+  if (type_left == AttrType::NULLVALUES || type_right == AttrType::NULLVALUES)
   {
-    LOG_INFO("init:: type_left != type_right failed type_left=%d,type_right=%d", type_left, type_right);
-    return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+    //NULLVALUES 不是一个类型，是一个属性
+  }
+  else
+  {
+    if (type_left != type_right)
+    {
+      LOG_INFO("init:: type_left != type_right failed type_left=%d,type_right=%d", type_left, type_right);
+      return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+    }
   }
 
   return init(left, right, type_left, condition.comp);
@@ -263,6 +269,12 @@ bool DefaultConditionFilter::filter(const Record &rec) const
     cmp_result = (int)(left - right);
   }
   break;
+  case NULLVALUES:
+  {
+    cmp_result = -1;
+    //任何 值与NULL做对比，结果都是FALSE。
+  }
+  break;
   default:
   {
     LOG_INFO(" SCHEMA_FIELD_TYPE_MISMATCH Unsupported field type to loading: %d", attr_type_);
@@ -283,6 +295,10 @@ bool DefaultConditionFilter::filter(const Record &rec) const
     return cmp_result >= 0;
   case GREAT_THAN:
     return cmp_result > 0;
+  case IS_NULL:
+    return 0 == cmp_result;
+  case IS_NOT_NULL:
+    return cmp_result != 0;
 
   default:
     break;

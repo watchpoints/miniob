@@ -111,6 +111,7 @@ ParserContext *get_context(yyscan_t scanner)
 		NULLABLE
 		NULLVALUE
 		NOT
+		IS
 
 %union {
   struct _Attr *attr;
@@ -726,7 +727,7 @@ condition:
 			// $$->right_is_attr = 1;		//属性
 			// $$->right_attr.relation_name=$5;
 			// $$->right_attr.attribute_name=$7;
-    }
+    }	
     ;
 
 comOp:
@@ -736,6 +737,8 @@ comOp:
     | LE { CONTEXT->comp = LESS_EQUAL; }
     | GE { CONTEXT->comp = GREAT_EQUAL; }
     | NE { CONTEXT->comp = NOT_EQUAL; }
+	| IS { CONTEXT->comp = IS_NULL; }
+	| IS NOT { CONTEXT->comp = IS_NOT_NULL; }
     ;
 
 load_data:
