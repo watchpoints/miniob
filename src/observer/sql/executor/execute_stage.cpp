@@ -314,17 +314,13 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
 
    if( 0 ==strcmp(table_name2,selects.attributes[0].relation_name) &&
        0 ==strcmp(table_name1,selects.attributes[1].relation_name) &&
-       0 ==strcmp(table_name2,selects.attributes[2].relation_name) &&
-       FUN_NO ==selects.attributes[0].funtype && 
-       FUN_NO ==selects.attributes[1].funtype && 
-       FUN_NO ==selects.attributes[2].funtype  
+       0 ==strcmp(table_name2,selects.attributes[2].relation_name)   
      )
    {
      b_not_know =true;
    }
 
   }
- 
   if(true ==b_not_know)
   {
     //1--0
