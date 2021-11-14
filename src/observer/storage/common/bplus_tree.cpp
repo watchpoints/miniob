@@ -187,69 +187,100 @@ int CompareKey(const char *pdata, const char *pkey, AttrType attr_type, int attr
   int i1, i2;
   float f1, f2;
   const char *s1, *s2;
-  //null 与null  true
-  //null 与其他值 false
-  if (0 == strcmp(pkey, "999"))
-  {
-    if (0 == strcmp(pdata, "999"))
-    {
-
-      LOG_INFO(" 9999999999 null 与null  true ");
-      //return 0; //相等
-    }
-    else
-    {
-      LOG_INFO(" key is null  与其他值 false");
-      //return -1; //不相等
-    }
-  }
-  // null >1
-  if (0 == strcmp(pdata, "999"))
-  {
-    LOG_INFO(" 999 pdata is null value ");
-    // return -1; //相等
-  }
   switch (attr_type)
   {
   case INTS:
   {
-    i1 = *(int *)pdata;
-    i2 = *(int *)pkey;
-    LOG_INFO("CompareKey int >>>: 1=%d,2=%d", i1, i2);
-    if (i1 > i2)
-      return 1;
-    if (i1 < i2)
-      return -1;
-    if (i1 == i2)
+    if (0 == strcmp(pdata, "999") && 0 == strcmp(pkey, "999"))
+    {
+      LOG_INFO(" CompareKey int >>> 999 vs 999");
       return 0;
+    }
+    else if (0 == strcmp(pdata, "999") || 0 == strcmp(pkey, "999"))
+    {
+      LOG_INFO(" CompareKey int >>> 999 || 999");
+      return -1;
+    }
+    else
+    {
+      i1 = *(int *)pdata;
+      i2 = *(int *)pkey;
+      LOG_INFO("CompareKey int >>>: 1=%d,2=%d", i1, i2);
+      if (i1 > i2)
+        return 1;
+      if (i1 < i2)
+        return -1;
+      if (i1 == i2)
+        return 0;
+    }
   }
   break;
   case FLOATS:
   {
-    f1 = *(float *)pdata;
-    f2 = *(float *)pkey;
-    return float_compare(f1, f2);
+    if (0 == strcmp(pdata, "999") && 0 == strcmp(pkey, "999"))
+    {
+      LOG_INFO(" CompareKey FLOATS >>> 999 vs 999");
+      return 0;
+    }
+    else if (0 == strcmp(pdata, "999") || 0 == strcmp(pkey, "999"))
+    {
+      LOG_INFO(" CompareKey FLOATS >>> 999 || 999");
+      return -1;
+    }
+    else
+    {
+      f1 = *(float *)pdata;
+      f2 = *(float *)pkey;
+      LOG_INFO(" CompareKey FLOATS %f,%f,", f1, f2);
+      return float_compare(f1, f2);
+    }
   }
   break;
   case CHARS:
   {
-    s1 = pdata;
-    s2 = pkey;
-    LOG_INFO("CompareKey string >>>: 1=%s,2=%s", s1, s2);
-    return strncmp(s1, s2, attr_length);
+    if (0 == strcmp(pdata, "999") && 0 == strcmp(pkey, "999"))
+    {
+      LOG_INFO(" CompareKey string >>> 999 vs 999");
+      return 0;
+    }
+    else if (0 == strcmp(pdata, "999") || 0 == strcmp(pkey, "999"))
+    {
+      LOG_INFO(" CompareKey string >>> 999 || 999");
+      return -1;
+    }
+    else
+    {
+      s1 = pdata;
+      s2 = pkey;
+      LOG_INFO("CompareKey string >>>: 1=%s,2=%s", s1, s2);
+      return strncmp(s1, s2, attr_length);
+    }
   }
   case DATES:
   {
-    i1 = *(int *)pdata;
-    i2 = *(int *)pkey;
-    LOG_INFO("CompareKey DATES >>>: 1=%d,2=%d", i1, i2);
-
-    if (i1 > i2)
-      return 1;
-    if (i1 < i2)
-      return -1;
-    if (i1 == i2)
+    if (0 == strcmp(pdata, "999") && 0 == strcmp(pkey, "999"))
+    {
+      LOG_INFO(" CompareKey DATES >>> 999 vs 999");
       return 0;
+    }
+    else if (0 == strcmp(pdata, "999") || 0 == strcmp(pkey, "999"))
+    {
+      LOG_INFO(" CompareKey DATES >>> 999 || 999");
+      return -1;
+    }
+    else
+    {
+      i1 = *(int *)pdata;
+      i2 = *(int *)pkey;
+      LOG_INFO("CompareKey DATES >>>: 1=%d,2=%d", i1, i2);
+
+      if (i1 > i2)
+        return 1;
+      if (i1 < i2)
+        return -1;
+      if (i1 == i2)
+        return 0;
+    }
   }
   break;
   case NULLVALUES:
@@ -1999,6 +2030,11 @@ RC BplusTreeHandler::find_first_index_satisfied(CompOp compop, const char *key, 
       tmp = CompareKey(node->keys + i * file_header_.key_length, key, file_header_.attr_type, file_header_.attr_length);
 
       LOG_INFO("find_first_index_satisfied temp=%d ,compop=%d", tmp, compop);
+      if(compop == IS_NOT_NULL && tmp ==-1)
+      {
+        tmp =0;
+        LOG_INFO(" IS_NOT_NULL >>find_first_index_satisfied temp=%d ,compop=%d", tmp, compop);
+      }
       // ==  GREAT_EQUAL >=
       if (compop == EQUAL_TO || compop == GREAT_EQUAL || compop == IS_NULL || compop == IS_NOT_NULL)
       {

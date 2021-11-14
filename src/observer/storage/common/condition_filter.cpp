@@ -144,7 +144,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     if (nullptr == field_right)
     {
       LOG_WARN("No such field in condition. %s.%s", table.name(), condition.right_attr.attribute_name);
-      
+
       return RC::SCHEMA_FIELD_MISSING;
     }
     right.attr_length = field_right->len();
@@ -273,47 +273,95 @@ bool DefaultConditionFilter::filter(const Record &rec) const
   case CHARS:
   { // 字符串都是定长的，直接比较
     // 按照C字符串风格来定
-    cmp_result = strcmp(left_value, right_value);
+    if (0 == strcmp(left_value, "999") && 0 == strcmp(right_value, "999"))
+    {
+      cmp_result = 0;
+      LOG_INFO(" 999 DefaultConditionFilter::filter left or right  999 cmp_result =0");
+    }
+    else if (0 == strcmp(left_value, "999") || 0 == strcmp(right_value, "999"))
+    {
+      cmp_result = -1;
+    }
+    {
+      cmp_result = strcmp(left_value, right_value);
+    }
   }
   break;
   case DATES:
   { // 字符串都是定长的，直接比较
     // 没有考虑大小端问题
     // 对int和float，要考虑字节对齐问题,有些平台下直接转换可能会跪
-    int left = *(int *)left_value;
-    int right = *(int *)right_value;
-    cmp_result = left - right;
+
+    if (0 == strcmp(left_value, "999") && 0 == strcmp(right_value, "999"))
+    {
+      cmp_result = 0;
+      LOG_INFO(" 999 DefaultConditionFilter::filter left or right  999 cmp_result =0");
+    }
+    else if (0 == strcmp(left_value, "999") || 0 == strcmp(right_value, "999"))
+    {
+      cmp_result = -1;
+    }
+    else
+    {
+      int left = *(int *)left_value;
+      int right = *(int *)right_value;
+      cmp_result = left - right;
+    }
   }
   break;
   case INTS:
   {
     // 没有考虑大小端问题
     // 对int和float，要考虑字节对齐问题,有些平台下直接转换可能会跪
-    int left = *(int *)left_value;
-    int right = *(int *)right_value;
-    cmp_result = left - right;
+    if (0 == strcmp(left_value, "999") && 0 == strcmp(right_value, "999"))
+    {
+      cmp_result = 0;
+      LOG_INFO(" 999 DefaultConditionFilter::filter left or right  999 cmp_result =0");
+    }
+    else if (0 == strcmp(left_value, "999") || 0 == strcmp(right_value, "999"))
+    {
+      cmp_result = -1;
+    }
+    else
+    {
+      int left = *(int *)left_value;
+      int right = *(int *)right_value;
+      cmp_result = left - right;
+    }
   }
   break;
   case FLOATS:
   {
-    float left = *(float *)left_value;
-    float right = *(float *)right_value;
-    cmp_result = (int)(left - right);
+    if (0 == strcmp(left_value, "999") && 0 == strcmp(right_value, "999"))
+    {
+      cmp_result = 0;
+      LOG_INFO(" 999 DefaultConditionFilter::filter left or right  999 cmp_result =0");
+    }
+    else if (0 == strcmp(left_value, "999") || 0 == strcmp(right_value, "999"))
+    {
+      cmp_result = -1;
+    }
+    else
+    {
+      float left = *(float *)left_value;
+      float right = *(float *)right_value;
+      cmp_result = (int)(left - right);
+    }
   }
   break;
   case NULLVALUES:
-  {  
+  {
     // null is null true
     // null is 999
-    if(left_value && right_value &&0 == strcmp(left_value, "999") && 0 == strcmp(right_value, "999"))
+    if (left_value && right_value && 0 == strcmp(left_value, "999") && 0 == strcmp(right_value, "999"))
     {
-      cmp_result =0;
+      cmp_result = 0;
       LOG_INFO(" 999 DefaultConditionFilter::filter left or right  999 cmp_result =0");
-    }else
+    }
+    else
     {
-        cmp_result = -1;
-        LOG_INFO("DefaultConditionFilter::filter left or right is null,cmp_result = -1");
-
+      cmp_result = -1;
+      LOG_INFO("DefaultConditionFilter::filter left or right is null,cmp_result = -1");
     }
     //任何 值与NULL做对比，结果都是FALSE。
   }
@@ -367,25 +415,25 @@ bool DefaultConditionFilter::filter(const Record &rec) const
     {
       return false;
     }
-     return cmp_result >= 0;
+    return cmp_result >= 0;
   }
-   
+
   case GREAT_THAN:
   {
     if (true == comp_op_null_value)
     {
       return false;
     }
-      return cmp_result > 0;
+    return cmp_result > 0;
   }
-  
+
   case IS_NULL:
-     // null is null true 
-     LOG_INFO("DefaultConditionFilter::filter IS_NULL cmp_result=%d",cmp_result); 
+    // null is null true
+    LOG_INFO("DefaultConditionFilter::filter IS_NULL cmp_result=%d", cmp_result);
     return 0 == cmp_result;
   case IS_NOT_NULL:
-     
-    LOG_INFO("DefaultConditionFilter::filter IS_NOT_NULL=%d",cmp_result); 
+
+    LOG_INFO("DefaultConditionFilter::filter IS_NOT_NULL=%d", cmp_result);
     return cmp_result != 0;
 
   default:
