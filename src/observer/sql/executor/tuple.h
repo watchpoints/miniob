@@ -243,7 +243,7 @@ public:
   static void from_table_first(const Table *table, TupleSchema &schema, FunctionType functiontype);
   static void from_table_first_count_number(const Table *table, TupleSchema &schema, FunctionType functiontype, const char *field_name_count_number);
 
-private:
+public:
   std::vector<TupleField> fields_;
 
 public:

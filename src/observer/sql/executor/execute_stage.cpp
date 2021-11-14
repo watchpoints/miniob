@@ -361,36 +361,119 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
 
     TupleSet twoSet;
 
+    //按照select重现产生输出顺序 --这个我不会，我放弃这样题目，但是null 不过 特殊处理。
+
+    //01判断是否需要特殊处理
+    //这里先测试 判断是否正确，处理，
+    //方法不正确。
+    bool flag = false;
+
+    if (true == flag)
+    {   //在这里写根本不行，程序core
+      //特殊处理过程
+      //0-- 0 ok
+      //0-- 1 （1-0）
+      //1--0(0-1)
+      //最后2个swap
+      const TupleSchema schema0 = tuple_sets[0].get_schema();
+      const TupleSchema schema1 = tuple_sets[1].get_schema();
+
+      TupleSchema schema;
+      //重组：schema ok
+      for (int i = selects.attr_num - 1; i >= 0; i--)
+      {
+        const RelAttr &attr = selects.attributes[i];
+        char *talbe_name = attr.relation_name;
+        char *attribute_name = attr.attribute_name;
+
+        for (int i = 0; i < schema1.fields_.size(); i++)
+        {
+          const char *talbe_name1 = schema1.fields_[i].table_name();
+          const char *attribute_name1 = schema1.fields_[i].field_name();
+          if (0 == strcmp(talbe_name1, talbe_name) && 0 == strcmp(attribute_name1, attribute_name))
+          {
+            LOG_INFO("111=:%s,222=:%s",talbe_name,attribute_name);
+            schema.fields_.push_back(schema1.fields_[i]);
+          }
+        }
+        for (int i = 0; i < schema0.fields_.size(); i++)
+        {
+          const char *talbe_name2 = schema0.fields_[i].table_name();
+          const char *attribute_name2 = schema0.fields_[i].field_name();
+          if (0 == strcmp(talbe_name2, talbe_name) && 0 == strcmp(attribute_name2, attribute_name))
+          {
+            schema.fields_.push_back(schema0.fields_[i]);
+            LOG_INFO("333=:%s,444=:%s",talbe_name,attribute_name);
+          }
+        }
+      }
+      twoSet.set_schema(schema); //第一个表信息
+      twoSet.add_old_tuple_schema(schema);
+
+
+      //添加行信息 过滤显示
+      twoSet.set_schema1(tuple_sets[1].get_schema()); //第一个表内容
+      twoSet.set_schema2(tuple_sets[0].get_schema()); //第一个表内容
+
+      //重组tuple
+      //schema1 -->schema0;
+      //twoSet.set_tuples1(std::move(tuple_sets[1].get_tuple()));
+      //twoSet.set_tuples2(std::move(tuple_sets[0].get_tuple()));
+       
+       std::vector<Tuple> schema_row1 = tuple_sets[1].get_tuple();
+       std::vector<Tuple> schema_row0 = tuple_sets[0].get_tuple();
+
+       for(int i=0;i<schema_row1.size();i++)
+       {
+         Tuple tuple1 =schema_row1[i];
+         Tuple tuple0 =schema_row0[i];
+         std::vector<std::shared_ptr<TupleValue>> values1 =tuple1.values();
+         std::vector<std::shared_ptr<TupleValue>> values0 =tuple0.values();
+         for(int j=0;j<values1.size();j++)
+         {
+           if(j ==1)
+           {
+             values0.push_back(values1[1]);
+           }
+         }
+       }
+       twoSet.set_tuples1(std::move(schema_row1));
+       twoSet.set_tuples2(std::move(schema_row0));
+
+    }
+    else
+    {
+      if (tuple_sets[1].old_schema.size() > 0)
+      {
+        //可能存在缺失字段：
+        twoSet.old_schema = tuple_sets[1].old_schema; //第一个表信息
+      }
+
+      {
+        twoSet.set_schema(tuple_sets[1].get_schema()); //第一个表信息
+      }
+
+      if (tuple_sets[0].old_schema.size() > 0)
+      {
+        //可能存在缺失字段：
+        twoSet.add_old_tuple_schema(tuple_sets[0].old_schema);
+      }
+
+      {
+        twoSet.add_tuple_schema(tuple_sets[0].get_schema()); // 第二个表信息
+      }
+
+      twoSet.set_schema1(tuple_sets[1].get_schema()); //第一个表内容
+      twoSet.set_schema2(tuple_sets[0].get_schema()); //第一个表内容
+      //一个表 有2个字段，2个表 这里就四行记录
+
+      //添加行信息 过滤显示
+      twoSet.set_tuples1(std::move(tuple_sets[1].get_tuple()));
+      twoSet.set_tuples2(std::move(tuple_sets[0].get_tuple()));
+    }
+
     //添加列信息：
     //列信息: schema_ (type_ = INTS, table_name_ = "t1", field_name_ = "id")
-
-    if (tuple_sets[1].old_schema.size() > 0)
-    {
-      //可能存在缺失字段：
-      twoSet.old_schema = tuple_sets[1].old_schema; //第一个表信息
-    }
-
-    {
-      twoSet.set_schema(tuple_sets[1].get_schema()); //第一个表信息
-    }
-
-    if (tuple_sets[0].old_schema.size() > 0)
-    {
-      //可能存在缺失字段：
-      twoSet.add_old_tuple_schema(tuple_sets[0].old_schema);
-    }
-
-    {
-      twoSet.add_tuple_schema(tuple_sets[0].get_schema()); // 第二个表信息
-    }
-
-    twoSet.set_schema1(tuple_sets[1].get_schema()); //第一个表内容
-    twoSet.set_schema2(tuple_sets[0].get_schema()); //第一个表内容
-    //一个表 有2个字段，2个表 这里就四行记录
-
-    //添加行信息 过滤显示
-    twoSet.set_tuples1(std::move(tuple_sets[1].get_tuple()));
-    twoSet.set_tuples2(std::move(tuple_sets[0].get_tuple()));
 
     //通过selects判断是否有联合查询不合适，因为这个是多个表查询，拆分单独一个表查询
     //虽然你看到过滤，但是没有认真从上到下阅读代码导致 ，不清楚上面逻辑
@@ -424,14 +507,11 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       const Condition &condition = selects.conditions[i];
       if (condition.left_is_attr == 1 && condition.right_is_attr == 1 &&
           0 != strcmp(condition.left_attr.relation_name, condition.right_attr.relation_name) &&
-          (
-            condition.comp == EQUAL_TO  || 
-            condition.comp == GREAT_EQUAL  || 
-            condition.comp == GREAT_THAN  || 
-            condition.comp == LESS_EQUAL  || 
-            condition.comp == LESS_THAN  
-          )
-        )
+          (condition.comp == EQUAL_TO ||
+           condition.comp == GREAT_EQUAL ||
+           condition.comp == GREAT_THAN ||
+           condition.comp == LESS_EQUAL ||
+           condition.comp == LESS_THAN))
       {
         isJoin = true;
         joinIndex = i;
@@ -465,7 +545,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
           if (0 == strcmp(fields1[i].field_name(), condition.left_attr.attribute_name))
           {
             twoSet.dp[filterIndex][0].m_index = i;
-            twoSet.dp[filterIndex][0].comp=condition.comp;
+            twoSet.dp[filterIndex][0].comp = condition.comp;
             // break;
           }
         }
@@ -476,7 +556,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
           if (0 == strcmp(fields2[i].field_name(), condition.left_attr.attribute_name))
           {
             twoSet.dp[filterIndex][1].m_index = i;
-            twoSet.dp[filterIndex][1].comp=condition.comp;
+            twoSet.dp[filterIndex][1].comp = condition.comp;
             //break;
           }
         }
@@ -568,7 +648,6 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
           {
             usedTable[0].m_index = i;
             usedTable[0].m_table_name = strdup(fields1[i].table_name());
-
           }
 
           if (0 == strcmp(fields1[i].field_name(), condition.right_attr.attribute_name) &&
@@ -576,7 +655,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
               0 == strcmp(fields1[i].table_name(), condition.right_attr.relation_name))
           {
             usedTable[0].m_index = i;
-            usedTable[0].m_table_name =strdup(fields1[i].table_name());
+            usedTable[0].m_table_name = strdup(fields1[i].table_name());
           }
         }
 
@@ -588,8 +667,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
               0 == strcmp(fields2[i].table_name(), condition.left_attr.relation_name))
           {
             usedTable[1].m_index = i;
-            usedTable[1].m_table_name =strdup(fields2[i].table_name());
-
+            usedTable[1].m_table_name = strdup(fields2[i].table_name());
           }
 
           if (0 == strcmp(fields2[i].field_name(), condition.right_attr.attribute_name) &&
@@ -597,8 +675,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
               0 == strcmp(fields2[i].table_name(), condition.right_attr.relation_name))
           {
             usedTable[1].m_index = i;
-            usedTable[1].m_table_name =strdup(fields2[i].table_name());
-
+            usedTable[1].m_table_name = strdup(fields2[i].table_name());
           }
         }
 
@@ -611,7 +688,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
               0 == strcmp(fields3[i].table_name(), condition.left_attr.relation_name))
           {
             usedTable[2].m_index = i;
-            usedTable[2].m_table_name =strdup(fields3[i].table_name());
+            usedTable[2].m_table_name = strdup(fields3[i].table_name());
           }
 
           if (0 == strcmp(fields3[i].field_name(), condition.right_attr.attribute_name) &&
@@ -619,7 +696,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
               0 == strcmp(fields3[i].table_name(), condition.right_attr.relation_name))
           {
             usedTable[2].m_index = i;
-            usedTable[2].m_table_name =strdup(fields3[i].table_name());
+            usedTable[2].m_table_name = strdup(fields3[i].table_name());
           }
         }
       }
@@ -638,8 +715,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     else if (usedTable[0].m_index >= 0 && usedTable[1].m_index >= 0)
     {
       select_table_type = 2; //a ok b ok  c (no)
-      LOG_INFO(" >>>>>>>>>>>>>select_table_type = 2; 1=%s,2=%s",usedTable[0].m_table_name,usedTable[1].m_table_name);
-
+      LOG_INFO(" >>>>>>>>>>>>>select_table_type = 2; 1=%s,2=%s", usedTable[0].m_table_name, usedTable[1].m_table_name);
     }
     else if (usedTable[1].m_index >= 0 && usedTable[2].m_index >= 0)
     {
@@ -708,13 +784,12 @@ static RC schema_add_field(Table *table, const char *field_name, TupleSchema &sc
     return RC::SCHEMA_FIELD_MISSING;
   }
   //避免 t.id,t.id
-  schema.add_if_not_exists1(field_meta->type(), table->name(), field_meta->name(),field_meta->nullable());
+  schema.add_if_not_exists1(field_meta->type(), table->name(), field_meta->name(), field_meta->nullable());
   return RC::SUCCESS;
 }
 
 // 把所有的表和只跟这张表关联的condition都拿出来，生成最底层的select 执行节点
-RC 
-create_selection_executor(Trx *trx, const Selects &selects, const char *db, const char *table_name, SelectExeNode &select_node)
+RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, const char *table_name, SelectExeNode &select_node)
 {
   // 列出跟这张表关联的Attr
   TupleSchema schema;
