@@ -195,19 +195,19 @@ int CompareKey(const char *pdata, const char *pkey, AttrType attr_type, int attr
     {
 
       LOG_INFO(" 9999999999 null 与null  true ");
-      return 0; //相等
+      //return 0; //相等
     }
     else
     {
       LOG_INFO(" key is null  与其他值 false");
-      return -1; //不相等
+      //return -1; //不相等
     }
   }
-  // null >1 
+  // null >1
   if (0 == strcmp(pdata, "999"))
   {
-      LOG_INFO(" 999 pdata is null value ");
-      return -1; //相等
+    LOG_INFO(" 999 pdata is null value ");
+    // return -1; //相等
   }
   switch (attr_type)
   {
@@ -399,7 +399,7 @@ RC BplusTreeHandler::find_leaf(const char *pkey, PageNum *leaf_page)
     for (i = 0; i < node->key_num; i++)
     {
       tmp = CmpKey(file_header_.attr_type, file_header_.attr_length, pkey, node->keys + i * file_header_.key_length);
-      LOG_INFO("find_leaf 999999  CmpKey =%d",tmp );
+      LOG_INFO("find_leaf 999999  CmpKey =%d", tmp);
       if (tmp < 0)
         break;
     }
@@ -455,8 +455,10 @@ RC BplusTreeHandler::insert_into_leaf(PageNum leaf_page, const char *pkey, const
 
   for (insert_pos = 0; insert_pos < node->key_num; insert_pos++)
   {
-    LOG_INFO("insert_into_leaf insert_into_leaf ");
+    //pdate,pkey
     tmp = CmpKey(file_header_.attr_type, file_header_.attr_length, pkey, node->keys + insert_pos * file_header_.key_length);
+
+    LOG_INFO("insert_into_leaf insert_into_leaf temp =%d", tmp);
     if (tmp == 0)
     {
       LOG_INFO(" 索引重复了,RECORD_DUPLICATE_KEY");
@@ -1057,7 +1059,7 @@ RC BplusTreeHandler::insert_into_new_root(PageNum left_page, const char *pkey, P
 //pkey:插入的索引的key,不是一整行记录
 RC BplusTreeHandler::insert_entry(const char *pkey, const RID *rid)
 {
-
+  LOG_INFO("insert_entry begin");
   if (rid)
   {
     LOG_INFO(" insert_entry  of record(rid=%d.%d)",
@@ -1995,10 +1997,10 @@ RC BplusTreeHandler::find_first_index_satisfied(CompOp compop, const char *key, 
     for (i = 0; i < node->key_num; i++)
     {
       tmp = CompareKey(node->keys + i * file_header_.key_length, key, file_header_.attr_type, file_header_.attr_length);
-      
-      LOG_INFO("find_first_index_satisfied temp=%d ,compop=%d",tmp,compop);
+
+      LOG_INFO("find_first_index_satisfied temp=%d ,compop=%d", tmp, compop);
       // ==  GREAT_EQUAL >=
-      if (compop == EQUAL_TO || compop == GREAT_EQUAL || compop == IS_NULL)
+      if (compop == EQUAL_TO || compop == GREAT_EQUAL || compop == IS_NULL || compop == IS_NOT_NULL)
       {
         if (tmp >= 0)
         {
@@ -2268,6 +2270,7 @@ RC BplusTreeScanner::get_next_idx_in_memory(RID *rid)
 }
 bool BplusTreeScanner::satisfy_condition(const char *pkey)
 {
+  LOG_INFO("satisfy_condition");
   int i1 = 0, i2 = 0;
   float f1 = 0, f2 = 0;
   const char *s1 = nullptr, *s2 = nullptr;
@@ -2283,14 +2286,17 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey)
   case INTS:
     i1 = *(int *)pkey;
     i2 = *(int *)value_;
+    LOG_INFO("satisfy_condition 1=%d,2=%d", i1, i2);
     break;
   case FLOATS:
     f1 = *(float *)pkey;
     f2 = *(float *)value_;
+    LOG_INFO("satisfy_condition 1=%d,2=%d", f1, f2);
     break;
   case CHARS:
     s1 = pkey;
     s2 = value_;
+    LOG_INFO("satisfy_condition 1=%s,2=%s", s1, s2);
     break;
   case DATES:
     i1 = *(int *)pkey;
@@ -2306,6 +2312,7 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey)
   switch (comp_op_)
   {
   case EQUAL_TO:
+    //=
     switch (attr_type)
     {
     case INTS:
@@ -2420,18 +2427,72 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey)
     }
     break;
   case IS_NULL:
-  {  
+  {
     LOG_INFO(" BplusTreeScanner::satisfy_condition  IS_NULL");
-   
-    flag = false;
+    //自己上来写死了，导致后面8小时，怎么解决都不对，
+    //假如你开始 不修改，LOG_PANIC 错误应该很快发现问题
+    //因此：需要修改时候在修改
+    switch (attr_type)
+    {
+    case INTS:
+      flag = (i1 == i2);
+      break;
+    case FLOATS:
+      flag = 0 == float_compare(f1, f2);
+      break;
+    case CHARS:
+      flag = (strncmp(s1, s2, attr_length) == 0);
+      break;
+    case DATES:
+      flag = (i1 == i2);
+      break;
+    default:
+      LOG_PANIC("Unknown attr type: %d", attr_type);
+    }
+    /**
+    if (0 == strcmp(pkey, "999") && 0 == strcmp(pkey, "999"))
+    {
+      flag = true;
+    }
+    else
+    {
+      flag = false;
+    }**/
   }
   break;
 
   case IS_NOT_NULL:
-  {  
-    LOG_INFO(" BplusTreeScanner::satisfy_condition  IS_NOT_NULL");
+  {
 
-    flag = true;
+    //flag = true;
+    if (0 == strcmp(value_, "999") && 0 == strcmp(pkey, "999"))
+    {
+      flag = false;
+      LOG_INFO(" 9999 BplusTreeScanner::satisfy_condition  IS_NOT_NULL  flag = false;");
+    }
+    else
+    {
+      LOG_INFO("  BplusTreeScanner::satisfy_condition  IS_NOT_NULL flag = true ");
+      flag = true;
+    }
+
+    switch (attr_type)
+    {
+    case INTS:
+      flag = (i1 != i2);
+      break;
+    case FLOATS:
+      flag = 0 != float_compare(f1, f2);
+      break;
+    case CHARS:
+      flag = (strncmp(s1, s2, attr_length) != 0);
+      break;
+    case DATES:
+      flag = (i1 != i2);
+      break;
+    default:
+      LOG_PANIC("Unknown attr type: %d", attr_type);
+    }
   }
   break;
 
