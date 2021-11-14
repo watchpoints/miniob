@@ -43,7 +43,7 @@ public:
     return condition_filters_;
   }    
    
-private:
+public:
   Trx *trx_ = nullptr;
   Table  * table_;
   TupleSchema  tuple_schema_;

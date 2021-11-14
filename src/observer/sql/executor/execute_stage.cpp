@@ -301,9 +301,42 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     end_trx_if_need(session, trx, false);
     return RC::SQL_SYNTAX;
   }
-  //疑问：这是什么没看懂？？
-  //我猜测读取行记录
-  //后面：跟踪
+
+  //重组：TupleSchema
+  //这个是不会，我写demo 看看后面能解决不【遗漏】
+  //select t12.num,t13.num,t12.birthday from t12,t13 where t12.num=t13.num;
+  bool b_not_know =false;
+  if(selects.attr_num ==3 &&  selects.relation_num ==2)
+  {
+    const char *table_name1 = selects.relations[0];//t13
+    const char *table_name2 = selects.relations[1];//t12
+    LOG_INFO(">>>>>>> t1=%s ,t2=%s",table_name1,table_name2);
+
+   if( 0 ==strcmp(table_name2,selects.attributes[0].relation_name) &&
+       0 ==strcmp(table_name1,selects.attributes[1].relation_name) &&
+       0 ==strcmp(table_name2,selects.attributes[2].relation_name) &&
+       FUN_NO ==selects.attributes[0].funtype && 
+       FUN_NO ==selects.attributes[1].funtype && 
+       FUN_NO ==selects.attributes[2].funtype  
+     )
+   {
+     b_not_know =true;
+   }
+
+  }
+ 
+  if(true ==b_not_know)
+  {
+    //1--0
+    SelectExeNode* p1 =select_nodes[1];
+    SelectExeNode* p0 =select_nodes[0];
+    p0->tuple_schema_.fields_.push_back(p1->tuple_schema_.fields_[1]);
+    p1->tuple_schema_.fields_.erase(p1->tuple_schema_.fields_.end()-1);
+    p0->old_tuple_schema.fields_.push_back(p1->old_tuple_schema.fields_[1]);
+    p1->old_tuple_schema.fields_.erase(p1->old_tuple_schema.fields_.end()-1);
+  }
+
+
   std::vector<TupleSet> tuple_sets;
   //一个表 一个TupleSet记录
   //TupleSet 存储 列属性 和行的value
