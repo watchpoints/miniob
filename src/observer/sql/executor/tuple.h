@@ -417,6 +417,7 @@ public:
   TupleSchema old_schema; //一个表内容信息  缺失字段
   int commonIndex;
   int select_table_type ;
+  bool b_not_know;
 
 
 };

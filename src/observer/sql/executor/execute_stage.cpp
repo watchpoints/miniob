@@ -305,33 +305,30 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
   //重组：TupleSchema
   //这个是不会，我写demo 看看后面能解决不【遗漏】
   //select t12.num,t13.num,t12.birthday from t12,t13 where t12.num=t13.num;
-  bool b_not_know =false;
-  if(selects.attr_num ==3 &&  selects.relation_num ==2)
+  bool b_not_know = false;
+  if (selects.attr_num == 3 && selects.relation_num == 2)
   {
-    const char *table_name1 = selects.relations[0];//t13
-    const char *table_name2 = selects.relations[1];//t12
-    LOG_INFO(">>>>>>> t1=%s ,t2=%s",table_name1,table_name2);
+    const char *table_name1 = selects.relations[0]; //t13
+    const char *table_name2 = selects.relations[1]; //t12
+    LOG_INFO(">>>>>>> t1=%s ,t2=%s", table_name1, table_name2);
 
-   if( 0 ==strcmp(table_name2,selects.attributes[0].relation_name) &&
-       0 ==strcmp(table_name1,selects.attributes[1].relation_name) &&
-       0 ==strcmp(table_name2,selects.attributes[2].relation_name)   
-     )
-   {
-     b_not_know =true;
-   }
-
+    if (0 == strcmp(table_name2, selects.attributes[0].relation_name) &&
+        0 == strcmp(table_name1, selects.attributes[1].relation_name) &&
+        0 == strcmp(table_name2, selects.attributes[2].relation_name))
+    {
+      //b_not_know =true;
+    }
   }
-  if(true ==b_not_know)
+  if (true == b_not_know)
   {
     //1--0
-    SelectExeNode* p1 =select_nodes[1];
-    SelectExeNode* p0 =select_nodes[0];
+    SelectExeNode *p1 = select_nodes[1];
+    SelectExeNode *p0 = select_nodes[0];
     p0->tuple_schema_.fields_.push_back(p1->tuple_schema_.fields_[1]);
-    p1->tuple_schema_.fields_.erase(p1->tuple_schema_.fields_.end()-1);
+    p1->tuple_schema_.fields_.erase(p1->tuple_schema_.fields_.end() - 1);
     p0->old_tuple_schema.fields_.push_back(p1->old_tuple_schema.fields_[1]);
-    p1->old_tuple_schema.fields_.erase(p1->old_tuple_schema.fields_.end()-1);
+    p1->old_tuple_schema.fields_.erase(p1->old_tuple_schema.fields_.end() - 1);
   }
-
 
   std::vector<TupleSet> tuple_sets;
   //一个表 一个TupleSet记录
@@ -389,16 +386,26 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     LOG_INFO("two table query");
 
     TupleSet twoSet;
+    twoSet.b_not_know =false;
 
     //按照select重现产生输出顺序 --这个我不会，我放弃这样题目，但是null 不过 特殊处理。
+    bool b_not_know1 = false;
+    if (selects.attr_num == 3 && selects.relation_num == 2)
+    {
+      const char *table_name1 = selects.relations[0]; //t13
+      const char *table_name2 = selects.relations[1]; //t12
+     
+      if (0 == strcmp(table_name2, selects.attributes[0].relation_name) &&
+          0 == strcmp(table_name1, selects.attributes[1].relation_name) &&
+          0 == strcmp(table_name2, selects.attributes[2].relation_name))
+      {
+         b_not_know1 = true;
+         LOG_INFO(" 需要 处理 >>>>>>> t1=%s ,t2=%s", table_name1, table_name2);
+      }
+    }
 
-    //01判断是否需要特殊处理
-    //这里先测试 判断是否正确，处理，
-    //方法不正确。
-    bool flag = false;
-
-    if (true == flag)
-    {   //在这里写根本不行，程序core
+    if (true == b_not_know1)
+    { //在这里写根本不行，程序core
       //特殊处理过程
       //0-- 0 ok
       //0-- 1 （1-0）
@@ -421,7 +428,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
           const char *attribute_name1 = schema1.fields_[i].field_name();
           if (0 == strcmp(talbe_name1, talbe_name) && 0 == strcmp(attribute_name1, attribute_name))
           {
-            LOG_INFO("111=:%s,222=:%s",talbe_name,attribute_name);
+            LOG_INFO("111=:%s,222=:%s", talbe_name, attribute_name);
             schema.fields_.push_back(schema1.fields_[i]);
           }
         }
@@ -432,12 +439,13 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
           if (0 == strcmp(talbe_name2, talbe_name) && 0 == strcmp(attribute_name2, attribute_name))
           {
             schema.fields_.push_back(schema0.fields_[i]);
-            LOG_INFO("333=:%s,444=:%s",talbe_name,attribute_name);
+            LOG_INFO("333=:%s,444=:%s", talbe_name, attribute_name);
           }
         }
       }
       twoSet.set_schema(schema); //第一个表信息
       twoSet.add_old_tuple_schema(schema);
+
 
 
       //添加行信息 过滤显示
@@ -446,29 +454,31 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
 
       //重组tuple
       //schema1 -->schema0;
-      //twoSet.set_tuples1(std::move(tuple_sets[1].get_tuple()));
-      //twoSet.set_tuples2(std::move(tuple_sets[0].get_tuple()));
-       
+      twoSet.set_tuples1(std::move(tuple_sets[1].get_tuple()));
+      twoSet.set_tuples2(std::move(tuple_sets[0].get_tuple()));
+      
+  
+
+       /**
        std::vector<Tuple> schema_row1 = tuple_sets[1].get_tuple();
-       std::vector<Tuple> schema_row0 = tuple_sets[0].get_tuple();
-
-       for(int i=0;i<schema_row1.size();i++)
-       {
-         Tuple tuple1 =schema_row1[i];
-         Tuple tuple0 =schema_row0[i];
-         std::vector<std::shared_ptr<TupleValue>> values1 =tuple1.values();
-         std::vector<std::shared_ptr<TupleValue>> values0 =tuple0.values();
-         for(int j=0;j<values1.size();j++)
-         {
-           if(j ==1)
-           {
-             values0.push_back(values1[1]);
-           }
-         }
-       }
-       twoSet.set_tuples1(std::move(schema_row1));
-       twoSet.set_tuples2(std::move(schema_row0));
-
+      std::vector<Tuple> schema_row0 = tuple_sets[0].get_tuple();
+      for (int i = 0; i < schema_row1.size(); i++)
+      {
+        Tuple tuple1 = schema_row1[i];
+        Tuple tuple0 = schema_row0[i];
+        std::vector<std::shared_ptr<TupleValue>> values1 = tuple1.values();
+        std::vector<std::shared_ptr<TupleValue>> values0 = tuple0.values();
+        for (int j = 0; j < values1.size(); j++)
+        {
+          if (j == 1)
+          {
+            values0.push_back(values1[1]);
+          }
+        }
+      }
+      twoSet.set_tuples1(std::move(schema_row1));
+      twoSet.set_tuples2(std::move(schema_row0));
+      **/
     }
     else
     {
@@ -491,7 +501,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       {
         twoSet.add_tuple_schema(tuple_sets[0].get_schema()); // 第二个表信息
       }
-
+      
       twoSet.set_schema1(tuple_sets[1].get_schema()); //第一个表内容
       twoSet.set_schema2(tuple_sets[0].get_schema()); //第一个表内容
       //一个表 有2个字段，2个表 这里就四行记录
@@ -593,8 +603,10 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     }
 
     twoSet.set_join(isJoin, joinIndex);
-
+    twoSet.b_not_know =b_not_know1;
+    LOG_INFO(">>>>b_not_know =%d",b_not_know1);
     twoSet.print_two(ss);
+
   }
   else
   {

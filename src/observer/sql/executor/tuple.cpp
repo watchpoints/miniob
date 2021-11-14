@@ -1068,6 +1068,8 @@ void TupleSet::print_two(std::ostream &os)
 
     int col1 = 0;
     std::stringstream os_left; //第一个表的 全部行
+    std::stringstream os_left1;
+    std::stringstream os_left2;
     {
       //std::vector<std::shared_ptr<TupleValue>>  values_; 每一行 多个字段
       const std::vector<std::shared_ptr<TupleValue>> &values = item_left.values();
@@ -1096,9 +1098,18 @@ void TupleSet::print_two(std::ostream &os)
         {
         }
         else
-        {
-          (*iter)->to_string(os_left);
-          os_left << " | ";
+        {  
+          if(b_not_know ==true && col1 ==1)
+          {
+            (*iter)->to_string(os_left1);
+            LOG_INFO("11111111111111111 left=");
+          }else
+          {
+             (*iter)->to_string(os_left);
+              os_left << " | ";
+          }
+          
+         
         }
 
         col1++;
@@ -1144,9 +1155,22 @@ void TupleSet::print_two(std::ostream &os)
               //隐藏 什么都不操作
             }
             else
-            {
-              (*iter)->to_string(os_right);
-              os_right << std::endl;
+            {  
+
+              if(b_not_know ==true )
+              {
+                LOG_INFO("11111111111111111 ");
+                (*iter)->to_string(os_right);
+                os_right << " | ";
+                os_right << os_left1.str();
+                os_right << std::endl;
+
+              }else
+              {
+                 (*iter)->to_string(os_right);
+                  os_right << std::endl;
+              }   
+             
             }
           }
           else
@@ -1162,8 +1186,9 @@ void TupleSet::print_two(std::ostream &os)
               ////age（当前）,id(隐藏)
               int next = col2 + 1;
               if (rightVisibleMap.count(next) == 1 && true == rightVisibleMap[next])
-              {
-                (*iter)->to_string(os_right);
+              { 
+                (*iter)->to_string(os_right); 
+                
                 os_right << std::endl;
               }
             }

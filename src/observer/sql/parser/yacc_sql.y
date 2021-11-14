@@ -433,22 +433,26 @@ select:				/*  select 语句的语法解析树*/
 select_attr:
     STAR {  
 			RelAttr attr;
+			attr.funtype=FUN_NO;
 			relation_attr_init(&attr, NULL, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
     | ID attr_list {
 			RelAttr attr;
+			attr.funtype=FUN_NO;
 			relation_attr_init(&attr, NULL, $1);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
   	| ID DOT ID attr_list {
 			RelAttr attr;
+			attr.funtype=FUN_NO;
 			//单表才有聚合
 			relation_attr_init(&attr, $1, $3);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
 	| ID DOT STAR attr_list {
 			RelAttr attr;
+			attr.funtype=FUN_NO;
 			//单表才有聚合
 			relation_attr_init(&attr, $1,  "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
@@ -495,6 +499,7 @@ attr_list:
     /* empty */
     | COMMA ID attr_list {
 			RelAttr attr;
+			attr.funtype=FUN_NO;
 			relation_attr_init(&attr, NULL, $2);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
      	  // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].relation_name = NULL;
@@ -502,6 +507,7 @@ attr_list:
       }
     | COMMA ID DOT ID attr_list {
 			RelAttr attr;
+			attr.funtype=FUN_NO;
 			//单表才有聚合
 			relation_attr_init(&attr, $2, $4);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
@@ -510,6 +516,7 @@ attr_list:
   	  }
 	 | COMMA ID DOT STAR attr_list {
 			RelAttr attr;
+			attr.funtype=FUN_NO;
 			relation_attr_init(&attr, $2, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
