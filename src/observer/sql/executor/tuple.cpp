@@ -140,7 +140,7 @@ void TupleSchema::add_if_not_exists1(AttrType type, const char *table_name, cons
       return;
     }
   }
- // LOG_INFO("add_if_not_exists. %s.%s", table_name, field_name);
+  // LOG_INFO("add_if_not_exists. %s.%s", table_name, field_name);
   add(type, table_name, field_name, nullable);
 }
 
@@ -592,7 +592,7 @@ void TupleRecordConverter::add_record(const char *record)
         const char *s = record + field_meta->offset();
         if (0 == strcmp(s, "999"))
         {
-         
+
           tuple.add_null_value();
         }
         else
@@ -605,7 +605,7 @@ void TupleRecordConverter::add_record(const char *record)
       else
       {
         int value = *(int *)(record + field_meta->offset());
-       // LOG_INFO(" tuple add int =%d ", value);
+        // LOG_INFO(" tuple add int =%d ", value);
         tuple.add(value);
       }
     }
@@ -651,7 +651,7 @@ void TupleRecordConverter::add_record(const char *record)
         else
         {
           const char *s = record + field_meta->offset(); // 现在当做Cstring来处理
-         // LOG_INFO(" tuple add string =%s ", s);
+                                                         // LOG_INFO(" tuple add string =%s ", s);
           tuple.add(s, strlen(s));
         }
       }
@@ -672,20 +672,20 @@ void TupleRecordConverter::add_record(const char *record)
         const char *s = record + field_meta->offset();
         if (0 == strcmp(s, "999"))
         {
-         // LOG_INFO("99999 FLOATS");
+          // LOG_INFO("99999 FLOATS");
           tuple.add_null_value();
         }
         else
         {
           int value = *(int *)(record + field_meta->offset());
-         // LOG_INFO(" tuple.add_date=%d ", value);
+          // LOG_INFO(" tuple.add_date=%d ", value);
           tuple.add_date(value);
         }
       }
       else
       {
         int value = *(int *)(record + field_meta->offset());
-       // LOG_INFO(" tuple.add_date=%d ", value);
+        // LOG_INFO(" tuple.add_date=%d ", value);
         tuple.add_date(value);
       }
     }
@@ -786,11 +786,19 @@ bool TupleSet::avg_print(std::ostream &os) const
       isWindows = true;
       std::shared_ptr<TupleValue> maxValue;
 
+      if (0 == tuples_.size())
+      {
+        return true;
+      }
       for (const Tuple &item : tuples_)
       {
         int colIndex = 0;
         //第n-1列
         const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
+        if (0 == values.size())
+        {
+          continue;
+        }
         for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
              iter != end; ++iter)
         {
@@ -799,11 +807,11 @@ bool TupleSet::avg_print(std::ostream &os) const
           {
             std::shared_ptr<TupleValue> temp = *iter;
 
-            if (AttrType::NULLVALUES == temp->get_type())
-            {
-              //不处理
-            }
-            else
+            //if (AttrType::NULLVALUES == temp->get_type())
+            //{
+            //不处理
+            //}
+            //else
             {
               if (nullptr == maxValue)
               {
@@ -831,11 +839,20 @@ bool TupleSet::avg_print(std::ostream &os) const
       isWindows = true;
       std::shared_ptr<TupleValue> minValue;
 
+      if (0 == tuples_.size())
+      {
+        return true;
+      }
       for (const Tuple &item : tuples_)
       {
         int colIndex = 0;
+
         //列
         const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
+        if (0 == values.size())
+        {
+          continue;
+        }
         for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
              iter != end; ++iter)
         {
@@ -844,11 +861,11 @@ bool TupleSet::avg_print(std::ostream &os) const
           {
             std::shared_ptr<TupleValue> temp = *iter;
 
-            if (AttrType::NULLVALUES == temp->get_type())
-            {
-              //不处理
-            }
-            else
+            //if (AttrType::NULLVALUES == temp->get_type())
+            //{
+            //不处理
+            //}
+            //else
             {
               if (nullptr == minValue)
               {
@@ -878,13 +895,22 @@ bool TupleSet::avg_print(std::ostream &os) const
 
       std::shared_ptr<TupleValue> sumValue;
       int count = 0;
-
+      bool exits_null_value =false;
+      if (0 == tuples_.size())
+      {
+        return true;
+      }
       for (const Tuple &item : tuples_)
       {
         int colIndex = 0;
         bool null_able = true;
         //第n列
         const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
+        if (0 == values.size())
+        {
+          continue;
+        }
+
         for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
              iter != end; ++iter)
         {
@@ -896,6 +922,7 @@ bool TupleSet::avg_print(std::ostream &os) const
             {
               //不处理
               null_able = false;
+              exits_null_value =true;
             }
             else
             {
@@ -921,7 +948,13 @@ bool TupleSet::avg_print(std::ostream &os) const
       //防溢出求平均算法
 
       if (0 == count)
-      {
+      {  
+        if(exits_null_value == true)
+        {
+          os << "NULL" ;
+          os <<std::endl;
+        }
+
         return true; //是聚合运算
       }
 
@@ -1098,18 +1131,17 @@ void TupleSet::print_two(std::ostream &os)
         {
         }
         else
-        {  
-          if(b_not_know ==true && col1 ==1)
+        {
+          if (b_not_know == true && col1 == 1)
           {
             (*iter)->to_string(os_left1);
             LOG_INFO("11111111111111111 left=");
-          }else
-          {
-             (*iter)->to_string(os_left);
-              os_left << " | ";
           }
-          
-         
+          else
+          {
+            (*iter)->to_string(os_left);
+            os_left << " | ";
+          }
         }
 
         col1++;
@@ -1155,22 +1187,21 @@ void TupleSet::print_two(std::ostream &os)
               //隐藏 什么都不操作
             }
             else
-            {  
+            {
 
-              if(b_not_know ==true )
+              if (b_not_know == true)
               {
                 LOG_INFO("11111111111111111 ");
                 (*iter)->to_string(os_right);
                 os_right << " | ";
                 os_right << os_left1.str();
                 os_right << std::endl;
-
-              }else
+              }
+              else
               {
-                 (*iter)->to_string(os_right);
-                  os_right << std::endl;
-              }   
-             
+                (*iter)->to_string(os_right);
+                os_right << std::endl;
+              }
             }
           }
           else
@@ -1186,9 +1217,9 @@ void TupleSet::print_two(std::ostream &os)
               ////age（当前）,id(隐藏)
               int next = col2 + 1;
               if (rightVisibleMap.count(next) == 1 && true == rightVisibleMap[next])
-              { 
-                (*iter)->to_string(os_right); 
-                
+              {
+                (*iter)->to_string(os_right);
+
                 os_right << std::endl;
               }
             }

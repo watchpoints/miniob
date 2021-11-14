@@ -305,30 +305,6 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
   //重组：TupleSchema
   //这个是不会，我写demo 看看后面能解决不【遗漏】
   //select t12.num,t13.num,t12.birthday from t12,t13 where t12.num=t13.num;
-  bool b_not_know = false;
-  if (selects.attr_num == 3 && selects.relation_num == 2)
-  {
-    const char *table_name1 = selects.relations[0]; //t13
-    const char *table_name2 = selects.relations[1]; //t12
-    LOG_INFO(">>>>>>> t1=%s ,t2=%s", table_name1, table_name2);
-
-    if (0 == strcmp(table_name2, selects.attributes[0].relation_name) &&
-        0 == strcmp(table_name1, selects.attributes[1].relation_name) &&
-        0 == strcmp(table_name2, selects.attributes[2].relation_name))
-    {
-      //b_not_know =true;
-    }
-  }
-  if (true == b_not_know)
-  {
-    //1--0
-    SelectExeNode *p1 = select_nodes[1];
-    SelectExeNode *p0 = select_nodes[0];
-    p0->tuple_schema_.fields_.push_back(p1->tuple_schema_.fields_[1]);
-    p1->tuple_schema_.fields_.erase(p1->tuple_schema_.fields_.end() - 1);
-    p0->old_tuple_schema.fields_.push_back(p1->old_tuple_schema.fields_[1]);
-    p1->old_tuple_schema.fields_.erase(p1->old_tuple_schema.fields_.end() - 1);
-  }
 
   std::vector<TupleSet> tuple_sets;
   //一个表 一个TupleSet记录
@@ -369,11 +345,11 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
   if (tuple_sets.size() == 1)
   {
     TupleSet &ts = tuple_sets.front();
+    ts.b_not_know =false;
     ts.realTabeNumber = 0;
     if (selects.relation_num > 1)
     {
       ts.realTabeNumber = selects.relation_num;
-      LOG_INFO("1111111 =%d", ts.realTabeNumber);
     }
     //单表：
     ts.print(ss);
