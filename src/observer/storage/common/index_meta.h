@@ -61,7 +61,7 @@ public:
 
 public:
 
-std::vector<std::string> fields;//multi-index
+std::vector<std::string> fields;//multi-index 为了这个题目我修改了全部代码逻辑
   
 };
 #endif // __OBSERVER_STORAGE_COMMON_INDEX_META_H__
