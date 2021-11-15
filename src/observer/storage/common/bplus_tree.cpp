@@ -2751,9 +2751,10 @@ RC BplusTreeHandler::insert_into_leaf_unique(PageNum leaf_page, const char *pkey
   return SUCCESS;
 }
 
+
 RC BplusTreeHandler::create_multi_index(const char *file_name)
 {
-  /**
+  
   BPPageHandle page_handle;
   IndexNode *root;
   char *pdata;
@@ -2798,11 +2799,17 @@ RC BplusTreeHandler::create_multi_index(const char *file_name)
 
   //参考 mmap的用法 操作内存地址，就操作磁盘
   IndexFileHeader *file_header = (IndexFileHeader *)pdata;
-  //file_header->attr_length = attr_length;
-  //file_header->key_length = attr_length + sizeof(RID);
-  //file_header->attr_type = attr_type;
-  file_header->node_num = 1;
-  file_header->order = ((int)BP_PAGE_DATA_SIZE - sizeof(IndexFileHeader) - sizeof(IndexNode)) / (attr_length + 2 * sizeof(RID));
+  int sum=0;
+  for(int i=0;i<fields_meta.size();i++)
+  {  
+    sum+=fields_meta[i].len();
+    IndexFileHeaderAttr item;
+    item.attr_length=fields_meta[i].len();
+    item.key_length=fields_meta[i].len() + sizeof(RID);
+    item.attr_type=fields_meta[i].type();
+  }
+  file_header->node_num = fields_meta.size();
+  file_header->order = ((int)BP_PAGE_DATA_SIZE - sizeof(IndexFileHeader) - sizeof(IndexNode)) / (sum + 2 * sizeof(RID));
   file_header->root_page = page_num;
 
   root = get_index_node(pdata);
@@ -2829,6 +2836,6 @@ RC BplusTreeHandler::create_multi_index(const char *file_name)
 
   memcpy(&file_header_, pdata, sizeof(file_header_));
   header_dirty_ = false;
-  **/
+
   return SUCCESS;
 }

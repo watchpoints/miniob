@@ -52,12 +52,14 @@ public:
 protected:
   RC init(const IndexMeta &index_meta, const FieldMeta &field_meta);
   RC init_multi(const IndexMeta &index_meta, std::vector<FieldMeta >&fields_meta);
+  RC init_multi(const IndexMeta &index_meta,const FieldMeta &field_meta,std::vector<FieldMeta >&fields_meta);
+  
 
 protected:
   IndexMeta   index_meta_;
   FieldMeta   field_meta_;    // 当前实现仅考虑一个字段的索引
 public:
-  std::vector<FieldMeta *>fields_meta; 
+  std::vector<FieldMeta >fields_meta; 
 };
 
 class IndexScanner {

@@ -47,6 +47,7 @@ public:
 
   const IndexMeta * index(const char *name) const;
   const IndexMeta * find_index_by_field(const char *field) const;
+  const IndexMeta * find_index_by_field_multi(int attr_num, char *const attributes[]) const;
   const IndexMeta * index(int i) const;
   int index_num() const;
 
@@ -54,6 +55,7 @@ public:
 
 public:
   int  serialize(std::ostream &os) const override;
+  int  serialize_mutil(std::ostream &ss) const override;
   int  deserialize(std::istream &is) override;
   int  get_serial_size() const override;
   void to_string(std::string &output) const override;

@@ -1560,20 +1560,14 @@ RC Table::create_index_multi(Trx *trx, const char *index_name, int attr_num, cha
     }
     multiIndex.push_back(attributes[i]);
   }
-  //
-  //const char *attribute_name = nullptr;
-  //if (nullptr == attribute_name)
-  //{
-    //return RC::INVALID_ARGUMENT;
-  //}
 
   //01 判断索引-字段 是否重复
-  //【看看怎么插入的，才能判断如何读取  待完成!!!】
- // if (table_meta_.index(index_name) != nullptr ||
-  //    table_meta_.find_index_by_field((attribute_name)))
-  //{
-    //return RC::SCHEMA_INDEX_EXIST;
-  //}
+  
+ if (table_meta_.index(index_name) != nullptr ||
+    table_meta_.find_index_by_field_multi(attr_num,attributes))
+  {
+    return RC::SCHEMA_INDEX_EXIST;
+  }
 
   //02判断创建的索引-字段 是否在表中存在
   std::vector<FieldMeta >fields_meta(attr_num);
@@ -1634,7 +1628,7 @@ RC Table::create_index_multi(Trx *trx, const char *index_name, int attr_num, cha
     LOG_ERROR("Failed to open file for write. file name=%s, errmsg=%s", tmp_file.c_str(), strerror(errno));
     return RC::IOERR; // 创建索引中途出错，要做还原操作
   }
-  if (new_table_meta.serialize(fs) < 0)
+  if (new_table_meta.serialize_mutil(fs) < 0)
   {
     LOG_ERROR("Failed to dump new table meta to file: %s. sys err=%d:%s", tmp_file.c_str(), errno, strerror(errno));
     return RC::IOERR;

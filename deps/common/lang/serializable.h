@@ -47,6 +47,8 @@ public:
    * @return,              used buffer length -- success, -1 means failed
    */
   virtual int serialize(std::ostream &os) const = 0;
+  virtual int serialize_mutil(std::ostream &os) const = 0;
+
 
   /*
    * deserialize bytes to this object

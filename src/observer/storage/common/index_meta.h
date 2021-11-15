@@ -33,6 +33,9 @@ public:
   RC init(const char *name, const FieldMeta &field);
   RC init(const char *name,std::vector<FieldMeta >fields_meta) ;//multi-index	
   RC init(const char *name, const FieldMeta &field,bool isUnique);
+  RC init(const char *name, const FieldMeta &field,bool isUnique,std::vector<const FieldMeta*> &fieldMetas,bool is_multi_index);
+  RC init_multi(const char *name, std::vector<const FieldMeta*> &fieldMetas, bool isUnique);
+
 
 public:
   const char *name() const;
@@ -62,6 +65,7 @@ public:
 public:
 
 std::vector<std::string> fields;//multi-index 为了这个题目我修改了全部代码逻辑
+bool is_multi_index;
   
 };
 #endif // __OBSERVER_STORAGE_COMMON_INDEX_META_H__

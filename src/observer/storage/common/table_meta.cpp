@@ -183,7 +183,8 @@ int TableMeta::serialize(std::ostream &ss) const {
   }
 
   table_value[FIELD_FIELDS] = std::move(fields_value);
-
+  
+  //索引：
   Json::Value indexes_value;
   for (const auto &index : indexes_) {
     Json::Value index_value;
@@ -299,3 +300,89 @@ void TableMeta::desc(std::ostream &os) const {
   }
   os << ')' << std::endl;
 }
+/**
+const IndexMeta *TableMeta::find_index_by_field(const char *field) const
+{
+  for (const IndexMeta &index : indexes_)
+  {
+    if (1 == index.fields.size())
+    {
+      const char *field = index.fields[0].c_str();
+      //if (0 == strcmp(index.field(), field))
+      if (0 == strcmp(field, field))
+      {
+        return &index;
+      }
+    }
+  }
+  return nullptr;
+}**/
+
+const IndexMeta *TableMeta::find_index_by_field_multi(int attr_num, char *const attributes[]) const
+{
+  for (const IndexMeta &index : indexes_)
+  {
+    bool is_exits = true;
+
+    if (attr_num != index.fields.size() || 0 == index.fields.size() || 0 == attr_num)
+    {
+      is_exits = false;
+      return nullptr;
+    }
+    else
+    {
+      for (int i = 0; i < attr_num; i++)
+      {
+        if (0 == strcmp(attributes[i], index.fields[i].c_str()))
+        {
+          is_exits = false;
+        }
+      }
+      if (is_exits)
+      {
+        return &index;
+      }
+    }
+  }
+  return nullptr;
+}
+
+
+int TableMeta::serialize_mutil(std::ostream &ss) const
+{
+  //表名
+  Json::Value table_value;
+  table_value[FIELD_TABLE_NAME] = name_;
+  //字段
+  Json::Value fields_value;
+  for (const FieldMeta &field : fields_)
+  {
+    Json::Value field_value;
+    field.to_json(field_value);
+    fields_value.append(std::move(field_value));
+  }
+
+  table_value[FIELD_FIELDS] = std::move(fields_value);
+
+  //索引
+  Json::Value indexes_value;
+  for (const auto &index : indexes_)
+  {
+    Json::Value index_value;
+    index.to_json(index_value);
+    indexes_value.append(std::move(index_value));
+  }
+  //1:多 多个索引
+  table_value[FIELD_INDEXES] = std::move(indexes_value);
+
+  Json::StreamWriterBuilder builder;
+  Json::StreamWriter *writer = builder.newStreamWriter();
+
+  std::streampos old_pos = ss.tellp();
+  writer->write(table_value, &ss);
+  int ret = (int)(ss.tellp() - old_pos);
+
+  delete writer;
+  return ret;
+}
+

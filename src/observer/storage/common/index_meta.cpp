@@ -23,6 +23,9 @@ See the Mulan PSL v2 for more details. */
 const static Json::StaticString FIELD_NAME("name");
 const static Json::StaticString FIELD_FIELD_NAME("field_name");
 const static Json::StaticString FIELD_IS_UNIQUE("unique");
+const static Json::StaticString FIELD_FIELDS_NAME("fields_name"); //这里应该是多个，field_name下是json 这默认写2
+const static Json::StaticString INDEX_MUTIL("is_mutil_index"); //判断是单个字段索引还是多个字段索引
+
 
 //不在构造函数抛出异常
 RC IndexMeta::init(const char *name, const FieldMeta &field)
@@ -36,6 +39,7 @@ RC IndexMeta::init(const char *name, const FieldMeta &field)
   name_ = name;
   field_ = field.name();
   isUnique_ = false;
+  fields.clear();
   return RC::SUCCESS;
 }
 
@@ -68,25 +72,69 @@ RC IndexMeta::init(const char *name, std::vector<FieldMeta > fields_meta)
   isUnique_ = false;
   return RC::SUCCESS;
 }
-
 RC IndexMeta::init(const char *name, const FieldMeta &field, bool isUnique)
 {
   if (nullptr == name || common::is_blank(name))
   {
     return RC::INVALID_ARGUMENT;
-    //https://songlee24.github.io/2015/01/12/cpp-exception-in-constructor/
   }
 
   name_ = name;
   field_ = field.name();
   isUnique_ = isUnique;
+  fields.clear();
+  return RC::SUCCESS;
+}
+
+RC IndexMeta::init(const char *name, const FieldMeta &field, bool isUnique,std::vector<const FieldMeta*> &fieldMetas,bool is_multi_index)
+{
+  if (nullptr == name || common::is_blank(name))
+  {
+    return RC::INVALID_ARGUMENT;
+  }
+  name_ = name;
+  field_ = field.name();
+  isUnique_ = isUnique;
+ // fields =fieldMetas;
+
+  fields.clear();
+  for(int i=0;i<fieldMetas.size();i++)
+  {
+    std::string temp(fieldMetas[i]->name());
+    fields.push_back(temp);
+  }
+  this->is_multi_index =is_multi_index;
   return RC::SUCCESS;
 }
 
 void IndexMeta::to_json(Json::Value &json_value) const
 {
+
+  //索引名字
   json_value[FIELD_NAME] = name_;
+
+  if(fields.size() >=2)
+  {
+      json_value[INDEX_MUTIL] = true;
+  }else
+  {
+    json_value[INDEX_MUTIL] = false;
+  }
+  
+  //单个索引部分
   json_value[FIELD_FIELD_NAME] = field_;
+  
+  //多个索引部分
+   Json::Value fields_value;
+  for (std::string field : fields)
+  {
+    Json::Value field_value;
+    field_value[FIELD_FIELD_NAME] = field;
+    fields_value.append(std::move(field_value));
+  }
+  //1:多
+  json_value[FIELD_FIELDS_NAME] = std::move(fields_value); 
+
   json_value[FIELD_IS_UNIQUE] = isUnique_;
 }
 
@@ -94,7 +142,10 @@ RC IndexMeta::from_json(const TableMeta &table, const Json::Value &json_value, I
 {
   const Json::Value &name_value = json_value[FIELD_NAME];
   const Json::Value &field_value = json_value[FIELD_FIELD_NAME];
+  Json::Value fields_list = json_value[FIELD_FIELDS_NAME];  
+
   const Json::Value &unique_value = json_value[FIELD_IS_UNIQUE];
+  const Json::Value &is_multi_value = json_value[INDEX_MUTIL];
 
   if (!name_value.isString())
   {
@@ -113,17 +164,36 @@ RC IndexMeta::from_json(const TableMeta &table, const Json::Value &json_value, I
     //LOG_ERROR("Visible field is not a bool value. json value=%s", visible_value.toStyledString().c_str());
     return RC::GENERIC_ERROR;
   }
-
+  if (!is_multi_value.isBool())
+  {
+    //LOG_ERROR("Visible field is not a bool value. json value=%s", visible_value.toStyledString().c_str());
+    return RC::GENERIC_ERROR;
+  }
+  //恢复单个索引部分
   const FieldMeta *field = table.field(field_value.asCString());
   if (nullptr == field)
   {
     LOG_ERROR("Deserialize index [%s]: no such field: %s", name_value.asCString(), field_value.asCString());
     return RC::SCHEMA_FIELD_MISSING;
   }
+  
+  //恢复多个索引部分
+  std::vector<const FieldMeta*> fields;
+  for(int i=0;i<fields_list.size();i++)
+  {
+    const FieldMeta *field = table.field(fields_list[i][FIELD_FIELD_NAME].asCString());
+    if (nullptr == field)
+    {
+      LOG_ERROR("Deserialize index [%s]: no such field: %s", name_value.asCString(), field_value.asCString());
+      return RC::SCHEMA_FIELD_MISSING;
+    }
+    fields.push_back(field);
+  }
 
   bool unique = unique_value.asBool();
+  bool is_mutil_index = is_multi_value.asBool();
 
-  return index.init(name_value.asCString(), *field, unique);
+  return index.init(name_value.asCString(), *field,unique,fields,is_mutil_index);
 }
 
 const char *IndexMeta::name() const
