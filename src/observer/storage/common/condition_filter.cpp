@@ -20,6 +20,15 @@ See the Mulan PSL v2 for more details. */
 
 using namespace common;
 
+static int float_compare(float f1, float f2)
+{
+  float result = f1 - f2;
+  if (result < 1e-6 && result > -1e-6)
+  {
+    return 0;
+  }
+  return result > 0 ? 1 : -1;
+}
 static time_t StringToDatetime(string str)
 {
   char *cha = (char *)str.data();                                                 // 将string转换成char*。
@@ -345,7 +354,9 @@ bool DefaultConditionFilter::filter(const Record &rec) const
     {
       float left = *(float *)left_value;
       float right = *(float *)right_value;
-      cmp_result = (int)(left - right);
+      cmp_result = float_compare(left, right);
+      LOG_INFO(" filter >>>>>>float_compare left=%.2f,right=%.2f,cmp_result=%d ",cmp_result,left,right);
+
     }
   }
   break;
