@@ -93,16 +93,25 @@ RC IndexMeta::init(const char *name, const FieldMeta &field, bool isUnique,std::
     return RC::INVALID_ARGUMENT;
   }
   name_ = name;
-  field_ = field.name();
-  isUnique_ = isUnique;
- // fields =fieldMetas;
-
-  fields.clear();
-  for(int i=0;i<fieldMetas.size();i++)
+  //
+  if(is_multi_index ==false)
+  {    
+      LOG_INFO("题目：多列索引 multi-index,我是个  单字段索引 ,init name=%s",name);
+      field_ = field.name();
+  }else
   {
-    std::string temp(fieldMetas[i]->name());
-    fields.push_back(temp);
+      fields.clear();
+      for(int i=0;i<fieldMetas.size();i++)
+      {
+        std::string temp(fieldMetas[i]->name());
+        fields.push_back(temp);
+      }
+      LOG_INFO("题目：多列索引 multi-index,我是多  单字段索引 ,init name=%s",name);
   }
+  
+  isUnique_ = isUnique;
+
+  
   this->is_multi_index =is_multi_index;
   return RC::SUCCESS;
 }
@@ -169,17 +178,19 @@ RC IndexMeta::from_json(const TableMeta &table, const Json::Value &json_value, I
     //LOG_ERROR("Visible field is not a bool value. json value=%s", visible_value.toStyledString().c_str());
     return RC::GENERIC_ERROR;
   }
+  bool is_mutil_index = is_multi_value.asBool();
+
   //恢复单个索引部分
   const FieldMeta *field = table.field(field_value.asCString());
-  if (nullptr == field)
+  //前提条件：
+  if (nullptr == field && is_mutil_index ==false)
   {
     LOG_ERROR("Deserialize index [%s]: no such field: %s", name_value.asCString(), field_value.asCString());
     return RC::SCHEMA_FIELD_MISSING;
   }
-  
   //恢复多个索引部分
   std::vector<const FieldMeta*> fields;
-  for(int i=0;i<fields_list.size();i++)
+  for(int i=0;i<fields_list.size() && true == is_mutil_index;i++)
   {
     const FieldMeta *field = table.field(fields_list[i][FIELD_FIELD_NAME].asCString());
     if (nullptr == field)
@@ -191,7 +202,7 @@ RC IndexMeta::from_json(const TableMeta &table, const Json::Value &json_value, I
   }
 
   bool unique = unique_value.asBool();
-  bool is_mutil_index = is_multi_value.asBool();
+  
 
   return index.init(name_value.asCString(), *field,unique,fields,is_mutil_index);
 }

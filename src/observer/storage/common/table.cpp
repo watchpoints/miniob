@@ -1565,7 +1565,9 @@ RC Table::create_index_multi(Trx *trx, const char *index_name, int attr_num, cha
   
  if (table_meta_.index(index_name) != nullptr ||
     table_meta_.find_index_by_field_multi(attr_num,attributes))
-  {
+  {  
+
+    LOG_INFO("题目：多列索引 multi-index  索引重复了 错误");
     return RC::SCHEMA_INDEX_EXIST;
   }
 

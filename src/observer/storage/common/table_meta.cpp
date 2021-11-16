@@ -318,28 +318,36 @@ const IndexMeta *TableMeta::find_index_by_field(const char *field) const
   return nullptr;
 }**/
 
+//如果存在就重复
 const IndexMeta *TableMeta::find_index_by_field_multi(int attr_num, char *const attributes[]) const
 {
-  for (const IndexMeta &index : indexes_)
-  {
-    bool is_exits = true;
 
-    if (attr_num != index.fields.size() || 0 == index.fields.size() || 0 == attr_num)
+  for (const IndexMeta &index : indexes_)
+  { 
+    if(true == index.is_multi_index)
     {
-      is_exits = false;
-      return nullptr;
+      LOG_INFO("题目：多列索引 multi-index 我是个多列索引");
+    }
+    
+    if (attr_num != index.fields.size() || 0 == index.fields.size() || 0 == attr_num)
+    {  
+       LOG_INFO("题目：多列索引 multi-index 索引字段 不相等 自然不重复");
+       continue;
     }
     else
-    {
+    { 
+      bool is_exits = false;
       for (int i = 0; i < attr_num; i++)
-      {
+      {  
         if (0 == strcmp(attributes[i], index.fields[i].c_str()))
         {
-          is_exits = false;
+          is_exits = true;
+          LOG_INFO("题目：多列索引 multi-index 重复 1=%s,2=%s",attributes[i],index.fields[i].c_str());
         }
       }
-      if (is_exits)
+      if (true ==is_exits)
       {
+        LOG_INFO("题目：多列索引 multi-index 索引重复了");
         return &index;
       }
     }
