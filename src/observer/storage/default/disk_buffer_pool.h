@@ -43,7 +43,7 @@ typedef struct {
 // sizeof(Page) should be equal to BP_PAGE_SIZE
 
 typedef struct {
-  PageNum page_count;
+  PageNum page_count; //获取文件的总页数
   int allocated_pages;
 } BPFileSubHeader;
 

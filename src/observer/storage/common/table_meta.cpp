@@ -89,7 +89,7 @@ RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[])
     field_offset += attr_info.length;
   }
 
-  record_size_ = field_offset;
+  record_size_ = field_offset; //表的长度
 
   name_ = name;
   LOG_INFO("Init table meta success. table name=%s", name);

@@ -447,6 +447,11 @@ RC insert_record_from_file(Table *table, std::vector<std::string> &file_values,
       value_init_string(&record_values[i], file_value.c_str());
     }
     break;
+    case TEXTS:
+    {
+      value_init_string(&record_values[i], file_value.c_str());
+    }
+    break;
     case DATES:
     {
       deserialize_stream.clear(); // 清理stream的状态，防止多次解析出现异常

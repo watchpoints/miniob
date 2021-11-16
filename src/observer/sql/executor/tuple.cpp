@@ -73,6 +73,11 @@ void Tuple::add(const char *s, int len)
   add(new StringValue(s, len, 0));
 }
 
+void Tuple::add_text(const char *s, int len)
+{
+  add(new TextValue(s, len, 0));
+}
+
 void Tuple::add_date(int value)
 {
   add(new DateValue(value, 0));
@@ -687,6 +692,33 @@ void TupleRecordConverter::add_record(const char *record)
         int value = *(int *)(record + field_meta->offset());
         // LOG_INFO(" tuple.add_date=%d ", value);
         tuple.add_date(value);
+      }
+    }
+    break;
+    case TEXTS:
+    {
+      if (null_able == 1)
+      {
+        //memset 改为
+        const char *s = record + field_meta->offset();
+        if (0 == strcmp(s, "999"))
+        {
+          //LOG_INFO("99999 FLOATS");
+          tuple.add_null_value();
+        }
+        else
+        {
+          const char *s = record + field_meta->offset(); // 现在当做Cstring来处理
+                                                         // LOG_INFO(" tuple add string =%s ", s);
+          tuple.add_text(s, strlen(s));
+        }
+      }
+      else
+      {
+
+        const char *s = record + field_meta->offset(); // 现在当做Cstring来处理
+        LOG_INFO(" tuple add string =%s ", s);
+        tuple.add(s, strlen(s));
       }
     }
     break;

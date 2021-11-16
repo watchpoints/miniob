@@ -349,6 +349,7 @@ RC RecordFileHandler::insert_record(const char *data, int record_size, RID *rid)
   RC ret = RC::SUCCESS;
   // 找到没有填满的页面 
   int page_count = 0;
+  //获取文件的总页数
   if ((ret = disk_buffer_pool_->get_page_count(file_id_, &page_count)) != RC::SUCCESS) {
     LOG_ERROR("Failed to get page count while inserting record");
     return ret;

@@ -274,6 +274,8 @@ RC Table::insert_record(Trx *trx, Record *record)
   {
     trx->init_trx_info(this, *record);
   }
+  
+  LOG_INFO("题目：超长字段text insert_record,record_size =%d",table_meta_.record_size());
   rc = record_handler_->insert_record(record->data, table_meta_.record_size(), &record->rid);
   if (rc != RC::SUCCESS)
   {
@@ -371,16 +373,17 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
   {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
-    
+
     //在字段允许null的情况下 可以插入null。
     //如果不允许null,插入null 肯定是报错的
     //value：来着sql命令
     //field：创建表时候确定了
-    if(value.type == AttrType::NULLVALUES  && 1==field->nullable())
+    if (value.type == AttrType::NULLVALUES && 1 == field->nullable())
     {
       LOG_INFO("题目：支持NULL类型 AttrType::NULLVALUE，null可以插入任何类型");
       //这个类型不校验
-    }else if (field->type() == AttrType::DATES)
+    }
+    else if (field->type() == AttrType::DATES)
     {
       //LOG_INFO(" insert:AttrType::DATES, value.data=%s", value.data);
       const char *pattern = "[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}";
@@ -400,9 +403,10 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
       {
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
       }
-
-      //value.type =AttrType::DATES;
-      //value 按照字节存储,不区分类型
+    }
+    else if (field->type() == AttrType::TEXTS && value.type == AttrType::CHARS)
+    {
+      //超长字段text:日期 字符串 text都是字符串
     }
     else if (field->type() != value.type)
     {
@@ -422,13 +426,14 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
   {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
-    if(value.type == AttrType::NULLVALUES)
+    if (value.type == AttrType::NULLVALUES)
     {
       //说明 memcpy nullptr会core。这个该怎么处理呢
       LOG_INFO("题目：支持NULL类型 AttrType::NULLVALUE，null可以插入任何类型");
-      //自己约定："999"" 看看有没有问题 
-       memcpy(record + field->offset(),"999", field->len());
-    }else if (field->type() == AttrType::DATES)
+      //自己约定："999"" 看看有没有问题
+      memcpy(record + field->offset(), "999", field->len());
+    }
+    else if (field->type() == AttrType::DATES)
     {
       //字符串变成时间戳4字节存储
       //检查日期是否合法
@@ -438,9 +443,25 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
       int time_t = StringToDatetime(temp);
       memcpy(record + field->offset(), &time_t, field->len());
     }
+    else if (field->type() == AttrType::TEXTS)
+    {
+      int length = strlen((char *)value.data);
+      if (length > 4096)
+      {
+        LOG_INFO("如果输入的字符串长度，超过4096，那么应该保存4096字节，剩余的数据截断");
+        memcpy(record + field->offset(), value.data, field->len());
+        // memcpy(record + field->offset(), value.data,4096);
+      }
+      else
+      {
+        //长度不超过4096 真是字符串长度 需要从哪里获取
+        LOG_INFO("如果输入的字符串长度，length=%d", length);
+        memcpy(record + field->offset(), value.data, length);
+      }
+    }
     else
     {
-        memcpy(record + field->offset(), value.data, field->len());
+      memcpy(record + field->offset(), value.data, field->len());
     }
   }
 
@@ -1054,14 +1075,14 @@ IndexScanner *Table::find_index_for_scan(const ConditionFilter *filter)
   // remove dynamic_cast
   const DefaultConditionFilter *default_condition_filter = dynamic_cast<const DefaultConditionFilter *>(filter);
   if (default_condition_filter != nullptr)
-  { 
+  {
     LOG_INFO("find_index_for_scan  DefaultConditionFilter");
     return find_index_for_scan(*default_condition_filter);
   }
 
   const CompositeConditionFilter *composite_condition_filter = dynamic_cast<const CompositeConditionFilter *>(filter);
   if (composite_condition_filter != nullptr)
-  {  
+  {
 
     LOG_INFO("find_index_for_scan  CompositeConditionFilter");
     int filter_num = composite_condition_filter->filter_num();
@@ -1562,17 +1583,17 @@ RC Table::create_index_multi(Trx *trx, const char *index_name, int attr_num, cha
   }
 
   //01 判断索引-字段 是否重复
-  
- if (table_meta_.index(index_name) != nullptr ||
-    table_meta_.find_index_by_field_multi(attr_num,attributes))
-  {  
+
+  if (table_meta_.index(index_name) != nullptr ||
+      table_meta_.find_index_by_field_multi(attr_num, attributes))
+  {
 
     LOG_INFO("题目：多列索引 multi-index  索引重复了 错误");
     return RC::SCHEMA_INDEX_EXIST;
   }
 
   //02判断创建的索引-字段 是否在表中存在
-  std::vector<FieldMeta >fields_meta(attr_num);
+  std::vector<FieldMeta> fields_meta(attr_num);
   for (int i = 0; i < attr_num; i++)
   {
     const FieldMeta *field_meta = table_meta_.field(attributes[i]);
@@ -1580,12 +1601,12 @@ RC Table::create_index_multi(Trx *trx, const char *index_name, int attr_num, cha
     {
       return RC::SCHEMA_FIELD_MISSING;
     }
-    fields_meta[i] =*field_meta;
+    fields_meta[i] = *field_meta;
   }
-  
+
   //03 创建multi-index 类
   IndexMeta new_index_meta;
-  RC rc = new_index_meta.init(index_name,fields_meta);
+  RC rc = new_index_meta.init(index_name, fields_meta);
   if (rc != RC::SUCCESS)
   {
     return rc;

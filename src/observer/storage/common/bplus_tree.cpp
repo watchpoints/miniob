@@ -256,6 +256,28 @@ int CompareKey(const char *pdata, const char *pkey, AttrType attr_type, int attr
       return strncmp(s1, s2, attr_length);
     }
   }
+  break;
+  case TEXTS:
+  {
+    if (0 == strcmp(pdata, "999") && 0 == strcmp(pkey, "999"))
+    {
+      LOG_INFO(" CompareKey string >>> 999 vs 999");
+      return 0;
+    }
+    else if (0 == strcmp(pdata, "999") || 0 == strcmp(pkey, "999"))
+    {
+      LOG_INFO(" CompareKey string >>> 999 || 999");
+      return -1;
+    }
+    else
+    {
+      s1 = pdata;
+      s2 = pkey;
+      LOG_INFO("CompareKey string >>>: 1=%s,2=%s", s1, s2);
+      return strncmp(s1, s2, attr_length);
+    }
+  }
+  break;
   case DATES:
   {
     if (0 == strcmp(pdata, "999") && 0 == strcmp(pkey, "999"))
@@ -341,6 +363,13 @@ int CompareKeyUnique(const char *pdata, const char *pkey, AttrType attr_type, in
   }
   break;
   case CHARS:
+  {
+    s1 = pdata;
+    s2 = pkey;
+    LOG_INFO("CompareKeyUnique string >>>: 1=%s,2=%s", s1, s2);
+    return strncmp(s1, s2, attr_length);
+  }
+  case TEXTS:
   {
     s1 = pdata;
     s2 = pkey;
@@ -2360,6 +2389,9 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey)
     case CHARS:
       flag = (strncmp(s1, s2, attr_length) == 0);
       break;
+    case TEXTS:
+      flag = (strncmp(s1, s2, attr_length) == 0);
+      break;
     case DATES:
       flag = (i1 == i2);
       break;
@@ -2377,6 +2409,9 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey)
       flag = (f1 < f2);
       break;
     case CHARS:
+      flag = (strncmp(s1, s2, attr_length) < 0);
+      break;
+    case TEXTS:
       flag = (strncmp(s1, s2, attr_length) < 0);
       break;
     case DATES:
@@ -2398,6 +2433,9 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey)
     case CHARS:
       flag = (strncmp(s1, s2, attr_length) > 0);
       break;
+    case TEXTS:
+      flag = (strncmp(s1, s2, attr_length) > 0);
+      break;
     case DATES:
       flag = (i1 > i2);
       break;
@@ -2415,6 +2453,9 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey)
       flag = (f1 <= f2);
       break;
     case CHARS:
+      flag = (strncmp(s1, s2, attr_length) <= 0);
+      break;
+    case TEXTS:
       flag = (strncmp(s1, s2, attr_length) <= 0);
       break;
     case DATES:
@@ -2436,6 +2477,9 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey)
     case CHARS:
       flag = (strncmp(s1, s2, attr_length) >= 0);
       break;
+    case TEXTS:
+      flag = (strncmp(s1, s2, attr_length) >= 0);
+      break;
     case DATES:
       flag = (i1 >= i2);
       break;
@@ -2453,6 +2497,9 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey)
       flag = 0 != float_compare(f1, f2);
       break;
     case CHARS:
+      flag = (strncmp(s1, s2, attr_length) != 0);
+      break;
+    case TEXTS:
       flag = (strncmp(s1, s2, attr_length) != 0);
       break;
     case DATES:
@@ -2477,6 +2524,9 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey)
       flag = 0 == float_compare(f1, f2);
       break;
     case CHARS:
+      flag = (strncmp(s1, s2, attr_length) == 0);
+      break;
+    case TEXTS:
       flag = (strncmp(s1, s2, attr_length) == 0);
       break;
     case DATES:

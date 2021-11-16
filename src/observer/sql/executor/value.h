@@ -491,4 +491,68 @@ public:
   }
 };
 
+class TextValue : public TupleValue
+{
+public:
+  TextValue(const char *value, int len) : value_(value, len)
+  {
+    null_able_is_null =0;
+  }
+   TextValue(const char *value) : value_(value)
+  {
+    null_able_is_null =0;
+  }
+
+  TextValue(const char *value, int len,int null_able) : value_(value, len)
+  {
+    null_able_is_null =null_able;
+  } 
+  void to_string(std::ostream &os) const override
+  {
+    if(1 ==null_able_is_null)
+    {
+      os << "NULL";
+      return ;
+    }
+    os << value_;
+  }
+  
+   int get_null_type() const override 
+  {
+    return null_able_is_null;
+  }
+
+  int compare(const TupleValue &other) const override
+  {
+
+    if(1 ==null_able_is_null || 1 ==other.get_null_type())
+    {
+      return -1;
+    }
+    const TextValue &string_other = (const TextValue &)other;
+    return strcmp(value_.c_str(), string_other.value_.c_str());
+  }
+  AttrType get_type() const override
+  {
+    return AttrType::TEXTS;
+  }
+
+  void add_value(const TupleValue &other) override
+  {
+    if(1 ==null_able_is_null)
+    {
+      return ;
+    }
+  }
+  void to_avg(int total, std::ostream &os) override
+  {
+      os << "string type have no avg";
+  }
+
+private:
+  std::string value_;
+public:
+int null_able_is_null ;//1 允许为null，并且是null值
+};
+
 #endif //__OBSERVER_SQL_EXECUTOR_VALUE_H_

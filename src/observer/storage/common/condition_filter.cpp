@@ -377,6 +377,23 @@ bool DefaultConditionFilter::filter(const Record &rec) const
     //任何 值与NULL做对比，结果都是FALSE。
   }
   break;
+  case TEXTS:
+  { // 字符串都是定长的，直接比较
+    // 按照C字符串风格来定
+    if (0 == strcmp(left_value, "999") && 0 == strcmp(right_value, "999"))
+    {
+      cmp_result = 0;
+      LOG_INFO(" 999 DefaultConditionFilter::filter left or right  999 cmp_result =0");
+    }
+    else if (0 == strcmp(left_value, "999") || 0 == strcmp(right_value, "999"))
+    {
+      cmp_result = -1;
+    }
+    {
+      cmp_result = strcmp(left_value, right_value);
+    }
+  }
+  break;
   default:
   {
     LOG_INFO(" SCHEMA_FIELD_TYPE_MISMATCH Unsupported field type to loading: %d", attr_type_);

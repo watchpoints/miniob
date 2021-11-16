@@ -222,14 +222,26 @@ void condition_destroy(Condition *condition) {
 void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length) {
   attr_info->name = strdup(name);
   attr_info->type = type;
-  attr_info->length = length;
+  if(AttrType::TEXTS == type)
+  {
+     attr_info->length = 4096;
+  }else
+  {
+     attr_info->length = length;
+  }
 }
 void attr_info_init_nullable(AttrInfo *attr_info, const char *name, AttrType type, size_t length,int nullable)
  {
 
   attr_info->name = strdup(name);
   attr_info->type = type;
-  attr_info->length = length;
+  if(AttrType::TEXTS == type)
+  {
+     attr_info->length = 4096;
+  }else
+  {
+     attr_info->length = length;
+  }
   attr_info->nullable = nullable; //0 不能为null ，可以为null
   //LOG_INFO("attr_info_init_nullable name:%s,nullable:%d",name,nullable);
 }
