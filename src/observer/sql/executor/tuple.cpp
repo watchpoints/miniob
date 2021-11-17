@@ -17,6 +17,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include <stdio.h>
 #include <stdlib.h>
+
 Tuple::Tuple(const Tuple &other)
 {
   LOG_PANIC("Copy constructor of tuple is not supported");
@@ -708,8 +709,13 @@ void TupleRecordConverter::add_record(const char *record)
         }
         else
         {
-          const char *s = record + field_meta->offset(); // 现在当做Cstring来处理
+         const char *s = record + field_meta->offset(); // 现在当做Cstring来处理
                                                          // LOG_INFO(" tuple add string =%s ", s);
+         // const char *s ="this is a logg long text";     
+         if(table()->ptr_text)
+         {
+           s =table()->ptr_text;
+         }                               
           tuple.add_text(s, strlen(s));
         }
       }
@@ -717,7 +723,17 @@ void TupleRecordConverter::add_record(const char *record)
       {
 
         const char *s = record + field_meta->offset(); // 现在当做Cstring来处理
-        LOG_INFO(" tuple add TEXTS =%s ", s);
+        //const char *s ="this is a logg long text";  
+        if(table()->ptr_text)
+         {
+           s =table()->ptr_text;
+           LOG_INFO(" 题目 超长文本 >>>>>>>>>>>> TEXTS =%s ", s);
+         }else
+         {
+             LOG_INFO(" 题目 超长文本 失败 失败 失败 失败  =%s ", s);
+         }
+         
+       
         tuple.add(s, strlen(s));
       }
     }

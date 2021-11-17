@@ -429,6 +429,10 @@ public:
   TupleRecordConverter(Table *table, TupleSet &tuple_set);
 
   void add_record(const char *record);
+  Table *table()
+  {
+    return table_;
+  }
 
 private:
   Table *table_;

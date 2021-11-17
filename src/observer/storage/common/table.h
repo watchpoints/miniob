@@ -34,7 +34,7 @@ class RecordDeleter;
 class RecordUpdated;
 class Trx;
 
-class Table {
+class   Table {
 public:
   Table();
   ~Table();
@@ -128,6 +128,7 @@ private:
   std::vector<Index *>    indexes_;
 public:
   bool isValid_date(const char* pdata); 
+  char * ptr_text =nullptr;
 };
 
 #endif // __OBSERVER_STORAGE_COMMON_TABLE_H__

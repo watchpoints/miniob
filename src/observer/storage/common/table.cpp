@@ -348,6 +348,7 @@ RC Table::insert_record(Trx *trx, int value_num, const Value *values)
   record.data = record_data;
   record.ptr_data_text =record_data_txt;
   record.text_offset=text_offset;
+  ptr_text = record_data_txt;
   // record.valid = true;
   rc = insert_record(trx, &record);
   delete[] record_data;
