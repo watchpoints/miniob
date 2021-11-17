@@ -736,9 +736,8 @@ void TupleRecordConverter::add_record(const char *record)
         }
         else
         {
-          LOG_INFO(" 题目 超长文本 失败 失败 失败 失败  =%s ", s);
+          LOG_INFO(" 题目 超长文本 失败 失败 失败 失败 key=%d,value=%s ",key,s);
         }
-
         tuple.add(s, strlen(s));
       }
     }

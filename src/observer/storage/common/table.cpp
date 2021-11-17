@@ -1165,8 +1165,6 @@ RC Table::commit_update(Trx *trx, const RID &rid)
 
 RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, const Value *value)
 {
-  //("commit_update. attribute_name=%s, values=%p", attribute_name, value);
-
   RC rc = RC::SUCCESS;
   if (nullptr == attribute_name || nullptr == value || nullptr == value->data)
   {
@@ -1212,21 +1210,17 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
     LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
               field_meta->name(), field_meta->type(), value->type);
     return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+  }else if (field_meta->type() == AttrType::TEXTS && value->type == AttrType::CHARS)
+  { 
+    //这个题目如何更新呢，hard
+    //索引 +内容
+    //return RC::SUCCESS;
   }
   else if (field_meta->type() != value->type)
   {
-    ////对于整数与浮点数之间的转换，不做考察。学有余力的同学，可以做一下。
-    //&& > ||
-    //if ((field_meta->type() == AttrType::INTS && value->type == AttrType::FLOATS) || (field_meta->type() == AttrType::FLOATS && value->type == AttrType::INTS))
-    //{
-    //LOG_INFO(" 对于整数与浮点数之间的转换，不做考察。学有余力的同学，可以做一下");
-    //}
-    //else
-    {
       LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
                 field_meta->name(), field_meta->type(), value->type);
       return RC::SCHEMA_FIELD_TYPE_MISMATCH;
-    }
   }
 
   //步骤2  查询记录---修改value--更新
@@ -1236,6 +1230,19 @@ RC Table::commit_update(Trx *trx, const RID &rid, const char *attribute_name, co
   {
     LOG_INFO("commit_update get_record failed =%d", rc);
     return rc;
+  }
+
+  if (field_meta->type() == AttrType::TEXTS && value->type == AttrType::CHARS)
+  {
+    const char *s = oldrecord.data+4;
+    int key = *(int *)s;
+    LOG_INFO(" >>>>>>>>>key=%d", key);
+    if(pTextMap.count(key) == 1)
+    { 
+      LOG_INFO(" >>>>>>>>>key=%d,value=%s", key,value->data);
+      pTextMap[key] =static_cast<char*>(value->data);
+    }
+    return RC::SUCCESS;
   }
 
   Record newrecord;
@@ -1754,7 +1761,7 @@ RC Table::make_record_text(int value_num, const Value *values, char *&record_out
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
     
-    //LOG_INFO("题目：超长字段text i=%d,name=%s ,offset=%d",i,field->name(),field->offset());
+    LOG_INFO("题目：超长字段text i=%d,name=%s ,offset=%d",i,field->name(),field->offset());
     if (i == 0 && value.type == AttrType::INTS)
     {
       key = *(int *)(value.data);
