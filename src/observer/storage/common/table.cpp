@@ -1790,7 +1790,8 @@ RC Table::make_record_text(int value_num, const Value *values, char *&record_out
       }else
       {
         LOG_INFO("字符串长度超过4，这是txt文本,length=%d,record_size=%d", length, record_size);
-        memcpy(record_text, value.data, length);
+        //memcpy(record_text, value.data, length);
+        record_text =static_cast<char*>(value.data);
       }
       record_text_out = record_text;
       text_offset = field->offset();
