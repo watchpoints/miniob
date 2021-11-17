@@ -20,6 +20,7 @@ See the Mulan PSL v2 for more details. */
 #include <iostream>
 #include <string.h>
 #include <stdio.h>
+#include<map>
 using namespace std;
 
 class DiskBufferPool;
@@ -128,7 +129,9 @@ private:
   std::vector<Index *>    indexes_;
 public:
   bool isValid_date(const char* pdata); 
-  char * ptr_text =nullptr;
+public:
+  //char * ptr_text =nullptr;
+  std::map<int,char*> pTextMap;
 };
 
 #endif // __OBSERVER_STORAGE_COMMON_TABLE_H__

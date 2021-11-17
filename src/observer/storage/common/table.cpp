@@ -275,7 +275,7 @@ RC Table::insert_record(Trx *trx, Record *record)
     trx->init_trx_info(this, *record);
   }
 
-  LOG_INFO("题目：超长字段text insert_record,record_size =%d",table_meta_.record_size());
+  LOG_INFO("题目：超长字段text insert_record,record_size =%d", table_meta_.record_size());
   rc = record_handler_->insert_record(record->data, table_meta_.record_size(), &record->rid);
   if (rc != RC::SUCCESS)
   {
@@ -334,9 +334,9 @@ RC Table::insert_record(Trx *trx, int value_num, const Value *values)
   }
   //根据表属性和行属性 构造插入值
   char *record_data;
-  char* record_data_txt =nullptr;
-  int text_offset =0;
-  RC rc = make_record_text(value_num, values, record_data,record_data_txt,text_offset);
+  char *record_data_txt = nullptr;
+  int text_offset = 0;
+  RC rc = make_record_text(value_num, values, record_data, record_data_txt, text_offset);
   //RC rc = make_record(value_num, values, record_data);
   if (rc != RC::SUCCESS)
   {
@@ -346,9 +346,9 @@ RC Table::insert_record(Trx *trx, int value_num, const Value *values)
 
   Record record;
   record.data = record_data;
-  record.ptr_data_text =record_data_txt;
-  record.text_offset=text_offset;
-  ptr_text = record_data_txt;
+  record.ptr_data_text = record_data_txt;
+  record.text_offset = text_offset;
+ // ptr_text = record_data_txt;
   // record.valid = true;
   rc = insert_record(trx, &record);
   delete[] record_data;
@@ -427,7 +427,7 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
   // 复制所有字段的值
   int record_size = table_meta_.record_size();
   char *record = new char[record_size];
-  LOG_INFO(">>>>超长字段text =%d",record_size);
+  LOG_INFO(">>>>超长字段text =%d", record_size);
   for (int i = 0; i < value_num; i++)
   {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
@@ -461,9 +461,9 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
       else
       {
         //长度不超过4096 真是字符串长度 需要从哪里获取
-         if(length >=4)
+        if (length >= 4)
         {
-          LOG_INFO("字符串长度超过4，这是txt文本,length=%d,record_size=%d",length,record_size);
+          LOG_INFO("字符串长度超过4，这是txt文本,length=%d,record_size=%d", length, record_size);
         }
         memcpy(record + field->offset(), value.data, length);
       }
@@ -1685,7 +1685,7 @@ RC Table::create_index_multi(Trx *trx, const char *index_name, int attr_num, cha
   return rc;
 }
 
-RC Table::make_record_text(int value_num, const Value *values, char *&record_out,char*& record_text_out ,int& text_offset)
+RC Table::make_record_text(int value_num, const Value *values, char *&record_out, char *&record_text_out, int &text_offset)
 {
   // 检查字段类型是否一致
   if (value_num + table_meta_.sys_field_num() != table_meta_.field_num())
@@ -1747,15 +1747,24 @@ RC Table::make_record_text(int value_num, const Value *values, char *&record_out
   // 复制所有字段的值
   int record_size = table_meta_.record_size();
   char *record = new char[record_size];
-  LOG_INFO(">>>>超长字段text =%d",record_size);
+   
+   int key = 0;
   for (int i = 0; i < value_num; i++)
   {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
+    
+    //LOG_INFO("题目：超长字段text i=%d,name=%s ,offset=%d",i,field->name(),field->offset());
+    if (i == 0 && value.type == AttrType::INTS)
+    {
+      key = *(int *)(value.data);
+     // LOG_INFO("题目：超长字段text 0,name=%s ,offset=%d,key=%d",field->name(),field->offset(),key);
+    }
+    
     if (value.type == AttrType::NULLVALUES)
     {
       //说明 memcpy nullptr会core。这个该怎么处理呢
-      LOG_INFO("题目：支持NULL类型 AttrType::NULLVALUE，null可以插入任何类型");
+      //LOG_INFO("题目：支持NULL类型 AttrType::NULLVALUE，null可以插入任何类型");
       //自己约定："999"" 看看有没有问题
       memcpy(record + field->offset(), "999", field->len());
     }
@@ -1773,25 +1782,31 @@ RC Table::make_record_text(int value_num, const Value *values, char *&record_out
     {
       int length = strlen((char *)value.data);
       char *record_text = new char[4096];
-      if (length >=4096)
-      {
-        LOG_INFO("如果输入的字符串长度，超过4096，那么应该保存4096字节，剩余的数据截断");
-        memcpy(record_text, value.data, 4096);
-      }
-      else
-      {
-        //长度不超过4096 真是字符串长度 需要从哪里获取
-         if(length >=4)
-        {
-          LOG_INFO("字符串长度超过4，这是txt文本,length=%d,record_size=%d",length,record_size);
-        }
-        memcpy(record_text, value.data, length);
-        //现在这个偏移量数据是不正确的数据。
-        memcpy(record + field->offset(), value.data, field->len());
-      }
+      LOG_INFO("题目：超长字段 >>>>>>>>>>>lenght=%d,value.data=%s ",length,value.data);
 
+      if (length >= 4096)
+      {
+        memcpy(record_text, value.data, 4096);
+      }else
+      {
+        LOG_INFO("字符串长度超过4，这是txt文本,length=%d,record_size=%d", length, record_size);
+        memcpy(record_text, value.data, length);
+      }
       record_text_out = record_text;
       text_offset = field->offset();
+
+      //info text类型 只有4字节，不能写入超过4字节内容 怎么办？
+      //参考：https://oceanbase-partner.github.io/lectures-on-dbms-implementation/lecture-2
+      //因此info 记录一个索引位置。
+      //这个索引位置具体是什么呢？
+      //文件 page 还是整数
+
+      //缺点：整数 key 重复怎么办
+      memcpy(record + field->offset(), &key, field->len());
+
+      LOG_INFO("题目：超长字段 >>>>>>>>>>>insert key=%d,value=%s",key,record_text);
+
+      pTextMap[key]=record_text;
 
     }
     else

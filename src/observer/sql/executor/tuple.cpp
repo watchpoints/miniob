@@ -709,13 +709,18 @@ void TupleRecordConverter::add_record(const char *record)
         }
         else
         {
-         const char *s = record + field_meta->offset(); // 现在当做Cstring来处理
+          const char *s = record + field_meta->offset(); // 现在当做Cstring来处理
                                                          // LOG_INFO(" tuple add string =%s ", s);
-         // const char *s ="this is a logg long text";     
-         if(table()->ptr_text)
-         {
-           s =table()->ptr_text;
-         }                               
+          int key = *(int *)s;
+          if (table()->pTextMap.count(key) == 1)
+          {
+            s = table()->pTextMap[key];
+            LOG_INFO(" 题目 超长文本 >>>>>>>>>>>> key=%d,value=%s ",key,s);
+          }
+          else
+          {
+            LOG_INFO(" 题目 超长文本 失败 失败 失败 失败  =%s ", s);
+          }
           tuple.add_text(s, strlen(s));
         }
       }
@@ -723,17 +728,17 @@ void TupleRecordConverter::add_record(const char *record)
       {
 
         const char *s = record + field_meta->offset(); // 现在当做Cstring来处理
-        //const char *s ="this is a logg long text";  
-        if(table()->ptr_text)
-         {
-           s =table()->ptr_text;
-           LOG_INFO(" 题目 超长文本 >>>>>>>>>>>> TEXTS =%s ", s);
-         }else
-         {
-             LOG_INFO(" 题目 超长文本 失败 失败 失败 失败  =%s ", s);
-         }
-         
-       
+        int key = *(int *)s;
+        if (table()->pTextMap.count(key) == 1)
+        {
+          s = table()->pTextMap[key];
+          LOG_INFO(" 题目 超长文本 >>>>>>>>>>>> key=%d,value=%s ",key,s);
+        }
+        else
+        {
+          LOG_INFO(" 题目 超长文本 失败 失败 失败 失败  =%s ", s);
+        }
+
         tuple.add(s, strlen(s));
       }
     }
@@ -943,7 +948,7 @@ bool TupleSet::avg_print(std::ostream &os) const
 
       std::shared_ptr<TupleValue> sumValue;
       int count = 0;
-      bool exits_null_value =false;
+      bool exits_null_value = false;
       if (0 == tuples_.size())
       {
         return true;
@@ -970,7 +975,7 @@ bool TupleSet::avg_print(std::ostream &os) const
             {
               //不处理
               null_able = false;
-              exits_null_value =true;
+              exits_null_value = true;
             }
             else
             {
@@ -996,11 +1001,11 @@ bool TupleSet::avg_print(std::ostream &os) const
       //防溢出求平均算法
 
       if (0 == count)
-      {  
-        if(exits_null_value == true)
+      {
+        if (exits_null_value == true)
         {
-          os << "NULL" ;
-          os <<std::endl;
+          os << "NULL";
+          os << std::endl;
         }
 
         return true; //是聚合运算
