@@ -410,10 +410,6 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
       }
     }
-    else if (field->type() == AttrType::TEXTS && value.type == AttrType::CHARS)
-    {
-      //超长字段text:日期 字符串 text都是字符串
-    }
     else if (field->type() != value.type)
     {
       {
@@ -427,7 +423,6 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
   // 复制所有字段的值
   int record_size = table_meta_.record_size();
   char *record = new char[record_size];
-  LOG_INFO(">>>>超长字段text =%d", record_size);
   for (int i = 0; i < value_num; i++)
   {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
@@ -448,25 +443,6 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
       temp.append(" 00:00:00");
       int time_t = StringToDatetime(temp);
       memcpy(record + field->offset(), &time_t, field->len());
-    }
-    else if (field->type() == AttrType::TEXTS)
-    {
-      int length = strlen((char *)value.data);
-      if (length > 4096)
-      {
-        LOG_INFO("如果输入的字符串长度，超过4096，那么应该保存4096字节，剩余的数据截断");
-        memcpy(record + field->offset(), value.data, 4096);
-        // memcpy(record + field->offset(), value.data,4096);
-      }
-      else
-      {
-        //长度不超过4096 真是字符串长度 需要从哪里获取
-        if (length >= 4)
-        {
-          LOG_INFO("字符串长度超过4，这是txt文本,length=%d,record_size=%d", length, record_size);
-        }
-        memcpy(record + field->offset(), value.data, length);
-      }
     }
     else
     {
@@ -1788,7 +1764,8 @@ RC Table::make_record_text(int value_num, const Value *values, char *&record_out
     else if (field->type() == AttrType::TEXTS && value.type == AttrType::CHARS)
     {
       int length = strlen((char *)value.data);
-      char *record_text = new char[4096];
+      char *record_text = new char[4097];
+      memset(record_text,'\0', 4097);
       LOG_INFO("题目：超长字段 >>>>>>>>>>>lenght=%d,value.data=%s ",length,value.data);
 
       if (length >= 4096)
