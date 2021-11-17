@@ -43,6 +43,8 @@ struct Record
   // bool valid; // false means the record hasn't been load
   RID  rid;   // record's rid
   char *data; // record's data
+  char* ptr_data_text;// text;
+  int text_offset;
 };
 
 class RecordPageHandler {

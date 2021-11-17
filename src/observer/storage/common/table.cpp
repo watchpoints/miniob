@@ -334,7 +334,10 @@ RC Table::insert_record(Trx *trx, int value_num, const Value *values)
   }
   //根据表属性和行属性 构造插入值
   char *record_data;
-  RC rc = make_record(value_num, values, record_data);
+  char* record_data_txt =nullptr;
+  int text_offset =0;
+  RC rc = make_record_text(value_num, values, record_data,record_data_txt,text_offset);
+  //RC rc = make_record(value_num, values, record_data);
   if (rc != RC::SUCCESS)
   {
     LOG_ERROR("Failed to create a record. rc=%d:%s", rc, strrc(rc));
@@ -343,6 +346,8 @@ RC Table::insert_record(Trx *trx, int value_num, const Value *values)
 
   Record record;
   record.data = record_data;
+  record.ptr_data_text =record_data_txt;
+  record.text_offset=text_offset;
   // record.valid = true;
   rc = insert_record(trx, &record);
   delete[] record_data;
@@ -455,7 +460,10 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
       else
       {
         //长度不超过4096 真是字符串长度 需要从哪里获取
-        LOG_INFO("如果输入的字符串长度，length=%d", length);
+         if(length >=4)
+        {
+          LOG_INFO("字符串长度超过4，这是txt文本,length=%d,record_size=%d",length,record_size);
+        }
         memcpy(record + field->offset(), value.data, length);
       }
     }
@@ -1674,4 +1682,124 @@ RC Table::create_index_multi(Trx *trx, const char *index_name, int attr_num, cha
   LOG_INFO("add a new index (%s) on the table (%s)", index_name, name());
 
   return rc;
+}
+
+RC Table::make_record_text(int value_num, const Value *values, char *&record_out,char*& record_text_out ,int& text_offset)
+{
+  // 检查字段类型是否一致
+  if (value_num + table_meta_.sys_field_num() != table_meta_.field_num())
+  {
+    LOG_INFO(" make_record  SCHEMA_FIELD_MISSING ");
+    return RC::SCHEMA_FIELD_MISSING;
+  }
+
+  const int normal_field_start_index = table_meta_.sys_field_num();
+  for (int i = 0; i < value_num; i++)
+  {
+    const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
+    const Value &value = values[i];
+
+    //在字段允许null的情况下 可以插入null。
+    //如果不允许null,插入null 肯定是报错的
+    //value：来着sql命令
+    //field：创建表时候确定了
+    if (value.type == AttrType::NULLVALUES && 1 == field->nullable())
+    {
+      LOG_INFO("题目：支持NULL类型 AttrType::NULLVALUE，null可以插入任何类型");
+      //这个类型不校验
+    }
+    else if (field->type() == AttrType::DATES)
+    {
+      //LOG_INFO(" insert:AttrType::DATES, value.data=%s", value.data);
+      const char *pattern = "[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}";
+      if (0 == common::regex_match((char *)value.data, pattern))
+      {
+        //ok
+      }
+      else
+      {
+        // LOG_INFO(" make_record  [0-9]{4}-[0-9]{1,2}-[0-9]{1,2}  value.data=%s", value.data);
+        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+      }
+
+      //检查日期是否合法
+      char *ptr = static_cast<char *>(value.data);
+      if (false == isValid_date(ptr))
+      {
+        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+      }
+    }
+    else if (field->type() == AttrType::TEXTS && value.type == AttrType::CHARS)
+    {
+      //超长字段text:日期 字符串 text都是字符串
+    }
+    else if (field->type() != value.type)
+    {
+      {
+        LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
+                  field->name(), field->type(), value.type);
+        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+      }
+    }
+  }
+
+  // 复制所有字段的值
+  int record_size = table_meta_.record_size();
+  char *record = new char[record_size];
+  LOG_INFO(">>>>超长字段text =%d",record_size);
+  for (int i = 0; i < value_num; i++)
+  {
+    const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
+    const Value &value = values[i];
+    if (value.type == AttrType::NULLVALUES)
+    {
+      //说明 memcpy nullptr会core。这个该怎么处理呢
+      LOG_INFO("题目：支持NULL类型 AttrType::NULLVALUE，null可以插入任何类型");
+      //自己约定："999"" 看看有没有问题
+      memcpy(record + field->offset(), "999", field->len());
+    }
+    else if (field->type() == AttrType::DATES)
+    {
+      //字符串变成时间戳4字节存储
+      //检查日期是否合法
+      char *ptr = static_cast<char *>(value.data);
+      string temp(ptr);
+      temp.append(" 00:00:00");
+      int time_t = StringToDatetime(temp);
+      memcpy(record + field->offset(), &time_t, field->len());
+    }
+    else if (field->type() == AttrType::TEXTS && value.type == AttrType::CHARS)
+    {
+      int length = strlen((char *)value.data);
+      char *record_text = new char[4096];
+      if (length >=4096)
+      {
+        LOG_INFO("如果输入的字符串长度，超过4096，那么应该保存4096字节，剩余的数据截断");
+        memcpy(record_text, value.data, 4096);
+      }
+      else
+      {
+        //长度不超过4096 真是字符串长度 需要从哪里获取
+         if(length >=4)
+        {
+          LOG_INFO("字符串长度超过4，这是txt文本,length=%d,record_size=%d",length,record_size);
+        }
+        memcpy(record_text, value.data, length);
+        //现在这个偏移量数据是不正确的数据。
+        memcpy(record + field->offset(), value.data, field->len());
+      }
+
+      record_text_out = record_text;
+      text_offset = field->offset();
+
+    }
+    else
+    {
+      memcpy(record + field->offset(), value.data, field->len());
+    }
+  }
+
+  record_out = record;
+
+  return RC::SUCCESS;
 }
