@@ -274,7 +274,7 @@ RC Table::insert_record(Trx *trx, Record *record)
   {
     trx->init_trx_info(this, *record);
   }
-  
+
   LOG_INFO("题目：超长字段text insert_record,record_size =%d",table_meta_.record_size());
   rc = record_handler_->insert_record(record->data, table_meta_.record_size(), &record->rid);
   if (rc != RC::SUCCESS)
@@ -421,7 +421,7 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
   // 复制所有字段的值
   int record_size = table_meta_.record_size();
   char *record = new char[record_size];
-
+  LOG_INFO(">>>>超长字段text =%d",record_size);
   for (int i = 0; i < value_num; i++)
   {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
@@ -449,7 +449,7 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
       if (length > 4096)
       {
         LOG_INFO("如果输入的字符串长度，超过4096，那么应该保存4096字节，剩余的数据截断");
-        memcpy(record + field->offset(), value.data, field->len());
+        memcpy(record + field->offset(), value.data, 4096);
         // memcpy(record + field->offset(), value.data,4096);
       }
       else
