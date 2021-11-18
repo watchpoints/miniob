@@ -30,6 +30,7 @@ See the Mulan PSL v2 for more details. */
 typedef struct {
   char *relName;  // relation name (may be NULL) 表名
   char *attrName; // attribute name              属性名
+  //int up; //1默认为升序(asc) 2 DESC 降序
 } RelAttr;
 
 typedef enum {
@@ -37,8 +38,10 @@ typedef enum {
   LEqual, //"<="          1
   NEqual, //"<>"			2
   LessT,  //"<"			3
-  GEqual, //">="			4
-  GreatT, //">"           5
+  GEqual, //">="		4
+  GreatT, //">"     5
+  ASC, //默认为升序
+  DESC, //默认为升序
   NO_OP
 } CompOp;
 

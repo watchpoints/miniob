@@ -17,6 +17,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <algorithm> 
 
 Tuple::Tuple(const Tuple &other)
 {
@@ -436,7 +437,70 @@ void TupleSet::print(std::ostream &os)
       LOG_INFO("this is avg query >>>>>>>>>>>>>>>>>> ");
       return;
     }
-    //单表显示多行 tuples_ 多行
+    //排序 order-by
+    if (1 == group_type)
+    {
+      //order by
+      //std::vector<Tuple> tuples_; //一个表头信息
+      //TupleSchema schema_;        //一个表内容信息
+      int order_index = -1;
+
+      const std::vector<TupleField> &fields = schema_.fields();
+      int index = 0; //这里假如只有一个，多个就是列表
+      for (std::vector<TupleField>::const_iterator iter = fields.begin(), end = fields.end();
+           iter != end; ++iter)
+      { 
+
+        //SELECT * FROM T_ORDER_BY ORDER BY ID;
+        if (0 == strcmp(iter->field_name(), attr_order_by.attribute_name))
+        {
+          order_index = index;
+        }
+        index++;
+      }
+
+      if(-1 == order_index)
+      {
+          LOG_INFO("排序 order-by 失败 not find attribute_name =%s",attr_order_by.attribute_name);
+          return ;
+      }
+       LOG_INFO("排序 order-by 失败  开始排序  order_index=%d",order_index);
+
+       auto sortRuleLambda = [=]( const Tuple &s1, const Tuple &s2) -> bool
+       { 
+         //std::vector<std::shared_ptr<TupleValue>> values_;
+         std::shared_ptr<TupleValue> sp1;
+         std::shared_ptr<TupleValue> sp2;
+         if(s1.size() >order_index)
+         {
+            sp1=s1.get_pointer(order_index);
+         }
+         if(s2.size() >order_index)
+         {
+            sp2=s2.get_pointer(order_index);
+         }
+
+         int op_comp =0;
+         if(sp1 && sp2)
+         {
+           op_comp =sp1->compare(*sp2);
+         }
+
+         if(CompOp::ORDER_ASC == attr_order_by.is_asc)
+         {
+           return op_comp <0; //true
+         }
+         //为什么std::sort比较函数在参数相等时返回false？
+         return  op_comp >0;
+       };
+
+      if(tuples_.size() >0)
+      {
+        std::sort(tuples_.begin(),tuples_.end(),sortRuleLambda);
+      }
+
+    }
+    //rows cols
     for (const Tuple &item : tuples_)
     {
       //第n-1列
@@ -715,7 +779,7 @@ void TupleRecordConverter::add_record(const char *record)
           if (table()->pTextMap.count(key) == 1)
           {
             s = table()->pTextMap[key];
-            LOG_INFO(" 题目 超长文本 >>>>>>>>>>>> key=%d,value=%s ",key,s);
+            LOG_INFO(" 题目 超长文本 >>>>>>>>>>>> key=%d,value=%s ", key, s);
           }
           else
           {
@@ -732,11 +796,11 @@ void TupleRecordConverter::add_record(const char *record)
         if (table()->pTextMap.count(key) == 1)
         {
           s = table()->pTextMap[key];
-          LOG_INFO(" 题目 超长文本 >>>>>>>>>>>> key=%d,value=%s ",key,s);
+          LOG_INFO(" 题目 超长文本 >>>>>>>>>>>> key=%d,value=%s ", key, s);
         }
         else
         {
-          LOG_INFO(" 题目 超长文本 失败 失败 失败 失败 key=%d,value=%s ",key,s);
+          LOG_INFO(" 题目 超长文本 失败 失败 失败 失败 key=%d,value=%s ", key, s);
         }
         tuple.add(s, strlen(s));
       }

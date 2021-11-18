@@ -112,7 +112,7 @@ void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const
   }
   relation_attr->attribute_name = strdup(attribute_name);
 }
-
+//属性是数字 count（1）
 void relation_attr_init_number(RelAttr *relation_attr, const char *relation_name, int attribute_name) {
   if (relation_name != nullptr) {
     relation_attr->relation_name = strdup(relation_name);
@@ -242,6 +242,12 @@ void attr_info_destroy(AttrInfo *attr_info) {
 void selects_init(Selects *selects, ...);
 void selects_append_attribute(Selects *selects, RelAttr *rel_attr) {
   selects->attributes[selects->attr_num++] = *rel_attr;
+}
+void selects_append_attribute_order_by(Selects *selects, RelAttr *rel_attr) {
+   selects->attr_order_by = *rel_attr;
+}
+void selects_append_attribute_group_by(Selects *selects, RelAttr *rel_attr) {
+  selects->attr_group_by = *rel_attr;
 }
 void selects_append_relation(Selects *selects, const char *relation_name) {
   selects->relations[selects->relation_num++] = strdup(relation_name);

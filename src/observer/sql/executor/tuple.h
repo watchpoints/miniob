@@ -420,6 +420,11 @@ public:
   int select_table_type ;
   bool b_not_know;
 
+public:
+ int group_type =0; //1 order 2 group 
+ RelAttr attr_order_by;
+ RelAttr attr_group_by;
+
 
 };
 

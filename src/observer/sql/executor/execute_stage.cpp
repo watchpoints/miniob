@@ -344,12 +344,25 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
   // 当前只查询一张表，直接返回结果即可
   if (tuple_sets.size() == 1)
   {
-    TupleSet &ts = tuple_sets.front();
-    ts.b_not_know =false;
+    TupleSet &ts = tuple_sets.front(); //只有一个
+    ts.b_not_know = false;
     ts.realTabeNumber = 0;
     if (selects.relation_num > 1)
     {
       ts.realTabeNumber = selects.relation_num;
+    }
+    ts.group_type  = 0;
+    if (selects.attr_order_by.is_asc == CompOp::ORDER_DESC || selects.attr_order_by.is_asc == CompOp::ORDER_ASC)
+    {
+      LOG_INFO("排序 order-by group_type =1");
+      ts.group_type = 1;
+      ts.attr_order_by = selects.attr_order_by;
+    }
+    if (selects.attr_group_by.is_asc == CompOp::ORDER_DESC || selects.attr_group_by.is_asc == CompOp::ORDER_ASC)
+    {
+      LOG_INFO("分组group-by");
+      ts.group_type = 2;
+      ts.attr_group_by = selects.attr_group_by;
     }
     //单表：
     ts.print(ss);
@@ -359,10 +372,8 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
   else if (tuple_sets.size() == 2)
   {
 
-    LOG_INFO("two table query");
-
     TupleSet twoSet;
-    twoSet.b_not_know =false;
+    twoSet.b_not_know = false;
 
     //按照select重现产生输出顺序 --这个我不会，我放弃这样题目，但是null 不过 特殊处理。
     bool b_not_know1 = false;
@@ -370,13 +381,13 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     {
       const char *table_name1 = selects.relations[0]; //t13
       const char *table_name2 = selects.relations[1]; //t12
-     
+
       if (0 == strcmp(table_name2, selects.attributes[0].relation_name) &&
           0 == strcmp(table_name1, selects.attributes[1].relation_name) &&
           0 == strcmp(table_name2, selects.attributes[2].relation_name))
       {
-         b_not_know1 = true;
-         LOG_INFO(" 需要 处理 >>>>>>> t1=%s ,t2=%s", table_name1, table_name2);
+        b_not_know1 = true;
+        LOG_INFO(" 需要 处理 >>>>>>> t1=%s ,t2=%s", table_name1, table_name2);
       }
     }
 
@@ -422,8 +433,6 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       twoSet.set_schema(schema); //第一个表信息
       twoSet.add_old_tuple_schema(schema);
 
-
-
       //添加行信息 过滤显示
       twoSet.set_schema1(tuple_sets[1].get_schema()); //第一个表内容
       twoSet.set_schema2(tuple_sets[0].get_schema()); //第一个表内容
@@ -432,10 +441,8 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       //schema1 -->schema0;
       twoSet.set_tuples1(std::move(tuple_sets[1].get_tuple()));
       twoSet.set_tuples2(std::move(tuple_sets[0].get_tuple()));
-      
-  
 
-       /**
+      /**
        std::vector<Tuple> schema_row1 = tuple_sets[1].get_tuple();
       std::vector<Tuple> schema_row0 = tuple_sets[0].get_tuple();
       for (int i = 0; i < schema_row1.size(); i++)
@@ -477,7 +484,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       {
         twoSet.add_tuple_schema(tuple_sets[0].get_schema()); // 第二个表信息
       }
-      
+
       twoSet.set_schema1(tuple_sets[1].get_schema()); //第一个表内容
       twoSet.set_schema2(tuple_sets[0].get_schema()); //第一个表内容
       //一个表 有2个字段，2个表 这里就四行记录
@@ -579,10 +586,9 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     }
 
     twoSet.set_join(isJoin, joinIndex);
-    twoSet.b_not_know =b_not_know1;
-    LOG_INFO(">>>>b_not_know =%d",b_not_know1);
+    twoSet.b_not_know = b_not_know1;
+    LOG_INFO(">>>>b_not_know =%d", b_not_know1);
     twoSet.print_two(ss);
-
   }
   else
   {
@@ -914,6 +920,29 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
         return rc;
       }
       condition_filters.push_back(condition_filter);
+    }
+  }
+
+  //对分组数据进行校验
+
+  if ((selects.attr_order_by.is_asc == CompOp::ORDER_DESC || selects.attr_order_by.is_asc == CompOp::ORDER_ASC) && nullptr != selects.attr_order_by.attribute_name)
+
+  {
+    const FieldMeta *field_meta = table->table_meta().field(selects.attr_order_by.attribute_name);
+    if (nullptr == field_meta)
+    {
+      LOG_WARN("No such field. %s.%s", table->name(), selects.attr_order_by.attribute_name);
+      return RC::SCHEMA_FIELD_MISSING;
+    }
+  }
+
+  if ((selects.attr_group_by.is_asc == CompOp::ORDER_DESC || selects.attr_group_by.is_asc == CompOp::ORDER_ASC) && nullptr != selects.attr_group_by.attribute_name)
+  {
+    const FieldMeta *field_meta = table->table_meta().field(selects.attr_group_by.attribute_name);
+    if (nullptr == field_meta)
+    {
+      LOG_WARN("No such field. %s.%s", table->name(), selects.attr_order_by.attribute_name);
+      return RC::SCHEMA_FIELD_MISSING;
     }
   }
 

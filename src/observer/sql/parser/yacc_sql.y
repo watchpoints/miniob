@@ -113,6 +113,10 @@ ParserContext *get_context(yyscan_t scanner)
 		NOT
 		IS
 		TEXT_T
+		ORDER
+		GROUP
+		BY
+		ASC
 
 %union {
   struct _Attr *attr;
@@ -414,7 +418,7 @@ update:			/*  update 语句的语法解析树*/
 		}
     ;
 select:				/*  select 语句的语法解析树*/
-    SELECT select_attr FROM ID rel_list where SEMICOLON
+    SELECT select_attr FROM ID rel_list where group_list SEMICOLON
 		{
 			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
 			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
@@ -580,6 +584,74 @@ rel_list:
 				selects_append_relation(&CONTEXT->ssql->sstr.selection, $2);
 		  }
     ;
+group_list:
+	/* empty */
+	| ORDER BY ID
+	{
+		RelAttr attr;
+		attr.funtype=FUN_ORDER_BY;
+		attr.is_asc =ORDER_ASC;
+		//默认升序(asc)
+		relation_attr_init(&attr, NULL, $3); 
+		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| ORDER BY ID comOp
+	{
+		RelAttr attr;
+		attr.funtype=FUN_ORDER_BY;
+		attr.is_asc =CONTEXT->comp;
+		//默认升序(asc)
+		relation_attr_init(&attr, NULL, $3); 
+		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| ORDER BY ID DOT ID
+	{
+		RelAttr attr;
+		attr.funtype=FUN_ORDER_BY;
+		attr.is_asc =ORDER_ASC;
+		relation_attr_init(&attr, $3, $5); 
+		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| ORDER BY ID DOT ID comOp
+	{
+		RelAttr attr;
+		attr.funtype=FUN_ORDER_BY;
+		attr.is_asc =CONTEXT->comp;
+		relation_attr_init(&attr, $3, $5); 
+		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| GROUP BY ID
+	{
+		RelAttr attr;
+		attr.is_asc =ORDER_ASC;
+		attr.funtype=FUN_ORDER_BY;
+		relation_attr_init(&attr, NULL, $3); 
+		selects_append_attribute_group_by(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| GROUP BY ID comOp
+	{
+		RelAttr attr;
+		attr.is_asc =CONTEXT->comp;
+		attr.funtype=FUN_ORDER_BY;
+		relation_attr_init(&attr, NULL, $3); 
+		selects_append_attribute_group_by(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| GROUP BY ID DOT ID
+	{
+		RelAttr attr;
+		attr.is_asc =ORDER_ASC;
+		attr.funtype=FUN_ORDER_BY;
+		relation_attr_init(&attr,$3, $5); 
+		selects_append_attribute_group_by(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| GROUP BY ID DOT ID comOp
+	{
+		RelAttr attr;
+		attr.is_asc =CONTEXT->comp;
+		attr.funtype=FUN_ORDER_BY;
+		relation_attr_init(&attr,$3, $5); 
+		selects_append_attribute_group_by(&CONTEXT->ssql->sstr.selection, &attr);
+	};
 where:
     /* empty */ 
     | WHERE condition condition_list {	
@@ -756,6 +828,8 @@ comOp:
     | NE { CONTEXT->comp = NOT_EQUAL; }
 	| IS { CONTEXT->comp = IS_NULL; }
 	| IS NOT { CONTEXT->comp = IS_NOT_NULL; }
+	| ASC { CONTEXT->comp = ORDER_ASC; }
+	| DESC { CONTEXT->comp = ORDER_DESC; }
     ;
 
 load_data:

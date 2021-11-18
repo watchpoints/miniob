@@ -30,15 +30,10 @@ typedef enum {
   FUN_MAX, //       3
   FUN_MIN, //       4
   FUN_AVG, //       5
-  FUN_COUNT_ALL_ALl //7count(*)
+  FUN_COUNT_ALL_ALl, //7count(*)
+  FUN_ORDER_BY,
+  FUN_GROUP_BY
 } FunctionType;
-
-//属性结构体
-typedef struct {
-  char *relation_name;   // relation name (may be NULL) 表名
-  char *attribute_name;  // attribute name              属性名
-  FunctionType funtype;
-} RelAttr;
 
 typedef enum {
   EQUAL_TO,     //"="     0
@@ -49,8 +44,19 @@ typedef enum {
   GREAT_THAN,   //">"     5
   IS_NULL,//is null 6
   IS_NOT_NULL,//is not null
+  ORDER_ASC, //默认为升序
+  ORDER_DESC, //默认为升序
   NO_OP
 } CompOp;
+
+//属性结构体
+typedef struct {
+  char *relation_name;   // relation name (may be NULL) 表名
+  char *attribute_name;  // attribute name              属性名
+  FunctionType funtype;
+  CompOp is_asc;//默认为升序(asc) 2 DESC 降
+} RelAttr;
+
 
 //属性值类型
 typedef enum { UNDEFINED, CHARS, INTS, FLOATS,DATES,NULLVALUES,TEXTS } AttrType;
@@ -85,6 +91,8 @@ typedef struct {
   //多个查询条件： where 
   size_t    condition_num;          // Length of conditions in Where clause
   Condition conditions[MAX_NUM];    // conditions in Where clause 20
+  RelAttr  attr_order_by;
+  RelAttr  attr_group_by;
 } Selects;
 
 typedef struct {
@@ -237,6 +245,9 @@ void selects_append_attribute(Selects *selects, RelAttr *rel_attr);
 void selects_append_relation(Selects *selects, const char *relation_name);
 void selects_append_conditions(Selects *selects, Condition conditions[], size_t condition_num);
 void selects_destroy(Selects *selects);
+
+void selects_append_attribute_order_by(Selects *selects, RelAttr *rel_attr);
+void selects_append_attribute_group_by(Selects *selects, RelAttr *rel_attr);
 
 void inserts_init(Inserts *inserts, const char *relation_name, Value values[], size_t value_num);
 void inserts_destroy(Inserts *inserts);
