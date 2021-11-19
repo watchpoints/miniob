@@ -586,72 +586,163 @@ rel_list:
     ;
 group_list:
 	/* empty */
-	| ORDER BY ID
+	| ORDER BY order_by_attr
+	{
+
+	}
+	| GROUP BY group_by_attr
+	{
+	}
+	;
+order_by_attr:
+ /* empty */ 
+  | ID order_by_attr_list 
+  {
+		RelAttr attr;
+		attr.funtype=FUN_ORDER_BY;
+		attr.is_asc =ORDER_ASC;
+		//默认升序(asc)
+		relation_attr_init(&attr, NULL, $1); 
+		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
+  }
+  | ID comOp order_by_attr_list
+	{
+		RelAttr attr;
+		attr.funtype=FUN_ORDER_BY;
+		attr.is_asc =CONTEXT->comp;
+		//默认升序(asc)
+		relation_attr_init(&attr, NULL, $1); 
+		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+   | ID DOT ID order_by_attr_list
+	{
+		RelAttr attr;
+		attr.funtype=FUN_ORDER_BY;
+		attr.is_asc =ORDER_ASC;
+		relation_attr_init(&attr, $1, $3); 
+		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| ID DOT ID comOp order_by_attr_list
+	{
+		RelAttr attr;
+		attr.funtype=FUN_ORDER_BY;
+		attr.is_asc =CONTEXT->comp;
+		relation_attr_init(&attr, $1, $3); 
+		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+  ;
+  order_by_attr_list:
+    /* empty */
+    | COMMA ID order_by_attr_list 
 	{
 		RelAttr attr;
 		attr.funtype=FUN_ORDER_BY;
 		attr.is_asc =ORDER_ASC;
 		//默认升序(asc)
-		relation_attr_init(&attr, NULL, $3); 
+		relation_attr_init(&attr, NULL, $2); 
 		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
 	}
-	| ORDER BY ID comOp
+	| COMMA ID comOp order_by_attr_list
 	{
 		RelAttr attr;
 		attr.funtype=FUN_ORDER_BY;
 		attr.is_asc =CONTEXT->comp;
 		//默认升序(asc)
-		relation_attr_init(&attr, NULL, $3); 
+		relation_attr_init(&attr, NULL, $2); 
 		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
 	}
-	| ORDER BY ID DOT ID
+	| COMMA ID DOT ID order_by_attr_list
 	{
 		RelAttr attr;
 		attr.funtype=FUN_ORDER_BY;
 		attr.is_asc =ORDER_ASC;
-		relation_attr_init(&attr, $3, $5); 
+		relation_attr_init(&attr, $2, $4); 
 		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
 	}
-	| ORDER BY ID DOT ID comOp
+	| COMMA ID DOT ID comOp order_by_attr_list
 	{
 		RelAttr attr;
 		attr.funtype=FUN_ORDER_BY;
 		attr.is_asc =CONTEXT->comp;
-		relation_attr_init(&attr, $3, $5); 
+		relation_attr_init(&attr, $2, $4); 
 		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
 	}
-	| GROUP BY ID
-	{
+	;
+
+group_by_attr:
+ /* empty */ 
+  | ID group_by_attr_list 
+  {
 		RelAttr attr;
+		attr.funtype=FUN_GROUP_BY;
 		attr.is_asc =ORDER_ASC;
-		attr.funtype=FUN_ORDER_BY;
-		relation_attr_init(&attr, NULL, $3); 
+		//默认升序(asc)
+		relation_attr_init(&attr, NULL, $1); 
 		selects_append_attribute_group_by(&CONTEXT->ssql->sstr.selection, &attr);
-	}
-	| GROUP BY ID comOp
+  }
+  | ID comOp group_by_attr_list
 	{
 		RelAttr attr;
+		attr.funtype=FUN_GROUP_BY;
 		attr.is_asc =CONTEXT->comp;
-		attr.funtype=FUN_ORDER_BY;
-		relation_attr_init(&attr, NULL, $3); 
+		//默认升序(asc)
+		relation_attr_init(&attr, NULL, $1); 
 		selects_append_attribute_group_by(&CONTEXT->ssql->sstr.selection, &attr);
 	}
-	| GROUP BY ID DOT ID
+   | ID DOT ID group_by_attr_list
 	{
 		RelAttr attr;
+		attr.funtype=FUN_GROUP_BY;
 		attr.is_asc =ORDER_ASC;
-		attr.funtype=FUN_ORDER_BY;
-		relation_attr_init(&attr,$3, $5); 
+		relation_attr_init(&attr, $1, $3); 
 		selects_append_attribute_group_by(&CONTEXT->ssql->sstr.selection, &attr);
 	}
-	| GROUP BY ID DOT ID comOp
+	| ID DOT ID comOp group_by_attr_list
 	{
 		RelAttr attr;
+		attr.funtype=FUN_GROUP_BY;
 		attr.is_asc =CONTEXT->comp;
-		attr.funtype=FUN_ORDER_BY;
-		relation_attr_init(&attr,$3, $5); 
+		relation_attr_init(&attr, $1, $3); 
 		selects_append_attribute_group_by(&CONTEXT->ssql->sstr.selection, &attr);
-	};
+	}
+  ;
+  group_by_attr_list:
+    /* empty */
+    | COMMA ID group_by_attr_list 
+	{
+		RelAttr attr;
+		attr.funtype=FUN_GROUP_BY;
+		attr.is_asc =ORDER_ASC;
+		//默认升序(asc)
+		relation_attr_init(&attr, NULL, $2); 
+		selects_append_attribute_group_by(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| COMMA ID comOp group_by_attr_list
+	{
+		RelAttr attr;
+		attr.funtype=FUN_GROUP_BY;
+		attr.is_asc =CONTEXT->comp;
+		//默认升序(asc)
+		relation_attr_init(&attr, NULL, $2); 
+		selects_append_attribute_group_by(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| COMMA ID DOT ID group_by_attr_list
+	{
+		RelAttr attr;
+		attr.funtype=FUN_GROUP_BY;
+		attr.is_asc =ORDER_ASC;
+		relation_attr_init(&attr, $2, $4); 
+		selects_append_attribute_group_by(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| COMMA ID DOT ID comOp group_by_attr_list
+	{
+		RelAttr attr;
+		attr.funtype=FUN_GROUP_BY;
+		attr.is_asc =CONTEXT->comp;
+		relation_attr_init(&attr, $2, $4); 
+		selects_append_attribute_group_by(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	;
 where:
     /* empty */ 
     | WHERE condition condition_list {	

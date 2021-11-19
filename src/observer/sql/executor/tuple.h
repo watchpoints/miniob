@@ -421,9 +421,10 @@ public:
   bool b_not_know;
 
 public:
- int group_type =0; //1 order 2 group 
- RelAttr attr_order_by;
- RelAttr attr_group_by;
+ //int group_type =0; //1 order 2 group 
+ //RelAttr attr_order_by;
+ //RelAttr attr_group_by;
+ Selects* ptr_group_selects =nullptr;
 
 
 };

@@ -91,8 +91,12 @@ typedef struct {
   //多个查询条件： where 
   size_t    condition_num;          // Length of conditions in Where clause
   Condition conditions[MAX_NUM];    // conditions in Where clause 20
-  RelAttr  attr_order_by;
-  RelAttr  attr_group_by;
+  
+  size_t attr_order_num;
+  RelAttr attr_order_by[MAX_NUM]; 
+  
+  size_t attr_group_num;
+  RelAttr  attr_group_by[MAX_NUM];
 } Selects;
 
 typedef struct {

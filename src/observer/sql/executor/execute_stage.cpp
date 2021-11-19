@@ -351,6 +351,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     {
       ts.realTabeNumber = selects.relation_num;
     }
+    /*
     ts.group_type  = 0;
     if (selects.attr_order_by.is_asc == CompOp::ORDER_DESC || selects.attr_order_by.is_asc == CompOp::ORDER_ASC)
     {
@@ -363,8 +364,11 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       LOG_INFO("分组group-by");
       ts.group_type = 2;
       ts.attr_group_by = selects.attr_group_by;
-    }
+    }*/
+
     //单表：
+    //Selects &selects
+    ts.ptr_group_selects =&sql->sstr.selection;
     ts.print(ss);
 
     //题目：多表查询
@@ -924,24 +928,21 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
   }
 
   //对分组数据进行校验
-
-  if ((selects.attr_order_by.is_asc == CompOp::ORDER_DESC || selects.attr_order_by.is_asc == CompOp::ORDER_ASC) && nullptr != selects.attr_order_by.attribute_name)
-
+  for (size_t i = 0; i < selects.attr_order_num; i++)
   {
-    const FieldMeta *field_meta = table->table_meta().field(selects.attr_order_by.attribute_name);
+     const FieldMeta *field_meta = table->table_meta().field(selects.attr_order_by[i].attribute_name);
     if (nullptr == field_meta)
     {
-      LOG_WARN("No such field. %s.%s", table->name(), selects.attr_order_by.attribute_name);
+      LOG_WARN("No such field. %s.%s", table->name(), selects.attr_order_by[i].attribute_name);
       return RC::SCHEMA_FIELD_MISSING;
     }
   }
-
-  if ((selects.attr_group_by.is_asc == CompOp::ORDER_DESC || selects.attr_group_by.is_asc == CompOp::ORDER_ASC) && nullptr != selects.attr_group_by.attribute_name)
+  for (size_t i = 0; i < selects.attr_group_num; i++)
   {
-    const FieldMeta *field_meta = table->table_meta().field(selects.attr_group_by.attribute_name);
+     const FieldMeta *field_meta = table->table_meta().field(selects.attr_group_by[i].attribute_name);
     if (nullptr == field_meta)
     {
-      LOG_WARN("No such field. %s.%s", table->name(), selects.attr_order_by.attribute_name);
+      LOG_WARN("No such field. %s.%s", table->name(), selects.attr_group_by[i].attribute_name);
       return RC::SCHEMA_FIELD_MISSING;
     }
   }

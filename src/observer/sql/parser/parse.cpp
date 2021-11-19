@@ -244,10 +244,12 @@ void selects_append_attribute(Selects *selects, RelAttr *rel_attr) {
   selects->attributes[selects->attr_num++] = *rel_attr;
 }
 void selects_append_attribute_order_by(Selects *selects, RelAttr *rel_attr) {
-   selects->attr_order_by = *rel_attr;
+   selects->attr_order_by[selects->attr_order_num++] = *rel_attr;
+   //selects->attr_order_by = *rel_attr; 不是一个是多个
 }
 void selects_append_attribute_group_by(Selects *selects, RelAttr *rel_attr) {
-  selects->attr_group_by = *rel_attr;
+  //selects->attr_group_by = *rel_attr;
+  selects->attr_group_by[selects->attr_group_num++] = *rel_attr;
 }
 void selects_append_relation(Selects *selects, const char *relation_name) {
   selects->relations[selects->relation_num++] = strdup(relation_name);
@@ -277,6 +279,10 @@ void selects_destroy(Selects *selects) {
     condition_destroy(&selects->conditions[i]);
   }
   selects->condition_num = 0;
+
+  //这个地方要释放，无内存泄漏。bug 后面添加
+  selects->attr_order_num = 0;
+  selects->attr_group_num = 0;
 }
 
 void inserts_init(Inserts *inserts, const char *relation_name, Value values[], size_t value_num) {
