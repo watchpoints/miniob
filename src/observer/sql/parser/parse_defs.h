@@ -44,8 +44,8 @@ typedef enum {
   GREAT_THAN,   //">"     5
   IS_NULL,//is null 6
   IS_NOT_NULL,//is not null
-  ORDER_ASC, //默认为升序
-  ORDER_DESC, //默认为升序
+  ORDER_ASC, //默认为升序 8
+  ORDER_DESC, //默认为升序 9
   NO_OP
 } CompOp;
 

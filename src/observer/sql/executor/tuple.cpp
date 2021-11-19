@@ -475,7 +475,7 @@ void TupleSet::print(std::ostream &os)
           if (0 == strcmp(iter->field_name(), ptr_attr_order_by[cols].attribute_name))
           {
             order_index.push_back(index);
-            LOG_INFO("题目：排序 >>>>>> index=%d,name=%s", index, ptr_attr_order_by[cols].attribute_name);
+            LOG_INFO("题目：排序 >>>>>> index=%d,cols=%d,name=%s", index,cols, ptr_attr_order_by[cols].attribute_name);
           }
         }
 
@@ -517,17 +517,18 @@ void TupleSet::print(std::ostream &os)
           //不相等才比较 ，相等下一个
           if (op_comp != 0)
           {  
-            if(CompOp::ORDER_ASC == ptr_attr_order_by[op_index].is_asc)
+            int index_order =order_index.size()-op_index-1;
+            if(CompOp::ORDER_ASC == ptr_attr_order_by[index_order].is_asc)
             { 
-              LOG_INFO("排序 order-by  ORDER_ASC op_index=%d, order_index=%d,name=%s",op_index, order_by_num,ptr_attr_order_by[op_index].attribute_name);
+              LOG_INFO("排序 order-by  ORDER_ASC op_index=%d, order_index=%d,name=%s",op_index, order_by_num,ptr_attr_order_by[index_order].attribute_name);
               return op_comp < 0; //true
-            }else if (CompOp::ORDER_DESC == ptr_attr_order_by[op_index].is_asc)
+            }else if (CompOp::ORDER_DESC == ptr_attr_order_by[index_order].is_asc)
             {
-              LOG_INFO("排序 order-by  ORDER_DESC  op_index=%d,order_index=%d,name=%s",op_index,order_by_num,ptr_attr_order_by[op_index].attribute_name);
+              LOG_INFO("排序 order-by  ORDER_DESC  op_index=%d,order_index=%d,name=%s",op_index,order_by_num,ptr_attr_order_by[index_order].attribute_name);
               return op_comp > 0; //true
             }else
             {
-               LOG_INFO("排序 order-by  err err err err  order_index=%d,name=%s", order_by_num,ptr_attr_order_by[op_index].attribute_name);
+               LOG_INFO("排序 order-by  err err err err  order_index=%d,name=%s", order_by_num,ptr_attr_order_by[index_order].attribute_name);
             }
           }
         } ////多个字段如何比较呀？
