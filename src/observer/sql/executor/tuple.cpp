@@ -488,7 +488,7 @@ void TupleSet::print(std::ostream &os)
         return;
       }
 
-      LOG_INFO("排序 order-by 失败  开始排序  order_index=%d", order_by_num);
+      LOG_INFO("排序 order-by  开始排序  order_index=%d", order_by_num);
 
       auto sortRuleLambda = [=](const Tuple &s1, const Tuple &s2) -> bool {
         //std::vector<std::shared_ptr<TupleValue>> values_;
@@ -518,11 +518,17 @@ void TupleSet::print(std::ostream &os)
           if (op_comp != 0)
           {  
             if (CompOp::ORDER_ASC == ptr_attr_order_by[op_index].is_asc)
-            {
+            { 
+              LOG_INFO("排序 order-by  ORDER_ASC op_index=%d, order_index=%d,name=%s",op_index, order_by_num,ptr_attr_order_by[op_index].attribute_name);
               return op_comp < 0; //true
+            }else if (CompOp::ORDER_DESC == ptr_attr_order_by[op_index].is_asc)
+            {
+              LOG_INFO("排序 order-by  ORDER_DESC  op_index=%d,order_index=%d,name=%s",op_index,order_by_num,ptr_attr_order_by[op_index].attribute_name);
+              return op_comp > 0; //true
+            }else
+            {
+               LOG_INFO("排序 order-by  err err err err  order_index=%d,name=%s", order_by_num,ptr_attr_order_by[op_index].attribute_name);
             }
-            return op_comp > 0;
-
           }
         } ////多个字段如何比较呀？
         //为什么std::sort比较函数在参数相等时返回false？
