@@ -1193,6 +1193,7 @@ void TupleSet::print_two(std::ostream &os)
   {
     return;
   }
+  
 
   ////多表操作/////////////////////////////////////
   //笛卡尔积算法描述
@@ -1201,6 +1202,7 @@ void TupleSet::print_two(std::ostream &os)
   {
     return;
   }
+
 
   //select t1.age,t2.age from t1 ,t2 where t1.id =t2.id;
   //[id(隐藏),age] [age,id(隐藏)）
@@ -1244,7 +1246,10 @@ void TupleSet::print_two(std::ostream &os)
     }
     index2++;
   }
+  
 
+  order_by_two();
+  
   //t1.rows[i][j]
   //t2.rows[i][j]
   //item_left 一行记录
