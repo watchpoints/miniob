@@ -639,6 +639,7 @@ void TupleSet::print(std::ostream &os)
         }
         else
         {
+
           os << os_left.str();
           os << os_right.str();
         }
@@ -1250,6 +1251,7 @@ void TupleSet::print_two(std::ostream &os)
   //t1.rows[i][j]
   //t2.rows[i][j]
   //item_left 一行记录
+  //第一个表内容
   for (const Tuple &item_left : tuples1_)
   {
     std::shared_ptr<TupleValue> sp1;
@@ -1310,6 +1312,7 @@ void TupleSet::print_two(std::ostream &os)
     }
 
     //b表的多行 tuples_right 多行
+    //第2个表内容
     for (const Tuple &item_right : tuples2_)
     {
       std::shared_ptr<TupleValue> sp2;
@@ -1455,20 +1458,19 @@ void TupleSet::print_two(std::ostream &os)
 
         if (true == b_equal)
         {
-          os << os_left.str();
-          os << os_right.str();
-        }
 
-        /**
-        if (sp1 && sp2 && 0 == sp1->compare(*sp2))
-        {
-          os << os_left.str();
-          os << os_right.str();
+          //sql: 1笛卡尔积 2 排序 3 分组 4 输出
+          //题目：order_by
+          if (ptr_group_selects && ptr_group_selects->attr_order_num > 0)
+          {
+            join_table_for_order_by(item_left, item_right);
+          }
+          else
+          {
+            os << os_left.str();
+            os << os_right.str();
+          }
         }
-        else
-        {
-          LOG_INFO(" not equal  ");
-        }**/
       }
       else
       { //没有join条件
@@ -1476,6 +1478,15 @@ void TupleSet::print_two(std::ostream &os)
         os << os_right.str();
       }
     }
+  }
+
+  //题目：order_by
+  if (ptr_group_selects && ptr_group_selects->attr_order_num > 0)
+  {
+    sort_table_for_order_by();
+    std::stringstream ss;
+    join_tuples_to_print(ss);
+    os << ss.str();
   }
 }
 
@@ -1818,7 +1829,7 @@ void TupleSet::order_by_two()
   //步骤01 每个表分开计算
   std::vector<RelAttr> attr_order_by1;
   std::vector<RelAttr> attr_order_by2;
-  for (int i = ptr_group_selects->attr_order_num-1; i>=0; i--)
+  for (int i = ptr_group_selects->attr_order_num - 1; i >= 0; i--)
   {
     const std::vector<TupleField> &fields = schema1_.fields();
     for (std::vector<TupleField>::const_iterator iter = fields.begin(), end = fields.end();
@@ -1832,7 +1843,7 @@ void TupleSet::order_by_two()
     }
   }
 
-  for (int i = ptr_group_selects->attr_order_num-1; i>=0; i--)
+  for (int i = ptr_group_selects->attr_order_num - 1; i >= 0; i--)
   {
     const std::vector<TupleField> &fields2 = schema2_.fields();
     for (std::vector<TupleField>::const_iterator iter2 = fields2.begin(), end = fields2.end();
@@ -1846,8 +1857,6 @@ void TupleSet::order_by_two()
     }
   }
 
-
-
   if (attr_order_by1.size() == 0 && attr_order_by2.size() == 0)
   {
     LOG_INFO("  失败 ");
@@ -1859,8 +1868,8 @@ void TupleSet::order_by_two()
   order_index1.clear();
   std::vector<int> order_index2;
   order_index2.clear();
-  std::map<int,int> value_key1; //index-key
-  std::map<int,int> value_key2;//index-key
+  std::map<int, int> value_key1; //index-key
+  std::map<int, int> value_key2; //index-key
   //key --->index
   for (int cols = 0; cols < attr_order_by1.size(); cols++)
   {
@@ -1872,8 +1881,8 @@ void TupleSet::order_by_two()
       if (0 == strcmp(iter->field_name(), attr_order_by1[cols].attribute_name))
       {
         order_index1.push_back(index1);
-        value_key1[index1]=cols;
-        LOG_INFO("题目：排序 >>>>>> cols=%d,index1=%d,name=%s", cols,index1, attr_order_by1[cols].attribute_name);
+        value_key1[index1] = cols;
+        LOG_INFO("题目：排序 >>>>>> cols=%d,index1=%d,name=%s", cols, index1, attr_order_by1[cols].attribute_name);
       }
       index1++;
     }
@@ -1890,8 +1899,8 @@ void TupleSet::order_by_two()
       if (0 == strcmp(iter->field_name(), attr_order_by2[cols].attribute_name))
       {
         order_index2.push_back(index2);
-        value_key2[index2]=cols;
-        LOG_INFO("题目：排序 >>>>>> cols=%d,index2=%d,name=%s", cols,index2, attr_order_by2[cols].attribute_name);
+        value_key2[index2] = cols;
+        LOG_INFO("题目：排序 >>>>>> cols=%d,index2=%d,name=%s", cols, index2, attr_order_by2[cols].attribute_name);
       }
       index2++;
     }
@@ -1929,8 +1938,8 @@ void TupleSet::order_by_two()
         //不相等才比较 ，相等下一个
         if (op_comp != 0)
         {
-    
-          int index_order =value_key1.at(order_index1[op_index]);
+
+          int index_order = value_key1.at(order_index1[op_index]);
           if (CompOp::ORDER_ASC == attr_order_by1[index_order].is_asc)
           {
             LOG_INFO("排序 order-by  ORDER_ASC op_index=%d, order_index=%d,name=%s", op_index, order_index1.size(), attr_order_by1[index_order].attribute_name);
@@ -1990,7 +1999,7 @@ void TupleSet::order_by_two()
         if (op_comp != 0)
         {
           //int index_order = order_index2.size() - op_index - 1;
-          int index_order =value_key2.at(order_index2[op_index]);
+          int index_order = value_key2.at(order_index2[op_index]);
           if (CompOp::ORDER_ASC == attr_order_by2[index_order].is_asc)
           {
             LOG_INFO("排序 order-by  ORDER_ASC op_index=%d, order_index=%d,name=%s", op_index, order_index2.size(), attr_order_by2[index_order].attribute_name);
@@ -2015,5 +2024,165 @@ void TupleSet::order_by_two()
     {
       std::sort(tuples2_.begin(), tuples2_.end(), sortRuleLambda2);
     }
+  }
+}
+
+void TupleSet::join_table_for_order_by(const Tuple &item_left, const Tuple &item_right)
+{
+
+  Tuple merge;
+
+  const std::vector<std::shared_ptr<TupleValue>> &values_left = item_left.values();
+  for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values_left.begin(), end = values_left.end();
+       iter != end; ++iter)
+  {
+    merge.add(*iter);
+  }
+
+  const std::vector<std::shared_ptr<TupleValue>> &values_right = item_right.values();
+  for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values_right.begin(), end = values_right.end();
+       iter != end; ++iter)
+  {
+    merge.add(*iter);
+  }
+  join_tuples.push_back(std::move(merge));
+}
+
+void TupleSet::sort_table_for_order_by()
+{
+
+  //依赖数据结构：
+  //std::vector<Tuple> join_tuples; 数据
+  // Selects* ptr_group_selects =nullptr; 排序条件
+  // TupleSchema schema_;  有可能是old
+  //if (old_schema.get_size() > 0)
+
+  //排序 order-by
+  int order_by_num = -1;
+  RelAttr *ptr_attr_order_by = nullptr;
+  if (ptr_group_selects && ptr_group_selects->attr_order_num > 0)
+  {
+    order_by_num = ptr_group_selects->attr_order_num;
+    ptr_attr_order_by = ptr_group_selects->attr_order_by;
+  }
+
+  if (order_by_num > 0)
+  {
+    //order by
+    //std::vector<Tuple> tuples_; //一个表头信息
+    //TupleSchema schema_;        //一个表内容信息
+    //SELECT * FROM T_ORDER_BY ORDER BY ID, SCORE, NAME;
+
+    //key ---index
+    //index ---key
+    std::vector<int> key_value;
+    std::map<int, int> value_key;
+    key_value.clear();
+    value_key.clear();
+
+    for (int i = ptr_group_selects->attr_order_num - 1; i >= 0; i--)
+    {
+      const std::vector<TupleField> &fields = schema_.fields(); //决定了value 顺序
+      int index = 0;
+      for (std::vector<TupleField>::const_iterator iter = fields.begin(), end = fields.end();
+           iter != end; ++iter)
+      {
+        if (0 == strcmp(iter->field_name(), ptr_group_selects->attr_order_by[i].attribute_name) &&
+            0 == strcmp(iter->table_name(), ptr_group_selects->attr_order_by[i].relation_name))
+        {
+          key_value.push_back(index);
+          value_key[index] = i;
+          LOG_INFO(" >>>>>order-by index=%d,table_name=%s,attribute_name=%s", index, iter->table_name(), iter->field_name());
+          break;
+        }
+        index++;
+      }
+    }
+
+    if (order_by_num != key_value.size())
+    {
+      LOG_INFO("排序 order-by 失败 order_by_num != order_index.size()");
+      return;
+    }
+
+    auto sortRuleLambda = [=](const Tuple &s1, const Tuple &s2) -> bool {
+      std::vector<std::shared_ptr<TupleValue>> sp1;
+      std::vector<std::shared_ptr<TupleValue>> sp2;
+
+      //key -value
+      //SELECT * FROM T_ORDER_BY ORDER BY ID, SCORE, NAME;
+      // 排序数据
+      for (int i = 0; i < key_value.size(); i++)
+      {
+        sp1.push_back(s1.get_pointer(key_value[i]));
+
+        sp2.push_back(s2.get_pointer(key_value[i]));
+
+        //字段：ID, SCORE, NAME;
+        //字段之间顺序
+        //key_value[i]--对应rows的位置
+        //rows 对应的值
+        // i
+        //i -value---key-id
+      }
+
+      //字段之间顺序
+      for (int op_index = 0; op_index < key_value.size(); op_index++)
+      {
+        int op_comp = 0;
+        std::shared_ptr<TupleValue> sp_1 = sp1[op_index];
+        std::shared_ptr<TupleValue> sp_2 = sp2[op_index];
+
+        if (sp_1 && sp_2)
+        {
+          op_comp = sp_1->compare(*sp_2);
+        }
+        //不相等才比较 ，相等下一个
+        if (op_comp != 0)
+        {
+          int index_order = value_key.at(key_value[op_index]);
+          if (CompOp::ORDER_ASC == ptr_attr_order_by[index_order].is_asc)
+          {
+            LOG_INFO("排序 order-by  ORDER_ASC value=%d, key=%d,name=%s", key_value[op_index], index_order, ptr_attr_order_by[index_order].attribute_name);
+            return op_comp < 0; //true
+          }
+          else if (CompOp::ORDER_DESC == ptr_attr_order_by[index_order].is_asc)
+          {
+            LOG_INFO("排序 order-by  ORDER_DESC value=%d, key=%d,name=%s", key_value[op_index], index_order, ptr_attr_order_by[index_order].attribute_name);
+            return op_comp > 0; //true
+          }
+          else
+          {
+            LOG_INFO("排序 order-by  err..... value=%d, key=%d,name=%s", key_value[op_index], index_order, ptr_attr_order_by[index_order].attribute_name);
+          }
+        }
+      } ////多个字段如何比较呀？
+      //为什么std::sort比较函数在参数相等时返回false？
+      return false;
+    };
+
+    if (join_tuples.size() > 0)
+    {
+      std::sort(join_tuples.begin(), join_tuples.end(), sortRuleLambda);
+    }
+  }
+}
+void TupleSet::join_tuples_to_print(std::ostream &os)
+{
+  os.clear();
+  for (const Tuple &item : join_tuples)
+  {
+    //第n-1列
+    const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
+    for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = --values.end();
+         iter != end; ++iter)
+    {
+      (*iter)->to_string(os);
+      os << " | ";
+    }
+
+    //最后一列
+    values.back()->to_string(os);
+    os << std::endl;
   }
 }

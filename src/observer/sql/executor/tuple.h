@@ -427,6 +427,12 @@ public:
  //RelAttr attr_group_by;
  Selects* ptr_group_selects =nullptr;
 
+public:
+
+std::vector<Tuple> join_tuples; //sql:1 笛卡尔积 2 过滤  3 排序 4 分组 5 显示。
+void join_table_for_order_by(const Tuple &item_left, const Tuple &right);
+void sort_table_for_order_by();
+void join_tuples_to_print(std::ostream &os);
 
 };
 
