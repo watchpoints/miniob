@@ -1193,7 +1193,6 @@ void TupleSet::print_two(std::ostream &os)
   {
     return;
   }
-  
 
   ////多表操作/////////////////////////////////////
   //笛卡尔积算法描述
@@ -1202,7 +1201,6 @@ void TupleSet::print_two(std::ostream &os)
   {
     return;
   }
-
 
   //select t1.age,t2.age from t1 ,t2 where t1.id =t2.id;
   //[id(隐藏),age] [age,id(隐藏)）
@@ -1246,10 +1244,9 @@ void TupleSet::print_two(std::ostream &os)
     }
     index2++;
   }
-  
 
   order_by_two();
-  
+
   //t1.rows[i][j]
   //t2.rows[i][j]
   //item_left 一行记录
@@ -1821,7 +1818,7 @@ void TupleSet::order_by_two()
   //步骤01 每个表分开计算
   std::vector<RelAttr> attr_order_by1;
   std::vector<RelAttr> attr_order_by2;
-  for (int i = 0; i < ptr_group_selects->attr_order_num; i++)
+  for (int i = ptr_group_selects->attr_order_num-1; i>0; i--)
   {
     const std::vector<TupleField> &fields = schema1_.fields();
     for (std::vector<TupleField>::const_iterator iter = fields.begin(), end = fields.end();
@@ -1833,7 +1830,10 @@ void TupleSet::order_by_two()
         attr_order_by1.push_back(ptr_group_selects->attr_order_by[i]);
       }
     }
+  }
 
+  for (int i = ptr_group_selects->attr_order_num-1; i>0; i--)
+  {
     const std::vector<TupleField> &fields2 = schema2_.fields();
     for (std::vector<TupleField>::const_iterator iter2 = fields2.begin(), end = fields2.end();
          iter2 != end; ++iter2)
@@ -1846,50 +1846,55 @@ void TupleSet::order_by_two()
     }
   }
 
+
+
   if (attr_order_by1.size() == 0 && attr_order_by2.size() == 0)
   {
     LOG_INFO("  失败 ");
     return;
   }
+
   //步骤2:统计排序关键字 在rows中的位置
   std::vector<int> order_index1;
   order_index1.clear();
   std::vector<int> order_index2;
   order_index2.clear();
-
-  const std::vector<TupleField> &fields = schema1_.fields();
-  int index1 = 0;
-  for (std::vector<TupleField>::const_iterator iter = fields.begin(), end = fields.end();
-       iter != end; ++iter)
+  std::map<int,int> value_key1; //index-key
+  std::map<int,int> value_key2;//index-key
+  //key --->index
+  for (int cols = 0; cols < attr_order_by1.size(); cols++)
   {
-    //SELECT * FROM T_ORDER_BY ORDER BY ID, SCORE, NAME;
-    for (int cols = 0; cols < attr_order_by1.size(); cols++)
+    const std::vector<TupleField> &fields = schema1_.fields();
+    int index1 = 0;
+    for (std::vector<TupleField>::const_iterator iter = fields.begin(), end = fields.end();
+         iter != end; ++iter)
     {
       if (0 == strcmp(iter->field_name(), attr_order_by1[cols].attribute_name))
       {
         order_index1.push_back(index1);
-        LOG_INFO("题目：排序 >>>>>> index=%d,cols=%d,name=%s", index1, cols, attr_order_by1[cols].attribute_name);
+        value_key1[index1]=cols;
+        LOG_INFO("题目：排序 >>>>>> cols=%d,index1=%d,name=%s", cols,index1, attr_order_by1[cols].attribute_name);
       }
+      index1++;
     }
-    index1++;
   }
 
-  const std::vector<TupleField> &fields2 = schema2_.fields();
-  int index2 = 0;
-  for (std::vector<TupleField>::const_iterator iter = fields2.begin(), end = fields2.end();
-       iter != end; ++iter)
+  //key --->index
+  for (int cols = 0; cols < attr_order_by2.size(); cols++)
   {
-    //SELECT * FROM T_ORDER_BY ORDER BY ID, SCORE, NAME;
-    for (int cols = 0; cols < attr_order_by2.size(); cols++)
+    const std::vector<TupleField> &fields = schema2_.fields();
+    int index2 = 0;
+    for (std::vector<TupleField>::const_iterator iter = fields.begin(), end = fields.end();
+         iter != end; ++iter)
     {
       if (0 == strcmp(iter->field_name(), attr_order_by2[cols].attribute_name))
       {
-        order_index2.push_back(index2);
-        LOG_INFO("题目：排序 >>>>>> index=%d,cols=%d,name=%s", index2, cols, attr_order_by1[cols].attribute_name);
+        order_index1.push_back(index2);
+        value_key2[index2]=cols;
+        LOG_INFO("题目：排序 >>>>>> cols=%d,index2=%d,name=%s", cols,index2, attr_order_by2[cols].attribute_name);
       }
+      index2++;
     }
-
-    index2++;
   }
 
   //03 开始排序
@@ -1924,7 +1929,8 @@ void TupleSet::order_by_two()
         //不相等才比较 ，相等下一个
         if (op_comp != 0)
         {
-          int index_order = order_index1.size() - op_index - 1;
+    
+          int index_order =value_key1.at(order_index1[op_index]);
           if (CompOp::ORDER_ASC == attr_order_by1[index_order].is_asc)
           {
             LOG_INFO("排序 order-by  ORDER_ASC op_index=%d, order_index=%d,name=%s", op_index, order_index1.size(), attr_order_by1[index_order].attribute_name);
@@ -1983,7 +1989,8 @@ void TupleSet::order_by_two()
         //不相等才比较 ，相等下一个
         if (op_comp != 0)
         {
-          int index_order = order_index2.size() - op_index - 1;
+          //int index_order = order_index2.size() - op_index - 1;
+          int index_order =value_key2.at(order_index2[op_index]);
           if (CompOp::ORDER_ASC == attr_order_by2[index_order].is_asc)
           {
             LOG_INFO("排序 order-by  ORDER_ASC op_index=%d, order_index=%d,name=%s", op_index, order_index2.size(), attr_order_by2[index_order].attribute_name);
