@@ -292,6 +292,7 @@ public:
   void print_multi_table(std::ostream &os) ; //three
 
   bool avg_print(std::ostream &os) const;
+  void order_by_two();
   void add_tuple_schema(const TupleSchema &schema)
   {
     schema_.append(schema);

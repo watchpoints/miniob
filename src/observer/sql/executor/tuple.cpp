@@ -475,7 +475,7 @@ void TupleSet::print(std::ostream &os)
           if (0 == strcmp(iter->field_name(), ptr_attr_order_by[cols].attribute_name))
           {
             order_index.push_back(index);
-            LOG_INFO("题目：排序 >>>>>> index=%d,cols=%d,name=%s", index,cols, ptr_attr_order_by[cols].attribute_name);
+            LOG_INFO("题目：排序 >>>>>> index=%d,cols=%d,name=%s", index, cols, ptr_attr_order_by[cols].attribute_name);
           }
         }
 
@@ -516,19 +516,21 @@ void TupleSet::print(std::ostream &os)
           }
           //不相等才比较 ，相等下一个
           if (op_comp != 0)
-          {  
-            int index_order =order_index.size()-op_index-1;
-            if(CompOp::ORDER_ASC == ptr_attr_order_by[index_order].is_asc)
-            { 
-              LOG_INFO("排序 order-by  ORDER_ASC op_index=%d, order_index=%d,name=%s",op_index, order_by_num,ptr_attr_order_by[index_order].attribute_name);
+          {
+            int index_order = order_index.size() - op_index - 1;
+            if (CompOp::ORDER_ASC == ptr_attr_order_by[index_order].is_asc)
+            {
+              LOG_INFO("排序 order-by  ORDER_ASC op_index=%d, order_index=%d,name=%s", op_index, order_by_num, ptr_attr_order_by[index_order].attribute_name);
               return op_comp < 0; //true
-            }else if (CompOp::ORDER_DESC == ptr_attr_order_by[index_order].is_asc)
+            }
+            else if (CompOp::ORDER_DESC == ptr_attr_order_by[index_order].is_asc)
             {
-              LOG_INFO("排序 order-by  ORDER_DESC  op_index=%d,order_index=%d,name=%s",op_index,order_by_num,ptr_attr_order_by[index_order].attribute_name);
+              LOG_INFO("排序 order-by  ORDER_DESC  op_index=%d,order_index=%d,name=%s", op_index, order_by_num, ptr_attr_order_by[index_order].attribute_name);
               return op_comp > 0; //true
-            }else
+            }
+            else
             {
-               LOG_INFO("排序 order-by  err err err err  order_index=%d,name=%s", order_by_num,ptr_attr_order_by[index_order].attribute_name);
+              LOG_INFO("排序 order-by  err err err err  order_index=%d,name=%s", order_by_num, ptr_attr_order_by[index_order].attribute_name);
             }
           }
         } ////多个字段如何比较呀？
@@ -1800,5 +1802,206 @@ void Tuple::tail_table_row_string(std::ostream &os, int type)
       }
     }
     col2++;
+  }
+}
+
+void TupleSet::order_by_two()
+{
+  if (nullptr == ptr_group_selects || ptr_group_selects->attr_order_num < 0)
+  {
+    LOG_INFO("不需要 order by");
+    return;
+  }
+
+  //步骤01 每个表分开计算
+  std::vector<RelAttr> attr_order_by1;
+  std::vector<RelAttr> attr_order_by2;
+  for (int i = 0; i < ptr_group_selects->attr_order_num; i++)
+  {
+    const std::vector<TupleField> &fields = schema1_.fields();
+    for (std::vector<TupleField>::const_iterator iter = fields.begin(), end = fields.end();
+         iter != end; ++iter)
+    {
+      if (0 == strcmp(iter->field_name(), ptr_group_selects->attr_order_by[i].attribute_name) &&
+          0 == strcmp(iter->table_name(), ptr_group_selects->attr_order_by[i].relation_name))
+      {
+        attr_order_by1.push_back(ptr_group_selects->attr_order_by[i]);
+      }
+    }
+
+    const std::vector<TupleField> &fields2 = schema2_.fields();
+    for (std::vector<TupleField>::const_iterator iter2 = fields2.begin(), end = fields2.end();
+         iter2 != end; ++iter2)
+    {
+      if (0 == strcmp(iter2->field_name(), ptr_group_selects->attr_order_by[i].attribute_name) &&
+          0 == strcmp(iter2->table_name(), ptr_group_selects->attr_order_by[i].relation_name))
+      {
+        attr_order_by2.push_back(ptr_group_selects->attr_order_by[i]);
+      }
+    }
+  }
+
+  if (attr_order_by1.size() == 0 && attr_order_by2.size() == 0)
+  {
+    LOG_INFO("  失败 ");
+    return;
+  }
+  //步骤2:统计排序关键字 在rows中的位置
+  std::vector<int> order_index1;
+  order_index1.clear();
+  std::vector<int> order_index2;
+  order_index2.clear();
+
+  const std::vector<TupleField> &fields = schema1_.fields();
+  int index1 = 0;
+  for (std::vector<TupleField>::const_iterator iter = fields.begin(), end = fields.end();
+       iter != end; ++iter)
+  {
+    //SELECT * FROM T_ORDER_BY ORDER BY ID, SCORE, NAME;
+    for (int cols = 0; cols < attr_order_by1.size(); cols++)
+    {
+      if (0 == strcmp(iter->field_name(), attr_order_by1[cols].attribute_name))
+      {
+        order_index1.push_back(index1);
+        LOG_INFO("题目：排序 >>>>>> index=%d,cols=%d,name=%s", index1, cols, attr_order_by1[cols].attribute_name);
+      }
+    }
+    index1++;
+  }
+
+  const std::vector<TupleField> &fields2 = schema2_.fields();
+  int index2 = 0;
+  for (std::vector<TupleField>::const_iterator iter = fields2.begin(), end = fields2.end();
+       iter != end; ++iter)
+  {
+    //SELECT * FROM T_ORDER_BY ORDER BY ID, SCORE, NAME;
+    for (int cols = 0; cols < attr_order_by2.size(); cols++)
+    {
+      if (0 == strcmp(iter->field_name(), attr_order_by2[cols].attribute_name))
+      {
+        order_index2.push_back(index2);
+        LOG_INFO("题目：排序 >>>>>> index=%d,cols=%d,name=%s", index2, cols, attr_order_by1[cols].attribute_name);
+      }
+    }
+
+    index2++;
+  }
+
+  //03 开始排序
+  if (order_index1.size() > 0)
+  {
+    LOG_INFO("排序 order-by1  开始排序  order_index=%d", order_index1.size());
+
+    auto sortRuleLambda1 = [=](const Tuple &s1, const Tuple &s2) -> bool {
+      //std::vector<std::shared_ptr<TupleValue>> values_;
+      std::vector<std::shared_ptr<TupleValue>> sp1;
+      std::vector<std::shared_ptr<TupleValue>> sp2;
+
+      //根据位置--查找value
+      for (int i = 0; i < order_index1.size(); i++)
+      {
+        sp1.push_back(s1.get_pointer(order_index1[i]));
+
+        sp2.push_back(s2.get_pointer(order_index1[i]));
+      }
+
+      //多个字段如何比较呀？
+      for (int op_index = 0; op_index < order_index1.size(); op_index++)
+      {
+        int op_comp = 0;
+        std::shared_ptr<TupleValue> sp_1 = sp1[op_index];
+        std::shared_ptr<TupleValue> sp_2 = sp2[op_index];
+
+        if (sp_1 && sp_2)
+        {
+          op_comp = sp_1->compare(*sp_2);
+        }
+        //不相等才比较 ，相等下一个
+        if (op_comp != 0)
+        {
+          int index_order = order_index1.size() - op_index - 1;
+          if (CompOp::ORDER_ASC == attr_order_by1[index_order].is_asc)
+          {
+            LOG_INFO("排序 order-by  ORDER_ASC op_index=%d, order_index=%d,name=%s", op_index, order_index1.size(), attr_order_by1[index_order].attribute_name);
+            return op_comp < 0; //true
+          }
+          else if (CompOp::ORDER_DESC == attr_order_by1[index_order].is_asc)
+          {
+            LOG_INFO("排序 order-by  ORDER_DESC op_index=%d, order_index=%d,name=%s", op_index, order_index1.size(), attr_order_by1[index_order].attribute_name);
+            return op_comp > 0; //true
+          }
+          else
+          {
+            LOG_INFO("排序 order-by  err order op_index=%d, order_index=%d,name=%s", op_index, order_index1.size(), attr_order_by1[index_order].attribute_name);
+          }
+        }
+      } ////多个字段如何比较呀？
+      //为什么std::sort比较函数在参数相等时返回false？
+      return false;
+    };
+
+    if (tuples1_.size() > 0)
+    {
+      std::sort(tuples1_.begin(), tuples1_.end(), sortRuleLambda1);
+    }
+  }
+
+  //03 开始排序
+  if (order_index2.size() > 0)
+  {
+    LOG_INFO("排序 order-by1  开始排序  order_index=%d", order_index2.size());
+
+    auto sortRuleLambda2 = [=](const Tuple &s1, const Tuple &s2) -> bool {
+      //std::vector<std::shared_ptr<TupleValue>> values_;
+      std::vector<std::shared_ptr<TupleValue>> sp1;
+      std::vector<std::shared_ptr<TupleValue>> sp2;
+
+      //根据位置--查找value
+      for (int i = 0; i < order_index2.size(); i++)
+      {
+        sp1.push_back(s1.get_pointer(order_index2[i]));
+
+        sp2.push_back(s2.get_pointer(order_index2[i]));
+      }
+
+      //多个字段如何比较呀？
+      for (int op_index = 0; op_index < order_index2.size(); op_index++)
+      {
+        int op_comp = 0;
+        std::shared_ptr<TupleValue> sp_1 = sp1[op_index];
+        std::shared_ptr<TupleValue> sp_2 = sp2[op_index];
+
+        if (sp_1 && sp_2)
+        {
+          op_comp = sp_1->compare(*sp_2);
+        }
+        //不相等才比较 ，相等下一个
+        if (op_comp != 0)
+        {
+          int index_order = order_index2.size() - op_index - 1;
+          if (CompOp::ORDER_ASC == attr_order_by2[index_order].is_asc)
+          {
+            LOG_INFO("排序 order-by  ORDER_ASC op_index=%d, order_index=%d,name=%s", op_index, order_index2.size(), attr_order_by2[index_order].attribute_name);
+            return op_comp < 0; //true
+          }
+          else if (CompOp::ORDER_DESC == attr_order_by2[index_order].is_asc)
+          {
+            LOG_INFO("排序 order-by  ORDER_DESC op_index=%d, order_index=%d,name=%s", op_index, order_index2.size(), attr_order_by2[index_order].attribute_name);
+            return op_comp > 0; //true
+          }
+          else
+          {
+            LOG_INFO("排序 order-by  err order op_index=%d, order_index=%d,name=%s", op_index, order_index2.size(), attr_order_by2[index_order].attribute_name);
+          }
+        }
+      } ////多个字段如何比较呀？
+      //为什么std::sort比较函数在参数相等时返回false？
+      return false;
+    };
+
+    if (tuples2_.size() > 0)
+    {
+      std::sort(tuples2_.begin(), tuples2_.end(), sortRuleLambda2);
+    }
   }
 }

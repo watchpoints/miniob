@@ -368,7 +368,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
 
     //单表：
     //Selects &selects
-    ts.ptr_group_selects =&sql->sstr.selection;
+    ts.ptr_group_selects = &sql->sstr.selection;
     ts.print(ss);
 
     //题目：多表查询
@@ -445,27 +445,6 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       //schema1 -->schema0;
       twoSet.set_tuples1(std::move(tuple_sets[1].get_tuple()));
       twoSet.set_tuples2(std::move(tuple_sets[0].get_tuple()));
-
-      /**
-       std::vector<Tuple> schema_row1 = tuple_sets[1].get_tuple();
-      std::vector<Tuple> schema_row0 = tuple_sets[0].get_tuple();
-      for (int i = 0; i < schema_row1.size(); i++)
-      {
-        Tuple tuple1 = schema_row1[i];
-        Tuple tuple0 = schema_row0[i];
-        std::vector<std::shared_ptr<TupleValue>> values1 = tuple1.values();
-        std::vector<std::shared_ptr<TupleValue>> values0 = tuple0.values();
-        for (int j = 0; j < values1.size(); j++)
-        {
-          if (j == 1)
-          {
-            values0.push_back(values1[1]);
-          }
-        }
-      }
-      twoSet.set_tuples1(std::move(schema_row1));
-      twoSet.set_tuples2(std::move(schema_row0));
-      **/
     }
     else
     {
@@ -592,6 +571,8 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     twoSet.set_join(isJoin, joinIndex);
     twoSet.b_not_know = b_not_know1;
     LOG_INFO(">>>>b_not_know =%d", b_not_know1);
+
+    twoSet.ptr_group_selects = &sql->sstr.selection;
     twoSet.print_two(ss);
   }
   else
@@ -930,20 +911,51 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
   //对分组数据进行校验
   for (size_t i = 0; i < selects.attr_order_num; i++)
   {
-     const FieldMeta *field_meta = table->table_meta().field(selects.attr_order_by[i].attribute_name);
-    if (nullptr == field_meta)
+    if (selects.attr_order_by[i].relation_name)
     {
-      LOG_WARN("No such field. %s.%s", table->name(), selects.attr_order_by[i].attribute_name);
-      return RC::SCHEMA_FIELD_MISSING;
+      if (0 == strcmp(selects.attr_order_by[i].relation_name, table_name))
+      {
+        const FieldMeta *field_meta = table->table_meta().field(selects.attr_order_by[i].attribute_name);
+        if (nullptr == field_meta)
+        {
+          LOG_WARN("No such field. %s.%s", table->name(), selects.attr_order_by[i].attribute_name);
+          return RC::SCHEMA_FIELD_MISSING;
+        }
+      }
+    }
+    else
+    {
+      const FieldMeta *field_meta = table->table_meta().field(selects.attr_order_by[i].attribute_name);
+      if (nullptr == field_meta)
+      {
+        LOG_WARN("No such field. %s.%s", table->name(), selects.attr_order_by[i].attribute_name);
+        return RC::SCHEMA_FIELD_MISSING;
+      }
     }
   }
+  
   for (size_t i = 0; i < selects.attr_group_num; i++)
   {
-     const FieldMeta *field_meta = table->table_meta().field(selects.attr_group_by[i].attribute_name);
-    if (nullptr == field_meta)
+    if (selects.attr_group_by[i].relation_name)
     {
-      LOG_WARN("No such field. %s.%s", table->name(), selects.attr_group_by[i].attribute_name);
-      return RC::SCHEMA_FIELD_MISSING;
+      if (0 == strcmp(selects.attr_group_by[i].relation_name, table_name))
+      {
+        const FieldMeta *field_meta = table->table_meta().field(selects.attr_group_by[i].attribute_name);
+        if (nullptr == field_meta)
+        {
+          LOG_WARN("No such field. %s.%s", table->name(), selects.attr_group_by[i].attribute_name);
+          return RC::SCHEMA_FIELD_MISSING;
+        }
+      }
+    }
+    else
+    {
+      const FieldMeta *field_meta = table->table_meta().field(selects.attr_group_by[i].attribute_name);
+      if (nullptr == field_meta)
+      {
+        LOG_WARN("No such field. %s.%s", table->name(), selects.attr_group_by[i].attribute_name);
+        return RC::SCHEMA_FIELD_MISSING;
+      }
     }
   }
 
