@@ -1818,7 +1818,7 @@ void TupleSet::order_by_two()
   //步骤01 每个表分开计算
   std::vector<RelAttr> attr_order_by1;
   std::vector<RelAttr> attr_order_by2;
-  for (int i = ptr_group_selects->attr_order_num-1; i>0; i--)
+  for (int i = ptr_group_selects->attr_order_num-1; i>=0; i--)
   {
     const std::vector<TupleField> &fields = schema1_.fields();
     for (std::vector<TupleField>::const_iterator iter = fields.begin(), end = fields.end();
@@ -1832,7 +1832,7 @@ void TupleSet::order_by_two()
     }
   }
 
-  for (int i = ptr_group_selects->attr_order_num-1; i>0; i--)
+  for (int i = ptr_group_selects->attr_order_num-1; i>=0; i--)
   {
     const std::vector<TupleField> &fields2 = schema2_.fields();
     for (std::vector<TupleField>::const_iterator iter2 = fields2.begin(), end = fields2.end();
@@ -1889,7 +1889,7 @@ void TupleSet::order_by_two()
     {
       if (0 == strcmp(iter->field_name(), attr_order_by2[cols].attribute_name))
       {
-        order_index1.push_back(index2);
+        order_index2.push_back(index2);
         value_key2[index2]=cols;
         LOG_INFO("题目：排序 >>>>>> cols=%d,index2=%d,name=%s", cols,index2, attr_order_by2[cols].attribute_name);
       }
@@ -1960,7 +1960,7 @@ void TupleSet::order_by_two()
   //03 开始排序
   if (order_index2.size() > 0)
   {
-    LOG_INFO("排序 order-by1  开始排序  order_index=%d", order_index2.size());
+    LOG_INFO("排序 order-by2  开始排序  order_index=%d", order_index2.size());
 
     auto sortRuleLambda2 = [=](const Tuple &s1, const Tuple &s2) -> bool {
       //std::vector<std::shared_ptr<TupleValue>> values_;
