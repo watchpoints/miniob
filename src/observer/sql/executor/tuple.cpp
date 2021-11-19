@@ -517,7 +517,7 @@ void TupleSet::print(std::ostream &os)
           //不相等才比较 ，相等下一个
           if (op_comp != 0)
           {  
-            if (CompOp::ORDER_ASC == ptr_attr_order_by[op_index].is_asc)
+            if(CompOp::ORDER_ASC == ptr_attr_order_by[op_index].is_asc)
             { 
               LOG_INFO("排序 order-by  ORDER_ASC op_index=%d, order_index=%d,name=%s",op_index, order_by_num,ptr_attr_order_by[op_index].attribute_name);
               return op_comp < 0; //true

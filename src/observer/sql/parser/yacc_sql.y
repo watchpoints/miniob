@@ -605,11 +605,20 @@ order_by_attr:
 		relation_attr_init(&attr, NULL, $1); 
 		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
   }
-  | ID comOp order_by_attr_list
+  | ID ASC order_by_attr_list
 	{
 		RelAttr attr;
 		attr.funtype=FUN_ORDER_BY;
-		attr.is_asc =CONTEXT->comp;
+		attr.is_asc =ORDER_ASC;
+		//默认升序(asc)
+		relation_attr_init(&attr, NULL, $1); 
+		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+   | ID DESC order_by_attr_list
+	{
+		RelAttr attr;
+		attr.funtype=FUN_ORDER_BY;
+		attr.is_asc =ORDER_DESC;
 		//默认升序(asc)
 		relation_attr_init(&attr, NULL, $1); 
 		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
@@ -622,11 +631,19 @@ order_by_attr:
 		relation_attr_init(&attr, $1, $3); 
 		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
 	}
-	| ID DOT ID comOp order_by_attr_list
+	| ID DOT ID ASC order_by_attr_list
 	{
 		RelAttr attr;
 		attr.funtype=FUN_ORDER_BY;
-		attr.is_asc =CONTEXT->comp;
+		attr.is_asc =ORDER_ASC;
+		relation_attr_init(&attr, $1, $3); 
+		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| ID DOT ID DESC order_by_attr_list
+	{
+		RelAttr attr;
+		attr.funtype=FUN_ORDER_BY;
+		attr.is_asc =ORDER_DESC;
 		relation_attr_init(&attr, $1, $3); 
 		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
 	}
@@ -642,11 +659,20 @@ order_by_attr:
 		relation_attr_init(&attr, NULL, $2); 
 		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
 	}
-	| COMMA ID comOp order_by_attr_list
+	| COMMA ID ASC order_by_attr_list
 	{
 		RelAttr attr;
 		attr.funtype=FUN_ORDER_BY;
-		attr.is_asc =CONTEXT->comp;
+		attr.is_asc =ORDER_ASC;
+		//默认升序(asc)
+		relation_attr_init(&attr, NULL, $2); 
+		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| COMMA ID DESC order_by_attr_list
+	{
+		RelAttr attr;
+		attr.funtype=FUN_ORDER_BY;
+		attr.is_asc =ORDER_DESC;
 		//默认升序(asc)
 		relation_attr_init(&attr, NULL, $2); 
 		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
@@ -659,11 +685,19 @@ order_by_attr:
 		relation_attr_init(&attr, $2, $4); 
 		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
 	}
-	| COMMA ID DOT ID comOp order_by_attr_list
+	| COMMA ID DOT ID ASC order_by_attr_list
 	{
 		RelAttr attr;
 		attr.funtype=FUN_ORDER_BY;
-		attr.is_asc =CONTEXT->comp;
+		attr.is_asc =ORDER_ASC;
+		relation_attr_init(&attr, $2, $4); 
+		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| COMMA ID DOT ID DESC order_by_attr_list
+	{
+		RelAttr attr;
+		attr.funtype=FUN_ORDER_BY;
+		attr.is_asc =ORDER_DESC;
 		relation_attr_init(&attr, $2, $4); 
 		selects_append_attribute_order_by(&CONTEXT->ssql->sstr.selection, &attr);
 	}
@@ -919,8 +953,6 @@ comOp:
     | NE { CONTEXT->comp = NOT_EQUAL; }
 	| IS { CONTEXT->comp = IS_NULL; }
 	| IS NOT { CONTEXT->comp = IS_NOT_NULL; }
-	| ASC { CONTEXT->comp = ORDER_ASC; }
-	| DESC { CONTEXT->comp = ORDER_DESC; }
     ;
 
 load_data:

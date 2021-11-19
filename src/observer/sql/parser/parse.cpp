@@ -110,6 +110,7 @@ void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const
   } else {
     relation_attr->relation_name = nullptr;
   }
+  LOG_INFO("relation_attr_init >>>>>>> attribute_name=%s, com_op=%d",attribute_name,relation_attr->is_asc);
   relation_attr->attribute_name = strdup(attribute_name);
 }
 //属性是数字 count（1）
@@ -244,7 +245,10 @@ void selects_append_attribute(Selects *selects, RelAttr *rel_attr) {
   selects->attributes[selects->attr_num++] = *rel_attr;
 }
 void selects_append_attribute_order_by(Selects *selects, RelAttr *rel_attr) {
+
    selects->attr_order_by[selects->attr_order_num++] = *rel_attr;
+  LOG_INFO("relation_attr_init >>>>>>> attribute_name=%s, com_op=%d",rel_attr->attribute_name,rel_attr->is_asc);
+
    //selects->attr_order_by = *rel_attr; 不是一个是多个
 }
 void selects_append_attribute_group_by(Selects *selects, RelAttr *rel_attr) {
