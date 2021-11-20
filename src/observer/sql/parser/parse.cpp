@@ -110,7 +110,7 @@ void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const
   } else {
     relation_attr->relation_name = nullptr;
   }
-  LOG_INFO("relation_attr_init >>>>>>> attribute_name=%s, com_op=%d",attribute_name,relation_attr->is_asc);
+  LOG_INFO("relation_attr_init >>>>>>> attribute_name=%s, func_op=%d,com_op=%d",attribute_name,relation_attr->funtype,relation_attr->is_asc);
   relation_attr->attribute_name = strdup(attribute_name);
 }
 //属性是数字 count（1）

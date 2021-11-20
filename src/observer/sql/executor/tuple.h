@@ -17,7 +17,7 @@ See the Mulan PSL v2 for more details. */
 
 #include <memory>
 #include <vector>
-
+#include <map>
 #include "sql/parser/parse.h"
 #include "sql/executor/value.h"
 #include <sstream>
@@ -433,6 +433,13 @@ std::vector<Tuple> join_tuples; //sql:1 笛卡尔积 2 过滤  3 排序 4 分组
 void join_table_for_order_by(const Tuple &item_left, const Tuple &right);
 void sort_table_for_order_by();
 void join_tuples_to_print(std::ostream &os);
+
+public:
+
+bool print_group_by(std::ostream &os);// 排序 分组 统计 -汇总--返回
+void sort_table_for_group_by(std::vector<int>&key_value,std::map<int,int> &value_key);
+void count_group_data(std::vector<Tuple> &group_tuples,std::vector<vector<string>> &output);
+;
 
 };
 
