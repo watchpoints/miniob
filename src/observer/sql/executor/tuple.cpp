@@ -2410,7 +2410,7 @@ bool TupleSet::print_group_by(std::ostream &os)
       count_group_data(group_tuples, output);
       //新的一组
       group_tuples.clear();
-      group_tuples.resize(0); 
+      group_tuples.resize(0);
 
       Tuple temp;
       const std::vector<std::shared_ptr<TupleValue>> &values_copy = item.values();
@@ -2424,9 +2424,9 @@ bool TupleSet::print_group_by(std::ostream &os)
       sp_last = sp_cur;
     }
   } //end data
-   
+
   //最后一个分组
-  if(group_tuples.size() >0)
+  if (group_tuples.size() > 0)
   {
     count_group_data(group_tuples, output);
   }
@@ -2461,13 +2461,13 @@ bool TupleSet::print_group_by(std::ostream &os)
 //统计
 void TupleSet::count_group_data(std::vector<Tuple> &group_tuples, std::vector<vector<string>> &output)
 {
-  
-  if(group_tuples.size() ==0)
+
+  if (group_tuples.size() == 0)
   {
     LOG_INFO("group_tuples is 0");
   }
 
-  LOG_INFO("count_group_data group_tuples.size=%d ",group_tuples.size());
+  LOG_INFO("count_group_data group_tuples.size=%d ", group_tuples.size());
   vector<string> total; //根据schema产生一行记录
 
   const std::vector<TupleField> &fields = schema_.fields();
@@ -2480,7 +2480,9 @@ void TupleSet::count_group_data(std::vector<Tuple> &group_tuples, std::vector<ve
     if (FunctionType::FUN_COUNT_ALL_ALl == window_function || FunctionType::FUN_COUNT_ALL == window_function || FunctionType::FUN_COUNT == window_function)
     {
       int count = tuples_.size();
-      total.push_back(std::to_string(count));
+      std::stringstream ss;
+      ss << count;
+      total.push_back(ss.str());
     }
     else if (FunctionType::FUN_MAX == window_function)
     {
@@ -2519,7 +2521,9 @@ void TupleSet::count_group_data(std::vector<Tuple> &group_tuples, std::vector<ve
           colIndex++;
         }
       }
-      total.push_back(maxValue->print_string());
+      std::stringstream ss;
+      maxValue->to_string(ss);
+      total.push_back(ss.str());
     }
     else if (FunctionType::FUN_MIN == window_function)
     {
@@ -2560,7 +2564,10 @@ void TupleSet::count_group_data(std::vector<Tuple> &group_tuples, std::vector<ve
           colIndex++;
         }
       } //end
-      total.push_back(minValue->print_string());
+
+      std::stringstream ss;
+      minValue->to_string(ss);
+      total.push_back(ss.str());
     }
     else if (FunctionType::FUN_AVG == window_function)
     {
