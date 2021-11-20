@@ -2479,9 +2479,29 @@ void TupleSet::count_group_data(std::vector<Tuple> &group_tuples, std::vector<ve
     FunctionType window_function = iter->get_function_type();
     if (FunctionType::FUN_COUNT_ALL_ALl == window_function || FunctionType::FUN_COUNT_ALL == window_function || FunctionType::FUN_COUNT == window_function)
     {
-      int count = tuples_.size();
+      //rows
+      std::set<std::shared_ptr<TupleValue>> count;
+      count.clear();
+      for (const Tuple &item : group_tuples)
+      {
+        const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
+        int colIndex = 0;
+        //cols
+        for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+             iter != end; ++iter)
+        {
+          //(*iter)->to_string(os);
+          if (colIndex == cols)
+          {
+            //std::shared_ptr<TupleValue> temp = *iter;
+            count.insert(*iter);
+            break;
+          }
+          colIndex++;
+        }
+      }
       std::stringstream ss;
-      ss << count;
+      ss << count.size();
       total.push_back(ss.str());
     }
     else if (FunctionType::FUN_MAX == window_function)
