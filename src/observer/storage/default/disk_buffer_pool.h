@@ -107,7 +107,7 @@ public:
   }
 
   Frame *alloc()
-  {
+  {  /**
     //步骤01 BPManager 一句分配 n个Frame池,从空闲的选择一个
     for (int i = 0; i < this->size; i++)
     {
@@ -163,13 +163,16 @@ public:
     }
     //步骤03 外界设置 file_desc, PageNum page_num)
     return ptr; // TODO for test
+    **/
+   return nullptr; // TODO for test
+
   }
   //
   Frame *get(int file_desc, PageNum page_num)
   {
     //链表调整优先级能做到,数组也可以 优先级队列
     //这里遍历方式.
-
+    /**
      for(int i=0;i<this->size;i++)
      {  
         if( true ==allocated[i] && frame[i].file_desc ==file_desc &&  frame[i].page.page_num ==page_num)
@@ -177,7 +180,7 @@ public:
           frame[i].pin_count+=1; 
           frame[i].acc_time =std::time(0);
         }
-     }
+     }**/
     return nullptr; // TODO for test
   }
 
