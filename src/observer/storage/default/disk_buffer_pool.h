@@ -25,7 +25,7 @@ See the Mulan PSL v2 for more details. */
 #include <vector>
 
 #include "rc.h"
-
+#include<algorithm>
 typedef int PageNum;
 
 //
@@ -36,18 +36,21 @@ typedef int PageNum;
 #define BP_BUFFER_SIZE 50
 #define MAX_OPEN_FILE 1024
 
-typedef struct {
+typedef struct
+{
   PageNum page_num;
   char data[BP_PAGE_DATA_SIZE];
 } Page;
 // sizeof(Page) should be equal to BP_PAGE_SIZE
 
-typedef struct {
+typedef struct
+{
   PageNum page_count; //获取文件的总页数
   int allocated_pages;
 } BPFileSubHeader;
 
-typedef struct {
+typedef struct
+{
   bool dirty;
   unsigned int pin_count;
   unsigned long acc_time;
@@ -55,14 +58,17 @@ typedef struct {
   Page page;
 } Frame;
 
-typedef struct {
+typedef struct
+{
   bool open;
   Frame *frame; //这是啥概念
 } BPPageHandle;
 
-class BPFileHandle{
+class BPFileHandle
+{
 public:
-  BPFileHandle() {
+  BPFileHandle()
+  {
     memset(this, 0, sizeof(*this));
   }
 
@@ -74,21 +80,25 @@ public:
   Page *hdr_page;
   char *bitmap;
   BPFileSubHeader *file_sub_header;
-} ;
+};
 
-class BPManager {
+class BPManager
+{
 public:
-  BPManager(int size = BP_BUFFER_SIZE) {
+  BPManager(int size = BP_BUFFER_SIZE)
+  {
     this->size = size;
     frame = new Frame[size];
     allocated = new bool[size];
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++)
+    {
       allocated[i] = false;
       frame[i].pin_count = 0;
     }
   }
 
-  ~BPManager() {
+  ~BPManager()
+  {
     delete[] frame;
     delete[] allocated;
     size = 0;
@@ -96,11 +106,78 @@ public:
     allocated = nullptr;
   }
 
-  Frame *alloc() {
-    return nullptr; // TODO for test
-  }
+  Frame *alloc()
+  {
+    //步骤01 BPManager 一句分配 n个Frame池,从空闲的选择一个
+    for (int i = 0; i < this->size; i++)
+    {
+      if (false == allocated[i])
+      {
+        //数据小的时候  代替bitmap||hash
 
-  Frame *get(int file_desc, PageNum page_num) {
+        allocated[i] = true;
+        return frame+i;
+      }
+    }
+    //allocated 和 frame 位置 一一对应.
+    //对数组排序,破坏这个关系.
+    //这里没有使用链表
+    //直接构造一个临时变量 排序
+
+    //步骤02:如果满了怎么办,根据lru选择一个
+    //这里采取固定大小BP_BUFFER_SIZE.不是扩容
+
+    //排序规则: acc_time 最早, pin_count 最小
+    auto sortRuleLambda = [](const Frame *s1, const Frame *s2) -> bool {
+      if (!s1 || !s2)
+      {
+        return false;
+      }
+      if (s1->acc_time != s2->acc_time)
+      {
+        return s1->acc_time > s2->acc_time;
+      }
+      return s1->acc_time > s2->acc_time;
+      //相同返回false
+    };
+    //用优先级队列 链表 等结构更合适
+    std::vector<Frame*>temp;
+    for(int i=0;i<size;i++)
+    {
+        temp.push_back(frame+i);
+    }
+    std::sort(temp.begin(),temp.end(),sortRuleLambda);
+    Frame* ptr =temp.at(0);
+
+    //重置排序信息
+    for(int i=0;i<this->size;i++)
+    {
+      if(ptr ==(frame+i))
+      {
+        ptr->pin_count =0;
+        ptr->acc_time = std::time(0);
+        allocated[i] =true;
+        break;
+      }
+      
+    }
+    //步骤03 外界设置 file_desc, PageNum page_num)
+    return ptr; // TODO for test
+  }
+  //
+  Frame *get(int file_desc, PageNum page_num)
+  {
+    //链表调整优先级能做到,数组也可以 优先级队列
+    //这里遍历方式.
+
+     for(int i=0;i<this->size;i++)
+     {  
+        if( true ==allocated[i] && frame[i].file_desc ==file_desc &&  frame[i].page.page_num ==page_num)
+        {
+          frame[i].pin_count+=1; 
+          frame[i].acc_time =std::time(0);
+        }
+     }
     return nullptr; // TODO for test
   }
 
@@ -110,11 +187,12 @@ public:
 
 public:
   int size;
-  Frame * frame = nullptr;
+  Frame *frame = nullptr;
   bool *allocated = nullptr;
 };
 
-class DiskBufferPool {
+class DiskBufferPool
+{
 public:
   /**
   * 创建一个名称为指定文件名的分页文件

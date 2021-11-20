@@ -1369,7 +1369,7 @@ void TupleSet::print_two(std::ostream &os)
     index2++;
   }
 
-  //order_by_two();
+  order_by_two();
 
   //t1.rows[i][j]
   //t2.rows[i][j]
@@ -3182,7 +3182,7 @@ void TupleSet::count_two_table_group_data(std::vector<Tuple> &group_tuples, std:
           if (colIndex == cols)
           {
             itemValue = *iter;
-            break; //get
+           // break; //get
           }
           colIndex++;
         }
