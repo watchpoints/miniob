@@ -436,10 +436,17 @@ void join_tuples_to_print(std::ostream &os);
 
 public:
 
+//单表
 bool print_group_by(std::ostream &os);// 排序 分组 统计 -汇总--返回
 void sort_table_for_group_by(std::vector<int>&key_value,std::map<int,int> &value_key);
 void count_group_data(std::vector<Tuple> &group_tuples,std::vector<vector<string>> &output);
-;
+
+//2个表:代码重复
+std::vector<Tuple> join_tuples_group; //sql:1 笛卡尔积 2 过滤  3 排序 4 分组 5 显示。
+void join_table_for_group_by(const Tuple &item_left, const Tuple &right);
+bool print_two_table_group_by(std::ostream &os);
+void sort_two_table_for_group_by(std::vector<int>&key_value,std::map<int,int> &value_key);
+void count_two_table_group_data(std::vector<Tuple> &group_tuples, std::vector<vector<string>> &output);
 
 };
 

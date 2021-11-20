@@ -476,10 +476,22 @@ select_attr:
 			relation_attr_init(&attr, NULL,$3);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
+	| COUNT LBRACE ID DOT ID RBRACE attr_list {
+			RelAttr attr;
+			attr.funtype=FUN_COUNT;
+			relation_attr_init(&attr, $3,$5);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
 	| MAX LBRACE ID RBRACE attr_list {
 			RelAttr attr;
 			attr.funtype=FUN_MAX;
 			relation_attr_init(&attr, NULL,$3);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+	| MAX LBRACE ID DOT ID RBRACE attr_list {
+			RelAttr attr;
+			attr.funtype=FUN_MAX;
+			relation_attr_init(&attr, $3,$5);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
 	| MIN LBRACE ID RBRACE attr_list {
@@ -488,10 +500,22 @@ select_attr:
 			relation_attr_init(&attr, NULL,$3);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
+	| MIN LBRACE ID DOT ID RBRACE attr_list {
+			RelAttr attr;
+			attr.funtype=FUN_MIN;
+			relation_attr_init(&attr, $3,$5);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
 	| AVG LBRACE ID RBRACE attr_list {
 			RelAttr attr;
 			attr.funtype=FUN_AVG;
 			relation_attr_init(&attr, NULL,$3);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+	| AVG LBRACE ID DOT ID  RBRACE attr_list {
+			RelAttr attr;
+			attr.funtype=FUN_AVG;
+			relation_attr_init(&attr, $3,$5);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
 	| COUNT LBRACE number RBRACE attr_list {
@@ -544,6 +568,12 @@ attr_list:
 	// CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
 	// CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
 	}
+	| COMMA COUNT LBRACE ID DOT ID RBRACE attr_list {
+		RelAttr attr;
+		attr.funtype=FUN_COUNT;
+		relation_attr_init(&attr, $4,$6);
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+	}
 	| COMMA MAX LBRACE ID RBRACE attr_list {
 		RelAttr attr;
 		attr.funtype=FUN_MAX;
@@ -551,6 +581,12 @@ attr_list:
 		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	// CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
 	// CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
+	}
+	| COMMA MAX LBRACE ID DOT ID RBRACE attr_list {
+		RelAttr attr;
+		attr.funtype=FUN_MAX;
+		relation_attr_init(&attr,$4,$6);
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	}
 	| COMMA MIN LBRACE ID RBRACE attr_list {
 		RelAttr attr;
@@ -560,6 +596,12 @@ attr_list:
 	// CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
 	// CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
 	}
+	| COMMA MIN LBRACE ID DOT ID  RBRACE attr_list {
+		RelAttr attr;
+		attr.funtype=FUN_MIN;
+		relation_attr_init(&attr, $4, $6);
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+	}
 	| COMMA AVG LBRACE ID RBRACE attr_list {
 		RelAttr attr;
 		attr.funtype=FUN_AVG;
@@ -567,6 +609,12 @@ attr_list:
 		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	// CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
 	// CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
+	}
+	| COMMA AVG LBRACE ID DOT ID RBRACE attr_list {
+		RelAttr attr;
+		attr.funtype=FUN_AVG;
+		relation_attr_init(&attr, $4, $6);
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	}
 	| COMMA COUNT LBRACE number RBRACE attr_list {
 			RelAttr attr;

@@ -342,18 +342,134 @@ void TupleSchema::print(std::ostream &os) const
     for (std::vector<TupleField>::const_iterator iter = fields_.begin(), end = --fields_.end();
          iter != end; ++iter)
     {
-      if (table_names.size() > 1)
+
+      if (FunctionType::FUN_COUNT_ALL == iter->get_function_type())
       {
-        os << iter->table_name() << ".";
+        //count(1)
+        os << "count(" << iter->field_name_count_number() << ")"
+           << " | ";
       }
-      os << iter->field_name() << " | ";
+      else if (FunctionType::FUN_COUNT_ALL_ALl == iter->get_function_type())
+      {
+        //count(*)
+        os << "count(*)"
+           << " | ";
+      }
+      else if (iter->get_function_type() == FunctionType::FUN_COUNT)
+      {
+        os << "count(";
+        if (table_names.size() > 1)
+        {
+          os << iter->table_name() << ".";
+        }
+        os << iter->field_name() << ")"
+           << " | ";
+      }
+      else if (iter->get_function_type() == FunctionType::FUN_MAX)
+      {
+        os << "max(";
+        if (table_names.size() > 1)
+        {
+          os << iter->table_name() << ".";
+        }
+        os << iter->field_name() << ")"
+           << " | ";
+      }
+      else if (iter->get_function_type() == FunctionType::FUN_MIN)
+      {
+
+        os << "min(";
+        if (table_names.size() > 1)
+        {
+          os << iter->table_name() << ".";
+        }
+        os << iter->field_name() << ")"
+           << " | ";
+      }
+      else if (iter->get_function_type() == FunctionType::FUN_AVG)
+      {
+        os << "avg(";
+        if (table_names.size() > 1)
+        {
+          os << iter->table_name() << ".";
+        }
+        os << iter->field_name() << ")"
+           << " | ";
+      }
+      else
+      {
+        //正常情况
+        if (table_names.size() > 1)
+        {
+          os << iter->table_name() << ".";
+        }
+        os << iter->field_name() << " | ";
+      }
     }
 
-    if (table_names.size() > 1)
+    //最后一列:显示
+    if (FunctionType::FUN_COUNT_ALL == fields_.back().get_function_type())
     {
-      os << fields_.back().table_name() << ".";
+      //count(1)
+      os << "count(" << fields_.back().field_name_count_number() << ")"
+         << std::endl;
     }
-    os << fields_.back().field_name() << std::endl;
+    else if (FunctionType::FUN_COUNT_ALL_ALl == fields_.back().get_function_type())
+    {
+      //count(*)
+      os << "count(*)"
+         << std::endl;
+    }
+    else if (fields_.back().get_function_type() == FunctionType::FUN_COUNT)
+    {
+      os << "count(";
+      if (table_names.size() > 1)
+      {
+        os << fields_.back().table_name() << ".";
+      }
+      os << fields_.back().field_name() << ")"
+         << std::endl;
+    }
+    else if (fields_.back().get_function_type() == FunctionType::FUN_MAX)
+    {
+      os << "max(";
+      if (table_names.size() > 1)
+      {
+        os << fields_.back().table_name() << ".";
+      }
+      os << fields_.back().field_name() << ")"
+         << std::endl;
+    }
+    else if (fields_.back().get_function_type() == FunctionType::FUN_MIN)
+    {
+
+      os << "min(";
+      if (table_names.size() > 1)
+      {
+        os << fields_.back().table_name() << ".";
+      }
+      os << fields_.back().field_name() << ")"
+         << std::endl;
+    }
+    else if (fields_.back().get_function_type() == FunctionType::FUN_AVG)
+    {
+      os << "avg(";
+      if (table_names.size() > 1)
+      {
+        os << fields_.back().table_name() << ".";
+      }
+      os << fields_.back().field_name() << ")"
+         << std::endl;
+    }
+    else
+    {
+      //正常情况,普通的字
+      if (table_names.size() > 1)
+      {
+        os << fields_.back().table_name() << ".";
+      }
+      os << fields_.back().field_name() << std::endl;
+    }
 
     ///////////////////////////end,多表逻辑////////////////////////////end
   }
@@ -1253,7 +1369,7 @@ void TupleSet::print_two(std::ostream &os)
     index2++;
   }
 
-  order_by_two();
+  //order_by_two();
 
   //t1.rows[i][j]
   //t2.rows[i][j]
@@ -1471,6 +1587,11 @@ void TupleSet::print_two(std::ostream &os)
           {
             join_table_for_order_by(item_left, item_right);
           }
+          else if (ptr_group_selects && ptr_group_selects->attr_group_num > 0)
+          {
+            join_table_for_group_by(item_left, item_right);
+            //这里不输出,哪里输出呀
+          }
           else
           {
             os << os_left.str();
@@ -1493,6 +1614,12 @@ void TupleSet::print_two(std::ostream &os)
     std::stringstream ss;
     join_tuples_to_print(ss);
     os << ss.str();
+  }
+  else if (ptr_group_selects && ptr_group_selects->attr_group_num > 0)
+  {
+    //步骤:排序 分组 统计
+    //2个表合成一个表了.
+    print_two_table_group_by(os);
   }
 }
 
@@ -2054,6 +2181,27 @@ void TupleSet::join_table_for_order_by(const Tuple &item_left, const Tuple &item
   join_tuples.push_back(std::move(merge));
 }
 
+void TupleSet::join_table_for_group_by(const Tuple &item_left, const Tuple &item_right)
+{
+
+  //对Tuple深度拷贝,不能=
+  Tuple merge;
+
+  const std::vector<std::shared_ptr<TupleValue>> &values_left = item_left.values();
+  for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values_left.begin(), end = values_left.end();
+       iter != end; ++iter)
+  {
+    merge.add(*iter);
+  }
+
+  const std::vector<std::shared_ptr<TupleValue>> &values_right = item_right.values();
+  for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values_right.begin(), end = values_right.end();
+       iter != end; ++iter)
+  {
+    merge.add(*iter);
+  }
+  join_tuples_group.push_back(std::move(merge));
+}
 void TupleSet::sort_table_for_order_by()
 {
 
@@ -2336,7 +2484,140 @@ void TupleSet::sort_table_for_group_by(std::vector<int> &key_value, std::map<int
     }
   }
 }
+
+void TupleSet::sort_two_table_for_group_by(std::vector<int> &key_value, std::map<int, int> &value_key)
+{
+  //依赖数据结构：
+  // std::vector<Tuple> tuples_; //一个表头信息
+  // TupleSchema schema_;        //一个表内容信息
+  // Selects* ptr_group_selects =nullptr; 排序条件
+
+  //排序 order-by
+  LOG_INFO("sort_two_table_for_group_by begin");
+
+  int group_by_num = -1;
+  RelAttr *ptr_attr_group_by = nullptr;
+  if (ptr_group_selects && ptr_group_selects->attr_group_num > 0)
+  {
+    group_by_num = ptr_group_selects->attr_group_num;
+    ptr_attr_group_by = ptr_group_selects->attr_group_by;
+  }
+
+  if (group_by_num > 0)
+  {
+    //SELECT * FROM T_ORDER_BY ORDER BY ID, SCORE, NAME;
+    //SELECT ID, AVG(SCORE) FROM T_GROUP_BY GROUP BY ID;
+    //key ---index
+    //index ---key
+    //std::vector<int> key_value;
+    //std::map<int, int> value_key;
+    key_value.clear();
+    value_key.clear();
+    // schema_ 这是2个表的 汇总,注意观察是否正确
+    for (int i = ptr_group_selects->attr_group_num - 1; i >= 0; i--)
+    {
+      const std::vector<TupleField> &fields = schema_.fields(); //决定了value 顺序
+      int index = 0;
+      for (std::vector<TupleField>::const_iterator iter = fields.begin(), end = fields.end();
+           iter != end; ++iter)
+      {
+        //有表名
+        if (ptr_group_selects->attr_group_by[i].relation_name)
+        {
+          if (0 == strcmp(iter->field_name(), ptr_group_selects->attr_group_by[i].attribute_name) &&
+              0 == strcmp(iter->table_name(), ptr_group_selects->attr_group_by[i].relation_name))
+          {
+            key_value.push_back(index);
+            value_key[index] = i;
+            LOG_INFO(" >>>>>order-by index=%d,table_name=%s,attribute_name=%s", index, iter->table_name(), iter->field_name());
+            break;
+          }
+        }
+        else
+        { //无表名
+          if (0 == strcmp(iter->field_name(), ptr_group_selects->attr_group_by[i].attribute_name))
+          {
+            key_value.push_back(index);
+            value_key[index] = i;
+            LOG_INFO(" >>>>>order-by index=%d,table_name=%s,attribute_name=%s", index, iter->table_name(), iter->field_name());
+            break;
+          }
+        }
+
+        index++;
+      }
+    }
+
+    if (group_by_num != key_value.size())
+    {
+      LOG_INFO("sort_two_table_for_group_by 失败 order_by_num != order_index.size()");
+      return;
+    }
+
+    auto sortRuleLambda = [=](const Tuple &s1, const Tuple &s2) -> bool {
+      std::vector<std::shared_ptr<TupleValue>> sp1;
+      std::vector<std::shared_ptr<TupleValue>> sp2;
+
+      //key -value
+      //SELECT * FROM T_ORDER_BY ORDER BY ID, SCORE, NAME;
+      // 排序数据
+      for (int i = 0; i < key_value.size(); i++)
+      {
+        sp1.push_back(s1.get_pointer(key_value[i]));
+
+        sp2.push_back(s2.get_pointer(key_value[i]));
+
+        //字段：ID, SCORE, NAME;
+        //字段之间顺序
+        //key_value[i]--对应rows的位置
+        //rows 对应的值
+        // i
+        //i -value---key-id
+      }
+
+      //字段之间顺序
+      for (int op_index = 0; op_index < key_value.size(); op_index++)
+      {
+        int op_comp = 0;
+        std::shared_ptr<TupleValue> sp_1 = sp1[op_index];
+        std::shared_ptr<TupleValue> sp_2 = sp2[op_index];
+
+        if (sp_1 && sp_2)
+        {
+          op_comp = sp_1->compare(*sp_2);
+        }
+        //不相等才比较 ，相等下一个
+        if (op_comp != 0)
+        {
+          int index_order = value_key.at(key_value[op_index]);
+          if (CompOp::ORDER_ASC == ptr_attr_group_by[index_order].is_asc)
+          {
+            LOG_INFO("排序 order-by  ORDER_ASC value=%d, key=%d,name=%s", key_value[op_index], index_order, ptr_attr_group_by[index_order].attribute_name);
+            return op_comp < 0; //true
+          }
+          else if (CompOp::ORDER_DESC == ptr_attr_group_by[index_order].is_asc)
+          {
+            LOG_INFO("排序 order-by  ORDER_DESC value=%d, key=%d,name=%s", key_value[op_index], index_order, ptr_attr_group_by[index_order].attribute_name);
+            return op_comp > 0; //true
+          }
+          else
+          {
+            LOG_INFO("排序 order-by  err..... value=%d, key=%d,name=%s", key_value[op_index], index_order, ptr_attr_group_by[index_order].attribute_name);
+          }
+        }
+      } ////多个字段如何比较呀？
+      //为什么std::sort比较函数在参数相等时返回false？
+      return false;
+    };
+
+    if (join_tuples_group.size() > 0)
+    {
+      std::sort(join_tuples_group.begin(), join_tuples_group.end(), sortRuleLambda);
+    }
+  }
+}
 //排序 分组 统计 -汇总--返回
+//参数写死,新增一个参数要新增一个函数.
 bool TupleSet::print_group_by(std::ostream &os)
 {
   //步骤：单表排序
@@ -2659,7 +2940,7 @@ void TupleSet::count_group_data(std::vector<Tuple> &group_tuples, std::vector<ve
       std::shared_ptr<TupleValue> itemValue;
       //只读取其中的一行
 
-      if (tuples_.size() > 0)
+      if (group_tuples.size() > 0)
       {
         //第n列
         int colIndex = 0;
@@ -2687,4 +2968,377 @@ void TupleSet::count_group_data(std::vector<Tuple> &group_tuples, std::vector<ve
     cols++;
   } //const std::vector<TupleField> &fields = schema_.fields();
   output.push_back(total);
+}
+
+//代码重复:前期设计不合适导致,2个一样的逻辑
+//需要优化
+void TupleSet::count_two_table_group_data(std::vector<Tuple> &group_tuples, std::vector<vector<string>> &output)
+{
+
+  if (group_tuples.size() == 0)
+  {
+    LOG_INFO("count_two_table_group_data is 0");
+  }
+
+  LOG_INFO("count_two_table_group_data  group_tuples.size=%d ", group_tuples.size());
+  vector<string> total; //根据schema产生一行记录
+
+  const std::vector<TupleField> &fields = schema_.fields();
+  int cols = 0;
+  //遍历n个元素.
+  for (std::vector<TupleField>::const_iterator field_iter = fields.begin(), end = fields.end();
+       field_iter != end; ++field_iter)
+  {
+    if (false == field_iter->visible())
+    {
+
+      LOG_INFO(">>>>> group by  不可见字段 index =%d,name =%s ", cols, field_iter->field_name());
+
+      cols++;
+      continue;
+    }
+    FunctionType window_function = field_iter->get_function_type();
+    if (FunctionType::FUN_COUNT_ALL_ALl == window_function || FunctionType::FUN_COUNT_ALL == window_function || FunctionType::FUN_COUNT == window_function)
+    {
+      //rows
+      std::set<std::shared_ptr<TupleValue>> count;
+      count.clear();
+      for (const Tuple &item : group_tuples)
+      {
+        const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
+        int colIndex = 0;
+        //cols
+        for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+             iter != end; ++iter)
+        {
+          //(*iter)->to_string(os);
+          if (colIndex == cols)
+          {
+            //std::shared_ptr<TupleValue> temp = *iter;
+            count.insert(*iter);
+            break;
+          }
+          colIndex++;
+        }
+      }
+      std::stringstream ss;
+      ss << count.size();
+      total.push_back(ss.str());
+      LOG_INFO(">>>>> group by count index =%d,name =%s,value =%d ", cols, field_iter->field_name(), count.size());
+    }
+    else if (FunctionType::FUN_MAX == window_function)
+    {
+      std::shared_ptr<TupleValue> maxValue;
+      //rows
+      for (const Tuple &item : group_tuples)
+      {
+
+        const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
+        if (0 == values.size())
+        {
+          continue;
+        }
+        int colIndex = 0;
+        //cols
+        for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+             iter != end; ++iter)
+        {
+          //(*iter)->to_string(os);
+          if (colIndex == cols)
+          {
+            std::shared_ptr<TupleValue> temp = *iter;
+            if (nullptr == maxValue)
+            {
+              maxValue = temp;
+            }
+            else
+            {
+              if (maxValue->compare(*temp) < 0)
+              {
+                maxValue = temp;
+              }
+            }
+            break;
+          }
+          colIndex++;
+        }
+      }
+      std::stringstream ss;
+      maxValue->to_string(ss);
+      total.push_back(ss.str());
+      LOG_INFO(">>>>> group by max index =%d,name =%s,value =%s ", cols, field_iter->field_name(), maxValue->print_string().c_str());
+    }
+    else if (FunctionType::FUN_MIN == window_function)
+    {
+      std::shared_ptr<TupleValue> minValue;
+
+      for (const Tuple &item : group_tuples)
+      {
+        int colIndex = 0;
+        //列
+        const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
+        if (0 == values.size())
+        {
+          continue;
+        }
+        for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+             iter != end; ++iter)
+        {
+          if (colIndex == cols)
+          {
+            std::shared_ptr<TupleValue> temp = *iter;
+            {
+              if (nullptr == minValue)
+              {
+                minValue = *iter;
+              }
+              else
+              {
+                std::shared_ptr<TupleValue> temp = *iter;
+                if (minValue->compare(*temp) > 0)
+                {
+                  minValue = temp;
+                }
+              }
+            }
+
+            break; //get
+          }
+          colIndex++;
+        }
+      } //end
+
+      std::stringstream ss;
+      minValue->to_string(ss);
+      total.push_back(ss.str());
+      LOG_INFO(">>>>> group by min index =%d,name =%s,value =%s ", cols, field_iter->field_name(), minValue->print_string().c_str());
+    }
+    else if (FunctionType::FUN_AVG == window_function)
+    {
+
+      std::shared_ptr<TupleValue> sumValue;
+      int count = 0;
+      bool exits_null_value = false;
+      for (const Tuple &item : group_tuples)
+      {
+        int colIndex = 0;
+        bool null_able = true;
+        //第n列
+        const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
+        if (0 == values.size())
+        {
+          continue;
+        }
+
+        for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+             iter != end; ++iter)
+        {
+          //(*iter)->to_string(os);
+          if (colIndex == cols)
+          {
+            std::shared_ptr<TupleValue> temp = *iter;
+            if (AttrType::NULLVALUES == temp->get_type())
+            {
+              //不处理
+              null_able = false;
+              exits_null_value = true;
+            }
+            else
+            {
+              if (nullptr == sumValue)
+              {
+                sumValue = temp;
+              }
+              else
+              {
+                sumValue->add_value(*temp);
+              }
+            }
+
+            break; //get
+          }
+          colIndex++;
+        }
+        if (true == null_able)
+        {
+          count++;
+        }
+      } //end
+      //防溢出求平均算法
+      if (0 == count)
+      {
+        if (exits_null_value == true)
+        {
+          total.push_back("NULL");
+        }
+      }
+
+      std::stringstream ss;
+      sumValue->to_avg(count, ss);
+      total.push_back(ss.str());
+
+      LOG_INFO(">>>>> group by avg index =%d,name =%s  ", cols, field_iter->field_name());
+    }
+    else if (FunctionType::FUN_NO == window_function)
+    {
+      LOG_INFO(">>>>>> FunctionType::FUN_NO =%s ", field_iter->field_name());
+      std::shared_ptr<TupleValue> itemValue;
+      //只读取其中的一行
+
+      if (group_tuples.size() > 0)
+      {
+        //第n列
+        int colIndex = 0;
+        const std::vector<std::shared_ptr<TupleValue>> &values = group_tuples[0].values();
+        for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+             iter != end; ++iter)
+        {
+          //(*iter)->to_string(os);
+          if (colIndex == cols)
+          {
+            itemValue = *iter;
+            break; //get
+          }
+          colIndex++;
+        }
+        std::stringstream ss;
+        itemValue->to_string(ss);
+        total.push_back(ss.str());
+
+        LOG_INFO(">>>>> group by  index =%d,name =%s,value =%s ", cols, field_iter->field_name(),itemValue->print_string().c_str());
+      }
+    }
+    else
+    {
+      LOG_INFO(">>>>>>errrrrrrrrrrrr=%s ", field_iter->field_name());
+    }
+    cols++;
+  } //const std::vector<TupleField> &fields = schema_.fields();
+  output.push_back(total);
+}
+//排序 分组 统计 -汇总--返回
+//参数写死,新增一个参数要新增一个函数.
+bool TupleSet::print_two_table_group_by(std::ostream &os)
+{
+  //步骤：单表排序
+  std::vector<int> key_value;
+  std::map<int, int> value_key;
+  sort_two_table_for_group_by(key_value, value_key);
+
+  if (key_value.size() <= 0 || join_tuples_group.size() <= 0)
+  {
+    LOG_INFO("分组 失败,无记录");
+    return false;
+  }
+
+  //步骤：相同的为一组
+  //const int cols = schema_.size();
+  std::vector<std::shared_ptr<TupleValue>> sp_last; //分组条件
+  std::vector<std::shared_ptr<TupleValue>> sp_cur;  //分组条件
+  std::vector<Tuple> group_tuples;                  //对原始数据tuples_分成不同的组
+  std::vector<vector<string>> output;               //汇总分组统计结果
+
+  //初始化 默认第一个行记录
+  //std::vector<Tuple> join_tuples_group; //sql:1 笛卡尔积 2 过滤  3 排序 4 分组 5 显示。
+  //tuples_
+  for (int i = 0; i < key_value.size(); i++)
+  {
+    sp_last.push_back(join_tuples_group[0].get_pointer(key_value[i]));
+  }
+  //rows
+  for (const Tuple &item : join_tuples_group)
+  {
+    //cols
+    sp_cur.clear();
+    //const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
+    for (int i = 0; i < key_value.size(); i++)
+    {
+      sp_cur.push_back(item.get_pointer(key_value[i]));
+    }
+    bool is_group = true;
+    for (int i = 0; i < key_value.size(); i++)
+    {
+      if (sp_last[i] && sp_cur[i] && 0 == sp_last[i]->compare(*sp_cur[i]))
+      {
+        //符合预期
+      }
+      else
+      {
+        is_group = false;
+      }
+    }
+    //相同就汇总
+    if (true == is_group)
+    {
+      LOG_INFO("同一个分组 ....add");
+      //constructor of tuple is not supported
+      //emplace_back
+
+      //深度拷贝一行数据
+      Tuple temp;
+      const std::vector<std::shared_ptr<TupleValue>> &values_copy = item.values();
+      for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values_copy.begin(), end = values_copy.end();
+           iter != end; ++iter)
+      {
+        temp.add(*iter);
+      }
+
+      group_tuples.emplace_back(std::move(temp));
+    }
+    else
+    {
+      LOG_INFO("新的分组 .............");
+      //不相同就统计
+      //统计
+      //count_group_data(group_tuples, output);
+      count_two_table_group_data(group_tuples, output);
+
+      //新的一组
+      group_tuples.clear();
+      group_tuples.resize(0);
+
+      Tuple temp;
+      const std::vector<std::shared_ptr<TupleValue>> &values_copy = item.values();
+      for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values_copy.begin(), end = values_copy.end();
+           iter != end; ++iter)
+      {
+        temp.add(*iter);
+      }
+      group_tuples.emplace_back(std::move(temp)); //
+      //新的分组条件
+      sp_last = sp_cur;
+    }
+  } //end data
+
+  //最后一个分组
+  if (group_tuples.size() > 0)
+  {
+    count_two_table_group_data(group_tuples, output);
+  }
+  //步骤:输出
+
+  if (output.size() == 0)
+  {
+    LOG_INFO(" 题目 分组group-by 失败,没有任何记录");
+  }
+
+  for (int rows = 0; rows < output.size(); rows++)
+  {
+    int cols = output[rows].size() - 1;
+    for (int i = 0; i <= cols; i++)
+    {
+      //最后一行
+      if (i == cols)
+      {
+        os << output[rows][i];
+        os << std::endl;
+      }
+      else
+      {
+        os << output[rows][i];
+        os << " | ";
+      }
+    }
+  }
+  return true;
 }
