@@ -3115,20 +3115,13 @@ void TupleSet::count_two_table_group_data(std::vector<Tuple> &group_tuples, std:
     }
     else if (FunctionType::FUN_AVG == window_function)
     {
-
       std::shared_ptr<TupleValue> sumValue;
       int count = 0;
-      bool exits_null_value = false;
       for (const Tuple &item : group_tuples)
       {
         int colIndex = 0;
-        bool null_able = true;
         //第n列
         const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
-        if (0 == values.size())
-        {
-          continue;
-        }
 
         for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
              iter != end; ++iter)
@@ -3137,47 +3130,35 @@ void TupleSet::count_two_table_group_data(std::vector<Tuple> &group_tuples, std:
           if (colIndex == cols)
           {
             std::shared_ptr<TupleValue> temp = *iter;
-            if (AttrType::NULLVALUES == temp->get_type())
+
+            if (nullptr == sumValue)
             {
-              //不处理
-              null_able = false;
-              exits_null_value = true;
+              sumValue = temp;
             }
             else
             {
-              if (nullptr == sumValue)
-              {
-                sumValue = temp;
-              }
-              else
-              {
-                sumValue->add_value(*temp);
-              }
+              sumValue->add_value(*temp);
             }
 
             break; //get
           }
           colIndex++;
         }
-        if (true == null_able)
-        {
-          count++;
-        }
+        count++;
       } //end
       //防溢出求平均算法
       if (0 == count)
       {
-        if (exits_null_value == true)
-        {
-          total.push_back("NULL");
-        }
+        total.push_back("NULL");
       }
+      else
+      {
+        std::stringstream ss;
+        sumValue->to_avg(count, ss);
+        total.push_back(ss.str());
 
-      std::stringstream ss;
-      sumValue->to_avg(count, ss);
-      total.push_back(ss.str());
-
-      LOG_INFO(">>>>> group by avg index =%d,name =%s  ", cols, field_iter->field_name());
+        LOG_INFO(">>>>> group by avg index =%d,name =%s  ", cols, field_iter->field_name());
+      }
     }
     else if (FunctionType::FUN_NO == window_function)
     {
@@ -3205,7 +3186,7 @@ void TupleSet::count_two_table_group_data(std::vector<Tuple> &group_tuples, std:
         itemValue->to_string(ss);
         total.push_back(ss.str());
 
-        LOG_INFO(">>>>> group by  index =%d,name =%s,value =%s ", cols, field_iter->field_name(),itemValue->print_string().c_str());
+        LOG_INFO(">>>>> group by  index =%d,name =%s,value =%s ", cols, field_iter->field_name(), itemValue->print_string().c_str());
       }
     }
     else
