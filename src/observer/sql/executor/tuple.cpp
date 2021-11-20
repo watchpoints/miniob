@@ -2516,7 +2516,8 @@ void TupleSet::sort_two_table_for_group_by(std::vector<int> &key_value, std::map
     // schema_ 这是2个表的 汇总,注意观察是否正确
     for (int i = ptr_group_selects->attr_group_num - 1; i >= 0; i--)
     {
-      const std::vector<TupleField> &fields = schema_.fields(); //决定了value 顺序
+      //const std::vector<TupleField> &fields = schema_.fields(); //决定了value 顺序
+      const std::vector<TupleField> &fields = old_schema.fields(); //决定了value 顺序
       int index = 0;
       for (std::vector<TupleField>::const_iterator iter = fields.begin(), end = fields.end();
            iter != end; ++iter)
@@ -2983,7 +2984,7 @@ void TupleSet::count_two_table_group_data(std::vector<Tuple> &group_tuples, std:
   LOG_INFO("count_two_table_group_data  group_tuples.size=%d ", group_tuples.size());
   vector<string> total; //根据schema产生一行记录
 
-  const std::vector<TupleField> &fields = schema_.fields();
+  const std::vector<TupleField> &fields = old_schema.fields();
   int cols = 0;
   //遍历n个元素.
   for (std::vector<TupleField>::const_iterator field_iter = fields.begin(), end = fields.end();
@@ -3147,6 +3148,9 @@ void TupleSet::count_two_table_group_data(std::vector<Tuple> &group_tuples, std:
         count++;
       } //end
       //防溢出求平均算法
+
+   LOG_INFO(">>>>> group by  >>>>>>>>>>>>>>>>>>>>>>> ", count);
+
       if (0 == count)
       {
         total.push_back("NULL");
@@ -3216,8 +3220,10 @@ bool TupleSet::print_two_table_group_by(std::ostream &os)
   //const int cols = schema_.size();
   std::vector<std::shared_ptr<TupleValue>> sp_last; //分组条件
   std::vector<std::shared_ptr<TupleValue>> sp_cur;  //分组条件
-  std::vector<Tuple> group_tuples;                  //对原始数据tuples_分成不同的组
+  std::vector<Tuple> onece_group_tuples;                  //对原始数据tuples_分成不同的组
   std::vector<vector<string>> output;               //汇总分组统计结果
+  output.clear();
+  onece_group_tuples.clear();
 
   //初始化 默认第一个行记录
   //std::vector<Tuple> join_tuples_group; //sql:1 笛卡尔积 2 过滤  3 排序 4 分组 5 显示。
@@ -3254,7 +3260,6 @@ bool TupleSet::print_two_table_group_by(std::ostream &os)
       LOG_INFO("同一个分组 ....add");
       //constructor of tuple is not supported
       //emplace_back
-
       //深度拷贝一行数据
       Tuple temp;
       const std::vector<std::shared_ptr<TupleValue>> &values_copy = item.values();
@@ -3264,7 +3269,7 @@ bool TupleSet::print_two_table_group_by(std::ostream &os)
         temp.add(*iter);
       }
 
-      group_tuples.emplace_back(std::move(temp));
+      onece_group_tuples.push_back(std::move(temp));
     }
     else
     {
@@ -3272,12 +3277,12 @@ bool TupleSet::print_two_table_group_by(std::ostream &os)
       //不相同就统计
       //统计
       //count_group_data(group_tuples, output);
-      count_two_table_group_data(group_tuples, output);
+      count_two_table_group_data(onece_group_tuples, output);
 
       //新的一组
-      group_tuples.clear();
-      group_tuples.resize(0);
-
+      onece_group_tuples.clear();
+      onece_group_tuples.resize(0);
+      onece_group_tuples.reserve(0);
       Tuple temp;
       const std::vector<std::shared_ptr<TupleValue>> &values_copy = item.values();
       for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values_copy.begin(), end = values_copy.end();
@@ -3285,16 +3290,16 @@ bool TupleSet::print_two_table_group_by(std::ostream &os)
       {
         temp.add(*iter);
       }
-      group_tuples.emplace_back(std::move(temp)); //
+      onece_group_tuples.push_back(std::move(temp)); //
       //新的分组条件
       sp_last = sp_cur;
     }
   } //end data
 
   //最后一个分组
-  if (group_tuples.size() > 0)
+  if (onece_group_tuples.size() > 0)
   {
-    count_two_table_group_data(group_tuples, output);
+    count_two_table_group_data(onece_group_tuples, output);
   }
   //步骤:输出
 

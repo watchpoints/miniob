@@ -24,6 +24,15 @@ See the Mulan PSL v2 for more details. */
 
 using namespace std;
 
+static int float_compare(float f1, float f2)
+{
+  float result = f1 - f2;
+  if (result < 1e-6 && result > -1e-6)
+  {
+    return 0;
+  }
+  return result > 0 ? 1 : -1;
+}
 static bool removeLastZero(char *numstr)
 {
   if (NULL == strchr(numstr, '.'))
@@ -202,10 +211,11 @@ public:
     }
 
     const FloatValue &float_other = (const FloatValue &)other;
+    /**
     float result = value_ - float_other.value_;
     std::cout << " >>> compare::FloatValue " << value_ << ":" << float_other.value_ << std::endl;
 
-    if (result > 0)
+    if (result > 0
     { // 浮点数没有考虑精度问题
       return 1;
     }
@@ -213,7 +223,10 @@ public:
     {
       return -1;
     }
-    return 0;
+
+    return 0;**/
+
+    return float_compare(value_, float_other.value_);
   }
 
   void to_string(std::ostream &os) const override
